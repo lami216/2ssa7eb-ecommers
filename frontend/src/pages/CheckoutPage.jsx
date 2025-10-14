@@ -15,11 +15,22 @@ const CheckoutPage = () => {
         const [whatsAppError, setWhatsAppError] = useState("");
 
         useEffect(() => {
-                if (cart.length === 0) {
+                const hasPendingWhatsAppRedirect = sessionStorage.getItem("whatsappOrderSent");
+
+                if (cart.length === 0 && !hasPendingWhatsAppRedirect) {
                         toast.error("سلتك فارغة، قم بإضافة منتجات أولاً");
                         navigate("/cart", { replace: true });
                 }
         }, [cart, navigate]);
+
+        useEffect(() => {
+                const shouldRedirect = sessionStorage.getItem("whatsappOrderSent");
+
+                if (shouldRedirect) {
+                        sessionStorage.removeItem("whatsappOrderSent");
+                        navigate("/purchase-success", { replace: true });
+                }
+        }, [navigate]);
 
         const normalizedWhatsAppNumber = whatsAppNumber.replace(/\D/g, "");
         const isWhatsAppValid = /^\d{8}$/.test(normalizedWhatsAppNumber);
@@ -123,25 +134,32 @@ const CheckoutPage = () => {
                 }
                 const url = `https://api.whatsapp.com/send?${params.toString()}`;
 
+                const handleSuccessfulOrder = async (shouldNavigateToSuccess) => {
+                        sessionStorage.setItem("whatsappOrderSent", "true");
+                        await clearCart();
+
+                        if (shouldNavigateToSuccess) {
+                                navigate("/purchase-success", { replace: true });
+                        }
+                };
+
                 const newWindow = window.open(url, "_blank", "noopener,noreferrer");
 
                 if (newWindow) {
-                        await clearCart();
-                        navigate("/purchase-success", { replace: true });
+                        await handleSuccessfulOrder(true);
                         return;
                 }
 
-                if (!newWindow) {
-                        try {
-                                if (navigator.clipboard?.writeText) {
-                                        await navigator.clipboard.writeText(url);
-                                        toast.success(
-                                                "تم نسخ رابط الطلب بنجاح. افتح واتساب وألصق الرابط لإرسال الطلب."
-                                        );
-                                } else {
-                                        throw new Error("Clipboard API unavailable");
-                                }
-                        } catch (error) {
+                try {
+                        await handleSuccessfulOrder(false);
+                        window.location.href = url;
+                } catch (error) {
+                        if (navigator.clipboard?.writeText) {
+                                await navigator.clipboard.writeText(url);
+                                toast.success(
+                                        "تم نسخ رابط الطلب بنجاح. افتح واتساب وألصق الرابط لإرسال الطلب."
+                                );
+                        } else {
                                 toast.error(
                                         "تعذر فتح أو نسخ رابط واتساب تلقائيًا. يرجى السماح بفتح النوافذ المنبثقة والمحاولة مجددًا."
                                 );
