@@ -18,17 +18,25 @@ import PurchaseCancelPage from "./pages/PurchaseCancelPage";
 import CheckoutPage from "./pages/CheckoutPage";
 
 function App() {
-	const { user, checkAuth, checkingAuth } = useUserStore();
-	const { getCartItems } = useCartStore();
-	useEffect(() => {
-		checkAuth();
-	}, [checkAuth]);
+        const user = useUserStore((state) => state.user);
+        const checkAuth = useUserStore((state) => state.checkAuth);
+        const checkingAuth = useUserStore((state) => state.checkingAuth);
+        const initializeCart = useCartStore((state) => state.initializeCart);
+        const getCartItems = useCartStore((state) => state.getCartItems);
 
-	useEffect(() => {
-		if (!user) return;
+        useEffect(() => {
+                checkAuth();
+        }, [checkAuth]);
 
-		getCartItems();
-	}, [getCartItems, user]);
+        useEffect(() => {
+                initializeCart();
+        }, [initializeCart]);
+
+        useEffect(() => {
+                if (!user) return;
+
+                getCartItems();
+        }, [getCartItems, user]);
 
 	if (checkingAuth) return <LoadingSpinner />;
 
@@ -52,13 +60,10 @@ function App() {
 						element={user?.role === "admin" ? <AdminPage /> : <Navigate to='/login' />}
 					/>
 					<Route path='/category/:category' element={<CategoryPage />} />
-                                        <Route path='/cart' element={user ? <CartPage /> : <Navigate to='/login' />} />
-                                        <Route path='/checkout' element={user ? <CheckoutPage /> : <Navigate to='/login' />} />
-					<Route
-						path='/purchase-success'
-						element={user ? <PurchaseSuccessPage /> : <Navigate to='/login' />}
-					/>
-					<Route path='/purchase-cancel' element={user ? <PurchaseCancelPage /> : <Navigate to='/login' />} />
+                                        <Route path='/cart' element={<CartPage />} />
+                                        <Route path='/checkout' element={<CheckoutPage />} />
+                                        <Route path='/purchase-success' element={<PurchaseSuccessPage />} />
+                                        <Route path='/purchase-cancel' element={<PurchaseCancelPage />} />
 				</Routes>
 			</div>
 			<Toaster />

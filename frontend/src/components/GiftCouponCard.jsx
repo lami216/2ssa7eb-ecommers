@@ -1,28 +1,39 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 import { useCartStore } from "../stores/useCartStore";
+import { useUserStore } from "../stores/useUserStore";
 
 const GiftCouponCard = () => {
-	const [userInputCode, setUserInputCode] = useState("");
-	const { coupon, isCouponApplied, applyCoupon, getMyCoupon, removeCoupon } = useCartStore();
+        const [userInputCode, setUserInputCode] = useState("");
+        const user = useUserStore((state) => state.user);
+        const { coupon, isCouponApplied, applyCoupon, getMyCoupon, removeCoupon } = useCartStore();
 
-	useEffect(() => {
-		getMyCoupon();
-	}, [getMyCoupon]);
+        useEffect(() => {
+                if (!user) return;
+
+                getMyCoupon();
+        }, [getMyCoupon, user]);
 
 	useEffect(() => {
 		if (coupon) setUserInputCode(coupon.code);
 	}, [coupon]);
 
 	const handleApplyCoupon = () => {
-		if (!userInputCode) return;
-		applyCoupon(userInputCode);
-	};
+                if (!userInputCode) return;
 
-	const handleRemoveCoupon = async () => {
-		await removeCoupon();
-		setUserInputCode("");
-	};
+                if (!user) {
+                        toast.error("قم بتسجيل الدخول لتفعيل كوبون الخصم");
+                        return;
+                }
+
+                applyCoupon(userInputCode);
+        };
+
+        const handleRemoveCoupon = async () => {
+                await removeCoupon();
+                setUserInputCode("");
+        };
 
 	return (
 		<motion.div
