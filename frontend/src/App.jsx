@@ -5,6 +5,7 @@ import SignUpPage from "./pages/SignUpPage";
 import LoginPage from "./pages/LoginPage";
 import AdminPage from "./pages/AdminPage";
 import CategoryPage from "./pages/CategoryPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
 
 import Navbar from "./components/Navbar";
 import { Toaster } from "react-hot-toast";
@@ -52,7 +53,8 @@ function App() {
 						path='/secret-dashboard'
 						element={user?.role === "admin" ? <AdminPage /> : <Navigate to='/login' />}
 					/>
-					<Route path='/category/:category' element={<CategoryPage />} />
+                                        <Route path='/category/:category' element={<CategoryPage />} />
+                                        <Route path='/products/:id' element={<ProductDetailPage />} />
                                         <Route path='/cart' element={<CartPage />} />
                                         <Route path='/checkout' element={<CheckoutPage />} />
                                         <Route path='/purchase-success' element={<PurchaseSuccessPage />} />

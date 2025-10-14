@@ -15,10 +15,31 @@ const productSchema = new mongoose.Schema(
 			min: 0,
 			required: true,
 		},
-		image: {
-			type: String,
-			required: [true, "Image is required"],
-		},
+                image: {
+                        type: String,
+                        required: [true, "Image is required"],
+                },
+                images: {
+                        type: [
+                                {
+                                        url: {
+                                                type: String,
+                                                required: true,
+                                        },
+                                        public_id: {
+                                                type: String,
+                                                required: true,
+                                        },
+                                },
+                        ],
+                        default: [],
+                        validate: {
+                                validator(images) {
+                                        return images.length <= 3;
+                                },
+                                message: "A product can have up to 3 images only",
+                        },
+                },
 		category: {
 			type: String,
 			required: true,

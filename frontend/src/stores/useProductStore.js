@@ -2,78 +2,128 @@ import { create } from "zustand";
 import toast from "react-hot-toast";
 import apiClient from "../lib/apiClient";
 
-export const useProductStore = create((set) => ({
-	products: [],
-	loading: false,
+export const useProductStore = create((set, get) => ({
+        products: [],
+        selectedProduct: null,
+        loading: false,
+        productDetailsLoading: false,
 
-	setProducts: (products) => set({ products }),
-	createProduct: async (productData) => {
-		set({ loading: true });
-		try {
+        setProducts: (products) => {
+                const currentSelected = get().selectedProduct;
+                const nextSelected = currentSelected
+                        ? products.find((product) => product._id === currentSelected._id) || currentSelected
+                        : null;
+                set({ products, selectedProduct: nextSelected });
+        },
+        setSelectedProduct: (product) => set({ selectedProduct: product }),
+        clearSelectedProduct: () => set({ selectedProduct: null }),
+        createProduct: async (productData) => {
+                set({ loading: true });
+                try {
                         const data = await apiClient.post("/products", productData);
                         set((prevState) => ({
                                 products: [...prevState.products, data],
                                 loading: false,
                         }));
+                        return data;
                 } catch (error) {
-                        toast.error(error.response?.data?.error || "Failed to create product");
+                        toast.error(error.response?.data?.message || "Failed to create product");
                         set({ loading: false });
+                        throw error;
                 }
         },
         fetchAllProducts: async () => {
                 set({ loading: true });
                 try {
                         const data = await apiClient.get("/products");
-                        set({ products: data.products, loading: false });
+                        get().setProducts(data.products);
+                        set({ loading: false });
                 } catch (error) {
                         set({ error: "Failed to fetch products", loading: false });
-                        toast.error(error.response?.data?.error || "Failed to fetch products");
+                        toast.error(error.response?.data?.message || "Failed to fetch products");
                 }
         },
         fetchProductsByCategory: async (category) => {
                 set({ loading: true });
                 try {
                         const data = await apiClient.get(`/products/category/${category}`);
-                        set({ products: data.products, loading: false });
+                        get().setProducts(data.products);
+                        set({ loading: false });
                 } catch (error) {
                         set({ error: "Failed to fetch products", loading: false });
-                        toast.error(error.response?.data?.error || "Failed to fetch products");
+                        toast.error(error.response?.data?.message || "Failed to fetch products");
+                }
+        },
+        fetchProductById: async (productId) => {
+                const existingProduct = get().products.find((product) => product._id === productId);
+                if (existingProduct) {
+                        set({ selectedProduct: existingProduct });
+                        return existingProduct;
+                }
+
+                set({ productDetailsLoading: true });
+
+                try {
+                        const data = await apiClient.get(`/products/${productId}`);
+                        set((prevState) => {
+                                const alreadyInList = prevState.products.some((product) => product._id === data._id);
+                                return {
+                                        products: alreadyInList
+                                                ? prevState.products.map((product) =>
+                                                          product._id === data._id ? data : product
+                                                  )
+                                                : [...prevState.products, data],
+                                        selectedProduct: data,
+                                        productDetailsLoading: false,
+                                };
+                        });
+                        return data;
+                } catch (error) {
+                        set({ productDetailsLoading: false });
+                        toast.error(error.response?.data?.message || "Failed to load product");
+                        throw error;
                 }
         },
         deleteProduct: async (productId) => {
                 set({ loading: true });
                 try {
                         await apiClient.delete(`/products/${productId}`);
-                        set((prevProducts) => ({
-                                products: prevProducts.products.filter((product) => product._id !== productId),
+                        set((prevState) => ({
+                                products: prevState.products.filter((product) => product._id !== productId),
+                                selectedProduct:
+                                        prevState.selectedProduct?._id === productId ? null : prevState.selectedProduct,
                                 loading: false,
                         }));
                 } catch (error) {
                         set({ loading: false });
-                        toast.error(error.response?.data?.error || "Failed to delete product");
+                        toast.error(error.response?.data?.message || "Failed to delete product");
                 }
         },
         toggleFeaturedProduct: async (productId) => {
                 set({ loading: true });
                 try {
                         const data = await apiClient.patch(`/products/${productId}`);
-                        // this will update the isFeatured prop of the product
-                        set((prevProducts) => ({
-                                products: prevProducts.products.map((product) =>
+                        set((prevState) => ({
+                                products: prevState.products.map((product) =>
                                         product._id === productId ? { ...product, isFeatured: data.isFeatured } : product
                                 ),
+                                selectedProduct:
+                                        prevState.selectedProduct?._id === productId
+                                                ? { ...prevState.selectedProduct, isFeatured: data.isFeatured }
+                                                : prevState.selectedProduct,
                                 loading: false,
                         }));
                 } catch (error) {
                         set({ loading: false });
-                        toast.error(error.response?.data?.error || "Failed to update product");
+                        toast.error(error.response?.data?.message || "Failed to update product");
                 }
         },
         fetchFeaturedProducts: async () => {
                 set({ loading: true });
                 try {
                         const data = await apiClient.get("/products/featured");
-                        set({ products: data, loading: false });
+                        get().setProducts(data);
+                        set({ loading: false });
                 } catch (error) {
                         set({ error: "Failed to fetch products", loading: false });
                         console.log("Error fetching featured products:", error);
