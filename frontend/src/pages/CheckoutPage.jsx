@@ -3,15 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 import { useCartStore } from "../stores/useCartStore";
+import { formatMRU } from "../lib/formatMRU";
 
-const formatCurrency = (value) =>
-        new Intl.NumberFormat("ar-EG", {
-                style: "currency",
-                currency: "USD",
-        }).format(value);
+const formatNumberEn = (value) => Number(value).toLocaleString("en-US");
 
 const CheckoutPage = () => {
-        const { cart, total, subtotal, coupon, isCouponApplied } = useCartStore();
+        const { cart, total, subtotal, coupon, isCouponApplied, clearCart } = useCartStore();
         const navigate = useNavigate();
         const [customerName, setCustomerName] = useState("");
         const [whatsAppNumber, setWhatsAppNumber] = useState("");
@@ -26,7 +23,7 @@ const CheckoutPage = () => {
         }, [cart, navigate]);
 
         const normalizedWhatsAppNumber = whatsAppNumber.replace(/\D/g, "");
-        const isWhatsAppValid = /^\d{10,15}$/.test(normalizedWhatsAppNumber);
+        const isWhatsAppValid = /^\d{8}$/.test(normalizedWhatsAppNumber);
         const isFormValid =
                 customerName.trim() !== "" &&
                 address.trim() !== "" &&
@@ -44,8 +41,8 @@ const CheckoutPage = () => {
                         return;
                 }
 
-                if (!/^\d{10,15}$/.test(digitsOnly)) {
-                        setWhatsAppError("الرجاء إدخال رقم واتساب صحيح مكوّن من 10 إلى 15 رقمًا");
+                if (!/^\d{8}$/.test(digitsOnly)) {
+                        setWhatsAppError("الرجاء إدخال رقم واتساب صحيح مكوّن من 8 أرقام");
                 } else {
                         setWhatsAppError("");
                 }
@@ -55,7 +52,9 @@ const CheckoutPage = () => {
                 () =>
                         cart.map((item, index) => {
                                 const lineTotal = item.price * item.quantity;
-                                return `${index + 1}. ${item.name} × ${item.quantity} = ${formatCurrency(lineTotal)}`;
+                                const productIndex = formatNumberEn(index + 1);
+                                const quantity = formatNumberEn(item.quantity);
+                                return `${productIndex}. ${item.name} × ${quantity} = ${formatMRU(lineTotal)}`;
                         }),
                 [cart]
         );
@@ -70,9 +69,9 @@ const CheckoutPage = () => {
                         return;
                 }
 
-                if (!/^\d{10,15}$/.test(normalizedWhatsAppNumber)) {
-                        setWhatsAppError("الرجاء إدخال رقم واتساب صحيح مكوّن من 10 إلى 15 رقمًا");
-                        toast.error("رقم الواتساب غير صحيح، تأكد أنه يحتوي على 10 إلى 15 رقمًا");
+                if (!/^\d{8}$/.test(normalizedWhatsAppNumber)) {
+                        setWhatsAppError("الرجاء إدخال رقم واتساب صحيح مكوّن من 8 أرقام");
+                        toast.error("رقم الواتساب غير صحيح، تأكد أنه يحتوي على 8 أرقام");
                         return;
                 }
 
@@ -98,14 +97,15 @@ const CheckoutPage = () => {
                 }
 
                 if (coupon && isCouponApplied) {
-                        messageLines.push("", `الكوبون المستخدم: ${coupon.code} (${coupon.discountPercentage}% خصم)`);
+                        const discountPercentage = formatNumberEn(coupon.discountPercentage);
+                        messageLines.push("", `الكوبون المستخدم: ${coupon.code} (${discountPercentage}% خصم)`);
                 }
 
                 if (savings > 0) {
-                        messageLines.push("", `قيمة التوفير: ${formatCurrency(savings)}`);
+                        messageLines.push("", `قيمة التوفير: ${formatMRU(savings)}`);
                 }
 
-                messageLines.push("", `الإجمالي المستحق: ${formatCurrency(total)}`);
+                messageLines.push("", `الإجمالي المستحق: ${formatMRU(total)}`);
                 messageLines.push("", "شكراً لتسوقك من متجر الصاحب!");
 
                 const DEFAULT_STORE_WHATSAPP_NUMBER = "22241380130";
@@ -115,10 +115,19 @@ const CheckoutPage = () => {
                                 ? envStoreNumber
                                 : DEFAULT_STORE_WHATSAPP_NUMBER;
                 const normalizedStoreNumber = storeNumber ? storeNumber.replace(/[^0-9]/g, "") : "";
-                const baseUrl = normalizedStoreNumber ? `https://wa.me/${normalizedStoreNumber}` : "https://wa.me/";
-                const url = `${baseUrl}?text=${encodeURIComponent(messageLines.join("\n"))}`;
+                const params = new URLSearchParams({ text: messageLines.join("\n") });
+                if (normalizedStoreNumber) {
+                        params.set("phone", normalizedStoreNumber);
+                }
+                const url = `https://api.whatsapp.com/send?${params.toString()}`;
 
                 const newWindow = window.open(url, "_blank", "noopener,noreferrer");
+
+                if (newWindow) {
+                        await clearCart();
+                        navigate("/purchase-success", { replace: true });
+                        return;
+                }
 
                 if (!newWindow) {
                         try {
@@ -178,7 +187,7 @@ const CheckoutPage = () => {
                                                                 value={whatsAppNumber}
                                                                 onChange={handleWhatsAppChange}
                                                                 className='w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500'
-                                                                placeholder='مثال: 9665xxxxxxx'
+                                                                placeholder='مثال: 443322**'
                                                                 required
                                                         />
                                                         {whatsAppError && (
@@ -225,7 +234,7 @@ const CheckoutPage = () => {
                                                         <li key={item._id} className='flex justify-between gap-4'>
                                                                 <span className='font-medium text-white'>{item.name}</span>
                                                                 <span>
-                                                                        {item.quantity} × {formatCurrency(item.price)}
+                                                                        {formatNumberEn(item.quantity)} × {formatMRU(item.price)}
                                                                 </span>
                                                         </li>
                                                 ))}
@@ -234,17 +243,17 @@ const CheckoutPage = () => {
                                         <div className='mt-6 space-y-2 border-t border-gray-700 pt-4 text-sm text-gray-300'>
                                                 <div className='flex justify-between'>
                                                         <span>الإجمالي الفرعي</span>
-                                                        <span>{formatCurrency(subtotal)}</span>
+                                                        <span>{formatMRU(subtotal)}</span>
                                                 </div>
                                                 {savings > 0 && (
                                                         <div className='flex justify-between text-emerald-400'>
                                                                 <span>التوفير</span>
-                                                                <span>-{formatCurrency(savings)}</span>
+                                                                <span>-{formatMRU(savings)}</span>
                                                         </div>
                                                 )}
                                                 <div className='flex justify-between text-base font-semibold text-white'>
                                                         <span>الإجمالي</span>
-                                                        <span>{formatCurrency(total)}</span>
+                                                        <span>{formatMRU(total)}</span>
                                                 </div>
                                         </div>
 

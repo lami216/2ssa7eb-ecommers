@@ -2,18 +2,17 @@ import { motion } from "framer-motion";
 import { useCartStore } from "../stores/useCartStore";
 import { Link, useNavigate } from "react-router-dom";
 import { MoveRight } from "lucide-react";
-
-const formatCurrency = (value) =>
-        new Intl.NumberFormat("ar-EG", {
-                style: "currency",
-                currency: "USD",
-        }).format(value);
+import { formatMRU } from "../lib/formatMRU";
 
 const OrderSummary = () => {
         const { total, subtotal, coupon, isCouponApplied } = useCartStore();
         const navigate = useNavigate();
 
         const savings = subtotal - total;
+        const formattedDiscount =
+                coupon?.discountPercentage !== undefined && coupon?.discountPercentage !== null
+                        ? Number(coupon.discountPercentage).toLocaleString("en-US")
+                        : null;
         const handleCheckout = () => {
                 navigate("/checkout");
         };
@@ -32,7 +31,7 @@ const OrderSummary = () => {
 					<dl className='flex items-center justify-between gap-4'>
                                                 <dt className='text-base font-normal text-gray-300'>السعر قبل الخصم</dt>
                                                 <dd className='text-base font-medium text-white'>
-                                                        {formatCurrency(subtotal)}
+                                                        {formatMRU(subtotal)}
                                                 </dd>
 					</dl>
 
@@ -40,23 +39,25 @@ const OrderSummary = () => {
 						<dl className='flex items-center justify-between gap-4'>
                                                         <dt className='text-base font-normal text-gray-300'>التوفير</dt>
                                                         <dd className='text-base font-medium text-emerald-400'>
-                                                                -{formatCurrency(savings)}
+                                                                -{formatMRU(savings)}
                                                         </dd>
-						</dl>
-					)}
+                                                </dl>
+                                        )}
 
-					{coupon && isCouponApplied && (
-						<dl className='flex items-center justify-between gap-4'>
+                                        {coupon && isCouponApplied && (
+                                                <dl className='flex items-center justify-between gap-4'>
                                                         <dt className='text-base font-normal text-gray-300'>الكوبون ({coupon.code})</dt>
-                                                        <dd className='text-base font-medium text-emerald-400'>-{coupon.discountPercentage}%</dd>
-						</dl>
-					)}
-					<dl className='flex items-center justify-between gap-4 border-t border-gray-600 pt-2'>
+                                                        <dd className='text-base font-medium text-emerald-400'>
+                                                                -{formattedDiscount ?? coupon.discountPercentage}%
+                                                        </dd>
+                                                </dl>
+                                        )}
+                                        <dl className='flex items-center justify-between gap-4 border-t border-gray-600 pt-2'>
                                                 <dt className='text-base font-bold text-white'>الإجمالي</dt>
                                                 <dd className='text-base font-bold text-emerald-400'>
-                                                        {formatCurrency(total)}
+                                                        {formatMRU(total)}
                                                 </dd>
-					</dl>
+                                        </dl>
 				</div>
 
                                 <motion.button
