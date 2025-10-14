@@ -1,20 +1,9 @@
-import toast from "react-hot-toast";
 import { ShoppingCart } from "lucide-react";
-import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
 import { formatMRU } from "../lib/formatMRU";
 
 const ProductCard = ({ product }) => {
-        const { user } = useUserStore();
         const { addToCart } = useCartStore();
-        const handleAddToCart = () => {
-                if (!user) {
-                        toast.error("Please login to add products to cart", { id: "login" });
-                        return;
-                } else {
-                        addToCart(product);
-                }
-        };
 
         return (
                 <div className='relative flex w-full flex-col overflow-hidden rounded-xl border border-payzone-indigo/30 bg-white/5 shadow-lg transition-all duration-300 hover:border-payzone-gold/60 hover:shadow-xl'>
@@ -32,7 +21,7 @@ const ProductCard = ({ product }) => {
                                 </div>
                                 <button
                                         className='flex items-center justify-center gap-2 rounded-lg bg-payzone-gold px-5 py-2.5 text-sm font-medium text-payzone-navy transition-colors duration-300 hover:bg-[#b8873d] focus:outline-none focus:ring-4 focus:ring-payzone-indigo/40'
-                                        onClick={handleAddToCart}
+                                        onClick={() => addToCart(product)}
                                 >
                                         <ShoppingCart size={22} />
                                         Add to cart
