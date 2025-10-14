@@ -29,9 +29,11 @@ const Navbar = () => {
                         <div className='container mx-auto px-4 py-3'>
                                 <div className='flex flex-wrap items-center justify-between gap-4'>
                                         <Link to='/' className='flex items-center gap-3 text-payzone-white'>
-                                                <span className='flex h-10 w-10 items-center justify-center rounded-md bg-white/10 ring-1 ring-payzone-indigo/50'>
-                                                        <img src='/logo.png' alt='Payzone logo' className='h-6 w-6 object-contain' />
-                                                </span>
+                                                <img
+                                                        src='/logo.png'
+                                                        alt='Payzone logo'
+                                                        className='h-12 w-12 object-contain drop-shadow-[0_4px_12px_rgba(16,41,84,0.35)]'
+                                                />
                                                 <span className='text-2xl font-semibold uppercase tracking-wide'>payzone</span>
                                         </Link>
 
