@@ -1,15 +1,62 @@
 import { create } from "zustand";
 import { toast } from "react-hot-toast";
 import apiClient from "../lib/apiClient";
+import { useUserStore } from "./useUserStore";
+
+const LOCAL_CART_KEY = "guest_cart_items";
+
+const isBrowser = typeof window !== "undefined";
+
+const loadCartFromStorage = () => {
+        if (!isBrowser) return [];
+
+        try {
+                const storedCart = window.localStorage.getItem(LOCAL_CART_KEY);
+                if (!storedCart) return [];
+
+                const parsedCart = JSON.parse(storedCart);
+                if (!Array.isArray(parsedCart)) return [];
+
+                return parsedCart.map((item) => ({ ...item, quantity: item.quantity || 1 }));
+        } catch (error) {
+                console.error("Failed to load cart from storage", error);
+                return [];
+        }
+};
+
+const persistCartToStorage = (cart) => {
+        if (!isBrowser) return;
+
+        try {
+                window.localStorage.setItem(LOCAL_CART_KEY, JSON.stringify(cart));
+        } catch (error) {
+                console.error("Failed to persist cart to storage", error);
+        }
+};
+
+const getAuthenticatedUser = () => useUserStore.getState().user;
 
 export const useCartStore = create((set, get) => ({
-	cart: [],
-	coupon: null,
-	total: 0,
-	subtotal: 0,
-	isCouponApplied: false,
+        cart: loadCartFromStorage(),
+        coupon: null,
+        total: 0,
+        subtotal: 0,
+        isCouponApplied: false,
 
-	getMyCoupon: async () => {
+        initializeCart: () => {
+                const localCart = loadCartFromStorage();
+                set({ cart: localCart });
+                get().calculateTotals();
+        },
+
+        getMyCoupon: async () => {
+                const user = getAuthenticatedUser();
+
+                if (!user) {
+                        set({ coupon: null, isCouponApplied: false });
+                        return;
+                }
+
                 try {
                         const data = await apiClient.get("/coupons");
                         set({ coupon: data });
@@ -18,6 +65,13 @@ export const useCartStore = create((set, get) => ({
                 }
         },
         applyCoupon: async (code) => {
+                const user = getAuthenticatedUser();
+
+                if (!user) {
+                        toast.error("الرجاء تسجيل الدخول لاستخدام كوبون الخصم");
+                        return;
+                }
+
                 try {
                         const data = await apiClient.post("/coupons/validate", { code });
                         set({ coupon: data, isCouponApplied: true });
@@ -27,49 +81,87 @@ export const useCartStore = create((set, get) => ({
                         toast.error(error.response?.data?.message || "Failed to apply coupon");
                 }
         },
-	removeCoupon: () => {
-		set({ coupon: null, isCouponApplied: false });
-		get().calculateTotals();
-		toast.success("Coupon removed");
-	},
+        removeCoupon: () => {
+                set({ coupon: null, isCouponApplied: false });
+                get().calculateTotals();
+                toast.success("Coupon removed");
+        },
 
-	getCartItems: async () => {
+        getCartItems: async () => {
+                const user = getAuthenticatedUser();
+
+                if (!user) {
+                        const localCart = loadCartFromStorage();
+                        set({ cart: localCart });
+                        get().calculateTotals();
+                        return;
+                }
+
                 try {
                         const data = await apiClient.get("/cart");
                         set({ cart: data });
+                        persistCartToStorage(data);
                         get().calculateTotals();
                 } catch (error) {
-                        set({ cart: [] });
+                        const fallbackCart = loadCartFromStorage();
+                        set({ cart: fallbackCart });
                         toast.error(error.response?.data?.message || "An error occurred");
+                        get().calculateTotals();
                 }
         },
-	clearCart: async () => {
-		set({ cart: [], coupon: null, total: 0, subtotal: 0 });
-	},
-	addToCart: async (product) => {
+        clearCart: async () => {
+                persistCartToStorage([]);
+                set({ cart: [], coupon: null, total: 0, subtotal: 0, isCouponApplied: false });
+        },
+        addToCart: async (product) => {
+                const user = getAuthenticatedUser();
+
+                const updateLocalCart = () => {
+                        set((prevState) => {
+                                const existingItem = prevState.cart.find((item) => item._id === product._id);
+                                const newCart = existingItem
+                                        ? prevState.cart.map((item) =>
+                                                        item._id === product._id
+                                                                ? { ...item, quantity: item.quantity + 1 }
+                                                                : item
+                                          )
+                                        : [...prevState.cart, { ...product, quantity: 1 }];
+
+                                persistCartToStorage(newCart);
+                                return { cart: newCart };
+                        });
+                        get().calculateTotals();
+                };
+
+                if (!user) {
+                        updateLocalCart();
+                        toast.success("تمت إضافة المنتج إلى السلة");
+                        return;
+                }
+
                 try {
                         await apiClient.post("/cart", { productId: product._id });
                         toast.success("Product added to cart");
-
-			set((prevState) => {
-				const existingItem = prevState.cart.find((item) => item._id === product._id);
-				const newCart = existingItem
-					? prevState.cart.map((item) =>
-							item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
-					  )
-					: [...prevState.cart, { ...product, quantity: 1 }];
-				return { cart: newCart };
-			});
-			get().calculateTotals();
                 } catch (error) {
                         toast.error(error.response?.data?.message || "An error occurred");
                 }
-	},
-	removeFromCart: async (productId) => {
+
+                updateLocalCart();
+        },
+        removeFromCart: async (productId) => {
+                const user = getAuthenticatedUser();
+
+                set((prevState) => {
+                        const newCart = prevState.cart.filter((item) => item._id !== productId);
+                        persistCartToStorage(newCart);
+                        return { cart: newCart };
+                });
+                get().calculateTotals();
+
+                if (!user) return;
+
                 try {
                         await apiClient.delete(`/cart`, { body: { productId } });
-                        set((prevState) => ({ cart: prevState.cart.filter((item) => item._id !== productId) }));
-                        get().calculateTotals();
                 } catch (error) {
                         toast.error(error.response?.data?.message || "Failed to remove item");
                 }
@@ -80,28 +172,35 @@ export const useCartStore = create((set, get) => ({
                         return;
                 }
 
+                const user = getAuthenticatedUser();
+
+                set((prevState) => {
+                        const newCart = prevState.cart.map((item) =>
+                                item._id === productId ? { ...item, quantity } : item
+                        );
+                        persistCartToStorage(newCart);
+                        return { cart: newCart };
+                });
+                get().calculateTotals();
+
+                if (!user) return;
+
                 try {
                         await apiClient.put(`/cart/${productId}`, { quantity });
-                        set((prevState) => ({
-                                cart: prevState.cart.map((item) =>
-                                        item._id === productId ? { ...item, quantity } : item
-                                ),
-                        }));
-                        get().calculateTotals();
                 } catch (error) {
                         toast.error(error.response?.data?.message || "Failed to update quantity");
                 }
         },
-	calculateTotals: () => {
-		const { cart, coupon } = get();
-		const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-		let total = subtotal;
+        calculateTotals: () => {
+                const { cart, coupon } = get();
+                const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+                let total = subtotal;
 
-		if (coupon) {
-			const discount = subtotal * (coupon.discountPercentage / 100);
-			total = subtotal - discount;
-		}
+                if (coupon) {
+                        const discount = subtotal * (coupon.discountPercentage / 100);
+                        total = subtotal - discount;
+                }
 
-		set({ subtotal, total });
-	},
+                set({ subtotal, total });
+        },
 }));
