@@ -4,8 +4,7 @@ import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 import { useCartStore } from "../stores/useCartStore";
 import { formatMRU } from "../lib/formatMRU";
-
-const formatNumberEn = (value) => Number(value).toLocaleString("en-US");
+import { formatNumberEn } from "../lib/formatNumberEn";
 
 const CheckoutPage = () => {
         const { cart, total, subtotal, coupon, isCouponApplied, clearCart } = useCartStore();
@@ -114,7 +113,10 @@ const CheckoutPage = () => {
                         envStoreNumber && envStoreNumber.trim() !== ""
                                 ? envStoreNumber
                                 : DEFAULT_STORE_WHATSAPP_NUMBER;
-                const normalizedStoreNumber = storeNumber ? storeNumber.replace(/[^0-9]/g, "") : "";
+                let normalizedStoreNumber = storeNumber ? storeNumber.replace(/[^0-9]/g, "") : "";
+                if (normalizedStoreNumber.length === 8) {
+                        normalizedStoreNumber = `222${normalizedStoreNumber}`;
+                }
                 const params = new URLSearchParams({ text: messageLines.join("\n") });
                 if (normalizedStoreNumber) {
                         params.set("phone", normalizedStoreNumber);

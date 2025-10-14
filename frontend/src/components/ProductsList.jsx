@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Trash, Star } from "lucide-react";
 import { useProductStore } from "../stores/useProductStore";
+import { formatMRU } from "../lib/formatMRU";
 
 const ProductsList = () => {
 	const { deleteProduct, toggleFeaturedProduct, products } = useProductStore();
@@ -68,9 +69,9 @@ const ProductsList = () => {
 									</div>
 								</div>
 							</td>
-							<td className='px-6 py-4 whitespace-nowrap'>
-								<div className='text-sm text-gray-300'>${product.price.toFixed(2)}</div>
-							</td>
+                                                        <td className='px-6 py-4 whitespace-nowrap'>
+                                                                <div className='text-sm text-gray-300'>{formatMRU(product.price)}</div>
+                                                        </td>
 							<td className='px-6 py-4 whitespace-nowrap'>
 								<div className='text-sm text-gray-300'>{product.category}</div>
 							</td>

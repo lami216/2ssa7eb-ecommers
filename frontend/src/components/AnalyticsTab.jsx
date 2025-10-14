@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { Users, Package, ShoppingCart, DollarSign } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import apiClient from "../lib/apiClient";
+import { formatMRU } from "../lib/formatMRU";
+import { formatNumberEn } from "../lib/formatNumberEn";
 
 const AnalyticsTab = () => {
 	const [analyticsData, setAnalyticsData] = useState({
@@ -37,30 +39,30 @@ const AnalyticsTab = () => {
 	return (
 		<div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
 			<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
-				<AnalyticsCard
-					title='Total Users'
-					value={analyticsData.users.toLocaleString()}
-					icon={Users}
-					color='from-emerald-500 to-teal-700'
-				/>
-				<AnalyticsCard
-					title='Total Products'
-					value={analyticsData.products.toLocaleString()}
-					icon={Package}
-					color='from-emerald-500 to-green-700'
-				/>
-				<AnalyticsCard
-					title='Total Sales'
-					value={analyticsData.totalSales.toLocaleString()}
-					icon={ShoppingCart}
-					color='from-emerald-500 to-cyan-700'
-				/>
-				<AnalyticsCard
-					title='Total Revenue'
-					value={`$${analyticsData.totalRevenue.toLocaleString()}`}
-					icon={DollarSign}
-					color='from-emerald-500 to-lime-700'
-				/>
+                                <AnalyticsCard
+                                        title='Total Users'
+                                        value={formatNumberEn(analyticsData.users)}
+                                        icon={Users}
+                                        color='from-emerald-500 to-teal-700'
+                                />
+                                <AnalyticsCard
+                                        title='Total Products'
+                                        value={formatNumberEn(analyticsData.products)}
+                                        icon={Package}
+                                        color='from-emerald-500 to-green-700'
+                                />
+                                <AnalyticsCard
+                                        title='Total Sales'
+                                        value={formatNumberEn(analyticsData.totalSales)}
+                                        icon={ShoppingCart}
+                                        color='from-emerald-500 to-cyan-700'
+                                />
+                                <AnalyticsCard
+                                        title='Total Revenue'
+                                        value={formatMRU(analyticsData.totalRevenue)}
+                                        icon={DollarSign}
+                                        color='from-emerald-500 to-lime-700'
+                                />
 			</div>
 			<motion.div
 				className='bg-gray-800/60 rounded-lg p-6 shadow-lg'

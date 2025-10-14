@@ -1,5 +1,7 @@
 import { Minus, Plus, Trash } from "lucide-react";
 import { useCartStore } from "../stores/useCartStore";
+import { formatMRU } from "../lib/formatMRU";
+import { formatNumberEn } from "../lib/formatNumberEn";
 
 const CartItem = ({ item }) => {
 	const { removeFromCart, updateQuantity } = useCartStore();
@@ -22,7 +24,7 @@ const CartItem = ({ item }) => {
 						>
 							<Minus className='text-gray-300' />
 						</button>
-						<p>{item.quantity}</p>
+                                                <p>{formatNumberEn(item.quantity)}</p>
 						<button
 							className='inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border
 							 border-gray-600 bg-gray-700 hover:bg-gray-600 focus:outline-none 
@@ -34,7 +36,9 @@ const CartItem = ({ item }) => {
 					</div>
 
 					<div className='text-end md:order-4 md:w-32'>
-						<p className='text-base font-bold text-emerald-400'>${item.price}</p>
+                                                <p className='text-base font-bold text-emerald-400'>
+                                                        {formatMRU(item.price)}
+                                                </p>
 					</div>
 				</div>
 
