@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { PlusCircle, Upload, Loader } from "lucide-react";
+import { PlusCircle, Upload, Loader, Star, X } from "lucide-react";
+import toast from "react-hot-toast";
 import { useProductStore } from "../stores/useProductStore";
 
 const categories = ["clothes", "whatches", "shoes", "glasses", "perfumes", "jackets", "suits", "food"];
+
+const MAX_IMAGES = 3;
 
 const CreateProductForm = () => {
         const [newProduct, setNewProduct] = useState({
@@ -11,7 +14,8 @@ const CreateProductForm = () => {
                 description: "",
                 price: "",
                 category: "",
-                image: "",
+                images: [],
+                coverImageIndex: 0,
         });
 
         const { createProduct, loading } = useProductStore();
@@ -19,24 +23,114 @@ const CreateProductForm = () => {
         const handleSubmit = async (e) => {
                 e.preventDefault();
                 try {
-                        await createProduct(newProduct);
-                        setNewProduct({ name: "", description: "", price: "", category: "", image: "" });
+                        if (!newProduct.images.length) {
+                                toast.error("Please add at least one product image.");
+                                return;
+                        }
+
+                        const orderedImages = [...newProduct.images];
+
+                        if (orderedImages.length) {
+                                const [coverImage] = orderedImages.splice(newProduct.coverImageIndex, 1);
+                                orderedImages.unshift(coverImage);
+                        }
+
+                        const payload = {
+                                name: newProduct.name.trim(),
+                                description: newProduct.description.trim(),
+                                price: Number(newProduct.price),
+                                category: newProduct.category,
+                                images: orderedImages,
+                        };
+
+                        if (Number.isNaN(payload.price)) {
+                                toast.error("Please enter a valid price.");
+                                return;
+                        }
+
+                        await createProduct(payload);
+                        setNewProduct({
+                                name: "",
+                                description: "",
+                                price: "",
+                                category: "",
+                                images: [],
+                                coverImageIndex: 0,
+                        });
+                        toast.success("Product created successfully");
                 } catch {
                         console.log("error creating a product");
                 }
         };
 
-        const handleImageChange = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                        const reader = new FileReader();
+        const handleImagesChange = (e) => {
+                const input = e.target;
+                const files = Array.from(input.files || []);
+                if (!files.length) return;
 
-                        reader.onloadend = () => {
-                                setNewProduct({ ...newProduct, image: reader.result });
+                Promise.all(
+                        files.map(
+                                (file) =>
+                                        new Promise((resolve, reject) => {
+                                                const reader = new FileReader();
+                                                reader.onloadend = () => resolve(reader.result);
+                                                reader.onerror = reject;
+                                                reader.readAsDataURL(file);
+                                        })
+                        )
+                )
+                        .then((base64Images) => {
+                                setNewProduct((prev) => {
+                                        const remainingSlots = MAX_IMAGES - prev.images.length;
+
+                                        if (remainingSlots <= 0) {
+                                                toast.error(`You can upload up to ${MAX_IMAGES} images only.`);
+                                                return prev;
+                                        }
+
+                                        const acceptedImages = base64Images.slice(0, remainingSlots);
+
+                                        if (base64Images.length > remainingSlots) {
+                                                toast.error(`Only ${remainingSlots} more image(s) can be added.`);
+                                        }
+
+                                        const updatedImages = [...prev.images, ...acceptedImages];
+                                        const nextCoverIndex = prev.images.length === 0 ? 0 : prev.coverImageIndex;
+
+                                        return {
+                                                ...prev,
+                                                images: updatedImages,
+                                                coverImageIndex: Math.min(nextCoverIndex, updatedImages.length - 1),
+                                        };
+                                });
+                        })
+                        .catch(() => console.log("Failed to read images"))
+                        .finally(() => {
+                                input.value = "";
+                        });
+        };
+
+        const handleRemoveImage = (indexToRemove) => {
+                setNewProduct((prev) => {
+                        const updatedImages = prev.images.filter((_, index) => index !== indexToRemove);
+                        let nextCoverIndex = prev.coverImageIndex;
+
+                        if (indexToRemove === prev.coverImageIndex) {
+                                nextCoverIndex = 0;
+                        } else if (indexToRemove < prev.coverImageIndex) {
+                                nextCoverIndex = Math.max(prev.coverImageIndex - 1, 0);
+                        }
+
+                        return {
+                                ...prev,
+                                images: updatedImages,
+                                coverImageIndex: updatedImages.length ? nextCoverIndex : 0,
                         };
+                });
+        };
 
-                        reader.readAsDataURL(file);
-                }
+        const handleSetCover = (index) => {
+                setNewProduct((prev) => ({ ...prev, coverImageIndex: index }));
         };
 
         return (
@@ -117,21 +211,75 @@ const CreateProductForm = () => {
                                 </div>
 
                                 <div className='mt-1 flex items-center'>
-                                        <input type='file' id='image' className='sr-only' accept='image/*' onChange={handleImageChange} />
+                                        <input
+                                                type='file'
+                                                id='images'
+                                                className='sr-only'
+                                                accept='image/*'
+                                                multiple
+                                                onChange={handleImagesChange}
+                                                disabled={newProduct.images.length >= MAX_IMAGES}
+                                        />
                                         <label
-                                                htmlFor='image'
-                                                className='inline-flex cursor-pointer items-center rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-sm font-medium text-white transition duration-300 hover:border-payzone-gold hover:bg-payzone-navy/80 focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
+                                                htmlFor='images'
+                                                className={`inline-flex items-center rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-sm font-medium text-white transition duration-300 focus:outline-none focus:ring-2 focus:ring-payzone-indigo ${
+                                                        newProduct.images.length >= MAX_IMAGES
+                                                                ? "cursor-not-allowed opacity-60"
+                                                                : "cursor-pointer hover:border-payzone-gold hover:bg-payzone-navy/80"
+                                                }`}
+                                                aria-disabled={newProduct.images.length >= MAX_IMAGES}
                                         >
                                                 <Upload className='mr-2 h-5 w-5' />
-                                                Upload Image
+                                                Upload Images
                                         </label>
-                                        {newProduct.image && <span className='ml-3 text-sm text-white/60'>Image uploaded</span>}
+                                        <span className='ml-3 text-sm text-white/60'>
+                                                {newProduct.images.length} / {MAX_IMAGES} images selected
+                                        </span>
                                 </div>
+
+                                {newProduct.images.length > 0 && (
+                                        <div className='grid grid-cols-2 gap-4 sm:grid-cols-3'>
+                                                {newProduct.images.map((image, index) => {
+                                                        const isCover = index === newProduct.coverImageIndex;
+                                                        return (
+                                                                <div
+                                                                        key={`${image}-${index}`}
+                                                                        className={`relative overflow-hidden rounded-lg border ${
+                                                                                isCover ? "border-payzone-gold" : "border-payzone-indigo/40"
+                                                                        } bg-payzone-navy/60`}
+                                                                >
+                                                                        <img src={image} alt={`Preview ${index + 1}`} className='h-32 w-full object-cover' />
+                                                                        <div className='absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/60 px-2 py-1 text-xs text-white'>
+                                                                                <button
+                                                                                        type='button'
+                                                                                        onClick={() => handleSetCover(index)}
+                                                                                        className={`inline-flex items-center gap-1 ${
+                                                                                                isCover ? "text-payzone-gold" : "text-white"
+                                                                                        }`}
+                                                                                >
+                                                                                        <Star className='h-3 w-3' />
+                                                                                        {isCover ? "Cover" : "Set as cover"}
+                                                                                </button>
+                                                                                <button
+                                                                                        type='button'
+                                                                                        onClick={() => handleRemoveImage(index)}
+                                                                                        className='inline-flex items-center text-red-300 hover:text-red-200'
+                                                                                        aria-label='Remove image'
+                                                                                >
+                                                                                        <X className='h-3 w-3' />
+                                                                                        Remove
+                                                                                </button>
+                                                                        </div>
+                                                                </div>
+                                                        );
+                                                })}
+                                        </div>
+                                )}
 
                                 <button
                                         type='submit'
                                         className='flex w-full items-center justify-center gap-2 rounded-md bg-payzone-gold px-4 py-2 text-sm font-semibold text-payzone-navy transition duration-300 hover:bg-[#b8873d] focus:outline-none focus:ring-2 focus:ring-payzone-indigo/60 disabled:opacity-50'
-                                        disabled={loading}
+                                        disabled={loading || newProduct.images.length === 0}
                                 >
                                         {loading ? (
                                                 <>
