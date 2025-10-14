@@ -17,19 +17,19 @@ const OrderSummary = () => {
                 navigate("/checkout");
         };
 
-	return (
-		<motion.div
-			className='space-y-4 rounded-lg border border-gray-700 bg-gray-800 p-4 shadow-sm sm:p-6'
-			initial={{ opacity: 0, y: 20 }}
-			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.5 }}
-		>
-                        <p className='text-xl font-semibold text-emerald-400'>ملخص الطلب</p>
+        return (
+                <motion.div
+                        className='space-y-4 rounded-lg border border-payzone-indigo/40 bg-white/5 p-4 shadow-sm backdrop-blur-sm sm:p-6'
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                >
+                        <p className='text-xl font-semibold text-payzone-gold'>ملخص الطلب</p>
 
 			<div className='space-y-4'>
 				<div className='space-y-2'>
 					<dl className='flex items-center justify-between gap-4'>
-                                                <dt className='text-base font-normal text-gray-300'>السعر قبل الخصم</dt>
+                                                <dt className='text-base font-normal text-white/70'>السعر قبل الخصم</dt>
                                                 <dd className='text-base font-medium text-white'>
                                                         {formatMRU(subtotal)}
                                                 </dd>
@@ -37,8 +37,8 @@ const OrderSummary = () => {
 
 					{savings > 0 && (
 						<dl className='flex items-center justify-between gap-4'>
-                                                        <dt className='text-base font-normal text-gray-300'>التوفير</dt>
-                                                        <dd className='text-base font-medium text-emerald-400'>
+                                                        <dt className='text-base font-normal text-white/70'>التوفير</dt>
+                                                        <dd className='text-base font-medium text-payzone-gold'>
                                                                 -{formatMRU(savings)}
                                                         </dd>
                                                 </dl>
@@ -46,15 +46,15 @@ const OrderSummary = () => {
 
                                         {coupon && isCouponApplied && (
                                                 <dl className='flex items-center justify-between gap-4'>
-                                                        <dt className='text-base font-normal text-gray-300'>الكوبون ({coupon.code})</dt>
-                                                        <dd className='text-base font-medium text-emerald-400'>
+                                                        <dt className='text-base font-normal text-white/70'>الكوبون ({coupon.code})</dt>
+                                                        <dd className='text-base font-medium text-payzone-gold'>
                                                                 -{formattedDiscount ?? coupon.discountPercentage}%
                                                         </dd>
                                                 </dl>
                                         )}
-                                        <dl className='flex items-center justify-between gap-4 border-t border-gray-600 pt-2'>
+                                        <dl className='flex items-center justify-between gap-4 border-t border-white/10 pt-2'>
                                                 <dt className='text-base font-bold text-white'>الإجمالي</dt>
-                                                <dd className='text-base font-bold text-emerald-400'>
+                                                <dd className='text-base font-bold text-payzone-gold'>
                                                         {formatMRU(total)}
                                                 </dd>
                                         </dl>
@@ -62,7 +62,7 @@ const OrderSummary = () => {
 
                                 <motion.button
                                         type='button'
-                                        className='flex w-full items-center justify-center rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300'
+                                        className='flex w-full items-center justify-center rounded-lg bg-payzone-gold px-5 py-2.5 text-sm font-semibold text-payzone-navy transition-colors duration-300 hover:bg-[#b8873d] focus:outline-none focus:ring-4 focus:ring-payzone-indigo/40'
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
                                         onClick={handleCheckout}
@@ -71,10 +71,10 @@ const OrderSummary = () => {
                                 </motion.button>
 
                                 <div className='flex items-center justify-center gap-2'>
-                                        <span className='text-sm font-normal text-gray-400'>أو</span>
+                                        <span className='text-sm font-normal text-white/60'>أو</span>
                                         <Link
                                                 to='/'
-                                                className='inline-flex items-center gap-2 text-sm font-medium text-emerald-400 underline hover:text-emerald-300 hover:no-underline'
+                                                className='inline-flex items-center gap-2 text-sm font-medium text-payzone-indigo underline transition-colors duration-300 hover:text-payzone-gold hover:no-underline'
                                         >
                                                 متابعة التسوق
                                                 <MoveRight size={16} />

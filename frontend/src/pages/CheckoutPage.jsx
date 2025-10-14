@@ -34,11 +34,7 @@ const CheckoutPage = () => {
 
         const normalizedWhatsAppNumber = whatsAppNumber.replace(/\D/g, "");
         const isWhatsAppValid = /^\d{8}$/.test(normalizedWhatsAppNumber);
-        const isFormValid =
-                customerName.trim() !== "" &&
-                address.trim() !== "" &&
-                cart.length > 0 &&
-                isWhatsAppValid;
+        const isFormValid = customerName.trim() !== "" && address.trim() !== "" && cart.length > 0 && isWhatsAppValid;
 
         const handleWhatsAppChange = (event) => {
                 const value = event.target.value;
@@ -116,76 +112,39 @@ const CheckoutPage = () => {
                 }
 
                 messageLines.push("", `الإجمالي المستحق: ${formatMRU(total)}`);
-                messageLines.push("", "شكراً لتسوقك من متجر الصاحب!");
+                messageLines.push("", "شكراً لتسوقك من Payzone!");
 
-                const DEFAULT_STORE_WHATSAPP_NUMBER = "22241380130";
+                const DEFAULT_STORE_WHATSAPP_NUMBER = "22231117700";
                 const envStoreNumber = import.meta.env.VITE_STORE_WHATSAPP_NUMBER;
-                const storeNumber =
-                        envStoreNumber && envStoreNumber.trim() !== ""
-                                ? envStoreNumber
-                                : DEFAULT_STORE_WHATSAPP_NUMBER;
-                let normalizedStoreNumber = storeNumber ? storeNumber.replace(/[^0-9]/g, "") : "";
-                if (normalizedStoreNumber.length === 8) {
-                        normalizedStoreNumber = `222${normalizedStoreNumber}`;
-                }
-                const params = new URLSearchParams({ text: messageLines.join("\n") });
-                if (normalizedStoreNumber) {
-                        params.set("phone", normalizedStoreNumber);
-                }
-                const url = `https://api.whatsapp.com/send?${params.toString()}`;
+                const storeNumber = envStoreNumber?.replace(/\D/g, "") || DEFAULT_STORE_WHATSAPP_NUMBER;
 
-                const handleSuccessfulOrder = async (shouldNavigateToSuccess) => {
-                        sessionStorage.setItem("whatsappOrderSent", "true");
-                        await clearCart();
-
-                        if (shouldNavigateToSuccess) {
-                                navigate("/purchase-success", { replace: true });
-                        }
-                };
-
-                const newWindow = window.open(url, "_blank", "noopener,noreferrer");
-
-                if (newWindow) {
-                        await handleSuccessfulOrder(true);
-                        return;
-                }
+                const whatsappURL = new URL("https://wa.me/" + storeNumber);
+                whatsappURL.searchParams.set("text", messageLines.join("\n"));
 
                 try {
-                        await handleSuccessfulOrder(false);
-                        window.location.href = url;
+                        window.open(whatsappURL.toString(), "_blank");
+                        sessionStorage.setItem("whatsappOrderSent", "true");
+                        clearCart();
+                        navigate("/purchase-success");
                 } catch (error) {
                         console.error("Unable to automatically open WhatsApp order", error);
-
-                        if (navigator.clipboard?.writeText) {
-                                await navigator.clipboard.writeText(url);
-                                toast.success(
-                                        "تم نسخ رابط الطلب بنجاح. افتح واتساب وألصق الرابط لإرسال الطلب."
-                                );
-                        } else {
-                                toast.error(
-                                        "تعذر فتح أو نسخ رابط واتساب تلقائيًا. يرجى السماح بفتح النوافذ المنبثقة والمحاولة مجددًا."
-                                );
-                        }
+                        toast.error("تعذر فتح واتساب تلقائياً، يرجى المحاولة مرة أخرى");
                 }
         };
 
-        if (cart.length === 0) {
-                return null;
-        }
-
         return (
-                <div className='py-10 md:py-16'>
+                <div className='py-10'>
                         <div className='mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 lg:flex-row'>
                                 <motion.section
-                                        className='w-full rounded-xl border border-gray-700 bg-gray-800/70 p-6 shadow-lg backdrop-blur'
+                                        className='w-full rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 shadow-lg backdrop-blur-sm'
                                         initial={{ opacity: 0, x: -20 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ duration: 0.4 }}
                                 >
-                                        <h1 className='mb-6 text-2xl font-bold text-emerald-400'>إتمام الطلب</h1>
+                                        <h1 className='mb-6 text-2xl font-bold text-payzone-gold'>إتمام الطلب</h1>
                                         <form className='space-y-5' onSubmit={handleSubmit}>
                                                 <div className='space-y-2'>
-                                                        <label className='block text-sm font-medium text-gray-300' htmlFor='customerName'>
+                                                        <label className='block text-sm font-medium text-white/80' htmlFor='customerName'>
                                                                 الاسم الكامل
                                                         </label>
                                                         <input
@@ -193,14 +152,14 @@ const CheckoutPage = () => {
                                                                 type='text'
                                                                 value={customerName}
                                                                 onChange={(event) => setCustomerName(event.target.value)}
-                                                                className='w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500'
+                                                                className='w-full rounded-lg border border-payzone-indigo/40 bg-payzone-navy/60 px-4 py-2 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
                                                                 placeholder='أدخل اسمك الكامل'
                                                                 required
                                                         />
                                                 </div>
 
                                                 <div className='space-y-2'>
-                                                        <label className='block text-sm font-medium text-gray-300' htmlFor='whatsAppNumber'>
+                                                        <label className='block text-sm font-medium text-white/80' htmlFor='whatsAppNumber'>
                                                                 رقم الواتساب
                                                         </label>
                                                         <input
@@ -208,17 +167,15 @@ const CheckoutPage = () => {
                                                                 type='tel'
                                                                 value={whatsAppNumber}
                                                                 onChange={handleWhatsAppChange}
-                                                                className='w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500'
-                                                                placeholder='مثال: 443322**'
+                                                                className='w-full rounded-lg border border-payzone-indigo/40 bg-payzone-navy/60 px-4 py-2 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
+                                                                placeholder='مثال: 11223344'
                                                                 required
                                                         />
-                                                        {whatsAppError && (
-                                                                <p className='text-sm text-red-400'>{whatsAppError}</p>
-                                                        )}
+                                                        {whatsAppError && <p className='text-sm text-red-400'>{whatsAppError}</p>}
                                                 </div>
 
                                                 <div className='space-y-2'>
-                                                        <label className='block text-sm font-medium text-gray-300' htmlFor='address'>
+                                                        <label className='block text-sm font-medium text-white/80' htmlFor='address'>
                                                                 العنوان التفصيلي
                                                         </label>
                                                         <textarea
@@ -226,7 +183,7 @@ const CheckoutPage = () => {
                                                                 value={address}
                                                                 onChange={(event) => setAddress(event.target.value)}
                                                                 rows={4}
-                                                                className='w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500'
+                                                                className='w-full rounded-lg border border-payzone-indigo/40 bg-payzone-navy/60 px-4 py-2 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
                                                                 placeholder='اكتب عنوان التوصيل بالكامل'
                                                                 required
                                                         />
@@ -235,7 +192,7 @@ const CheckoutPage = () => {
                                                 <motion.button
                                                         type='submit'
                                                         disabled={!isFormValid}
-                                                        className='w-full rounded-lg bg-emerald-600 px-5 py-3 text-base font-semibold text-white transition hover:bg-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-300 disabled:opacity-50'
+                                                        className='w-full rounded-lg bg-payzone-gold px-5 py-3 text-base font-semibold text-payzone-navy transition duration-300 hover:bg-[#b8873d] focus:outline-none focus:ring-4 focus:ring-payzone-indigo/40 disabled:opacity-50'
                                                         whileHover={{ scale: 1.02 }}
                                                         whileTap={{ scale: 0.97 }}
                                                 >
@@ -245,13 +202,13 @@ const CheckoutPage = () => {
                                 </motion.section>
 
                                 <motion.aside
-                                        className='w-full rounded-xl border border-gray-700 bg-gray-800/70 p-6 shadow-lg backdrop-blur lg:max-w-sm'
+                                        className='w-full rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 shadow-lg backdrop-blur-sm lg:max-w-sm'
                                         initial={{ opacity: 0, x: 20 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ duration: 0.4, delay: 0.1 }}
                                 >
-                                        <h2 className='text-xl font-semibold text-emerald-400'>ملخص السلة</h2>
-                                        <ul className='mt-4 space-y-3 text-sm text-gray-300'>
+                                        <h2 className='text-xl font-semibold text-payzone-gold'>ملخص السلة</h2>
+                                        <ul className='mt-4 space-y-3 text-sm text-white/70'>
                                                 {cart.map((item) => (
                                                         <li key={item._id} className='flex justify-between gap-4'>
                                                                 <span className='font-medium text-white'>{item.name}</span>
@@ -262,13 +219,13 @@ const CheckoutPage = () => {
                                                 ))}
                                         </ul>
 
-                                        <div className='mt-6 space-y-2 border-t border-gray-700 pt-4 text-sm text-gray-300'>
+                                        <div className='mt-6 space-y-2 border-t border-white/10 pt-4 text-sm text-white/70'>
                                                 <div className='flex justify-between'>
                                                         <span>الإجمالي الفرعي</span>
                                                         <span>{formatMRU(subtotal)}</span>
                                                 </div>
                                                 {savings > 0 && (
-                                                        <div className='flex justify-between text-emerald-400'>
+                                                        <div className='flex justify-between text-payzone-gold'>
                                                                 <span>التوفير</span>
                                                                 <span>-{formatMRU(savings)}</span>
                                                         </div>
@@ -279,8 +236,8 @@ const CheckoutPage = () => {
                                                 </div>
                                         </div>
 
-                                        <p className='mt-4 text-xs text-gray-500'>
-                                                سيتم فتح واتساب مع رسالة جاهزة تتضمن تفاصيل طلبك لإرسالها إلى متجر الصاحب.
+                                        <p className='mt-4 text-xs text-white/60'>
+                                                سيتم فتح واتساب مع رسالة جاهزة تتضمن تفاصيل طلبك لإرسالها إلى Payzone.
                                         </p>
                                 </motion.aside>
                         </div>
