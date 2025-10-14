@@ -154,6 +154,8 @@ const CheckoutPage = () => {
                         await handleSuccessfulOrder(false);
                         window.location.href = url;
                 } catch (error) {
+                        console.error("Unable to automatically open WhatsApp order", error);
+
                         if (navigator.clipboard?.writeText) {
                                 await navigator.clipboard.writeText(url);
                                 toast.success(

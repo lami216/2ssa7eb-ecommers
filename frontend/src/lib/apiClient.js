@@ -7,7 +7,7 @@ let refreshPromise = null;
 const parseJsonSafe = async (response) => {
         try {
                 return await response.json();
-        } catch (error) {
+        } catch {
                 return null;
         }
 };

@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { toast } from "react-hot-toast";
 import apiClient, { registerAuthHandlers } from "../lib/apiClient";
 
-export const useUserStore = create((set, get) => ({
+export const useUserStore = create((set) => ({
 	user: null,
 	loading: false,
 	checkingAuth: true,
