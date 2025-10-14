@@ -1,0 +1,260 @@
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { toast } from "react-hot-toast";
+import { useCartStore } from "../stores/useCartStore";
+
+const formatCurrency = (value) =>
+        new Intl.NumberFormat("ar-EG", {
+                style: "currency",
+                currency: "USD",
+        }).format(value);
+
+const CheckoutPage = () => {
+        const { cart, total, subtotal, coupon, isCouponApplied } = useCartStore();
+        const navigate = useNavigate();
+        const [customerName, setCustomerName] = useState("");
+        const [whatsAppNumber, setWhatsAppNumber] = useState("");
+        const [address, setAddress] = useState("");
+        const [whatsAppError, setWhatsAppError] = useState("");
+
+        useEffect(() => {
+                if (cart.length === 0) {
+                        toast.error("سلتك فارغة، قم بإضافة منتجات أولاً");
+                        navigate("/cart", { replace: true });
+                }
+        }, [cart, navigate]);
+
+        const normalizedWhatsAppNumber = whatsAppNumber.replace(/\D/g, "");
+        const isWhatsAppValid = /^\d{10,15}$/.test(normalizedWhatsAppNumber);
+        const isFormValid =
+                customerName.trim() !== "" &&
+                address.trim() !== "" &&
+                cart.length > 0 &&
+                isWhatsAppValid;
+
+        const handleWhatsAppChange = (event) => {
+                const value = event.target.value;
+                setWhatsAppNumber(value);
+
+                const digitsOnly = value.replace(/\D/g, "");
+
+                if (value.trim() === "") {
+                        setWhatsAppError("");
+                        return;
+                }
+
+                if (!/^\d{10,15}$/.test(digitsOnly)) {
+                        setWhatsAppError("الرجاء إدخال رقم واتساب صحيح مكوّن من 10 إلى 15 رقمًا");
+                } else {
+                        setWhatsAppError("");
+                }
+        };
+
+        const productsSummary = useMemo(
+                () =>
+                        cart.map((item, index) => {
+                                const lineTotal = item.price * item.quantity;
+                                return `${index + 1}. ${item.name} × ${item.quantity} = ${formatCurrency(lineTotal)}`;
+                        }),
+                [cart]
+        );
+
+        const savings = Math.max(subtotal - total, 0);
+
+        const handleSubmit = async (event) => {
+                event.preventDefault();
+
+                if (!customerName.trim() || !whatsAppNumber.trim() || !address.trim()) {
+                        toast.error("يرجى تعبئة جميع الحقول قبل إرسال الطلب");
+                        return;
+                }
+
+                if (!/^\d{10,15}$/.test(normalizedWhatsAppNumber)) {
+                        setWhatsAppError("الرجاء إدخال رقم واتساب صحيح مكوّن من 10 إلى 15 رقمًا");
+                        toast.error("رقم الواتساب غير صحيح، تأكد أنه يحتوي على 10 إلى 15 رقمًا");
+                        return;
+                }
+
+                if (cart.length === 0) {
+                        toast.error("سلتك فارغة");
+                        navigate("/cart");
+                        return;
+                }
+
+                const displayCustomerNumber = normalizedWhatsAppNumber || whatsAppNumber;
+
+                const messageLines = [
+                        `طلب جديد من ${customerName}`,
+                        `رقم الواتساب للعميل: ${displayCustomerNumber}`,
+                        `العنوان: ${address}`,
+                        "",
+                        "تفاصيل المنتجات:",
+                        ...productsSummary,
+                ];
+
+                if (productsSummary.length === 0) {
+                        messageLines.push("- لا توجد منتجات في السلة");
+                }
+
+                if (coupon && isCouponApplied) {
+                        messageLines.push("", `الكوبون المستخدم: ${coupon.code} (${coupon.discountPercentage}% خصم)`);
+                }
+
+                if (savings > 0) {
+                        messageLines.push("", `قيمة التوفير: ${formatCurrency(savings)}`);
+                }
+
+                messageLines.push("", `الإجمالي المستحق: ${formatCurrency(total)}`);
+                messageLines.push("", "شكراً لتسوقك من متجر الصاحب!");
+
+                const DEFAULT_STORE_WHATSAPP_NUMBER = "22241380130";
+                const envStoreNumber = import.meta.env.VITE_STORE_WHATSAPP_NUMBER;
+                const storeNumber =
+                        envStoreNumber && envStoreNumber.trim() !== ""
+                                ? envStoreNumber
+                                : DEFAULT_STORE_WHATSAPP_NUMBER;
+                const normalizedStoreNumber = storeNumber ? storeNumber.replace(/[^0-9]/g, "") : "";
+                const baseUrl = normalizedStoreNumber ? `https://wa.me/${normalizedStoreNumber}` : "https://wa.me/";
+                const url = `${baseUrl}?text=${encodeURIComponent(messageLines.join("\n"))}`;
+
+                const newWindow = window.open(url, "_blank", "noopener,noreferrer");
+
+                if (!newWindow) {
+                        try {
+                                if (navigator.clipboard?.writeText) {
+                                        await navigator.clipboard.writeText(url);
+                                        toast.success(
+                                                "تم نسخ رابط الطلب بنجاح. افتح واتساب وألصق الرابط لإرسال الطلب."
+                                        );
+                                } else {
+                                        throw new Error("Clipboard API unavailable");
+                                }
+                        } catch (error) {
+                                toast.error(
+                                        "تعذر فتح أو نسخ رابط واتساب تلقائيًا. يرجى السماح بفتح النوافذ المنبثقة والمحاولة مجددًا."
+                                );
+                        }
+                }
+        };
+
+        if (cart.length === 0) {
+                return null;
+        }
+
+        return (
+                <div className='py-10 md:py-16'>
+                        <div className='mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 lg:flex-row'>
+                                <motion.section
+                                        className='w-full rounded-xl border border-gray-700 bg-gray-800/70 p-6 shadow-lg backdrop-blur'
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ duration: 0.4 }}
+                                >
+                                        <h1 className='mb-6 text-2xl font-bold text-emerald-400'>إتمام الطلب</h1>
+                                        <form className='space-y-5' onSubmit={handleSubmit}>
+                                                <div className='space-y-2'>
+                                                        <label className='block text-sm font-medium text-gray-300' htmlFor='customerName'>
+                                                                الاسم الكامل
+                                                        </label>
+                                                        <input
+                                                                id='customerName'
+                                                                type='text'
+                                                                value={customerName}
+                                                                onChange={(event) => setCustomerName(event.target.value)}
+                                                                className='w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500'
+                                                                placeholder='أدخل اسمك الكامل'
+                                                                required
+                                                        />
+                                                </div>
+
+                                                <div className='space-y-2'>
+                                                        <label className='block text-sm font-medium text-gray-300' htmlFor='whatsAppNumber'>
+                                                                رقم الواتساب
+                                                        </label>
+                                                        <input
+                                                                id='whatsAppNumber'
+                                                                type='tel'
+                                                                value={whatsAppNumber}
+                                                                onChange={handleWhatsAppChange}
+                                                                className='w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500'
+                                                                placeholder='مثال: 9665xxxxxxx'
+                                                                required
+                                                        />
+                                                        {whatsAppError && (
+                                                                <p className='text-sm text-red-400'>{whatsAppError}</p>
+                                                        )}
+                                                </div>
+
+                                                <div className='space-y-2'>
+                                                        <label className='block text-sm font-medium text-gray-300' htmlFor='address'>
+                                                                العنوان التفصيلي
+                                                        </label>
+                                                        <textarea
+                                                                id='address'
+                                                                value={address}
+                                                                onChange={(event) => setAddress(event.target.value)}
+                                                                rows={4}
+                                                                className='w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2 text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500'
+                                                                placeholder='اكتب عنوان التوصيل بالكامل'
+                                                                required
+                                                        />
+                                                </div>
+
+                                                <motion.button
+                                                        type='submit'
+                                                        disabled={!isFormValid}
+                                                        className='w-full rounded-lg bg-emerald-600 px-5 py-3 text-base font-semibold text-white transition hover:bg-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-300 disabled:opacity-50'
+                                                        whileHover={{ scale: 1.02 }}
+                                                        whileTap={{ scale: 0.97 }}
+                                                >
+                                                        إرسال الطلب عبر واتساب
+                                                </motion.button>
+                                        </form>
+                                </motion.section>
+
+                                <motion.aside
+                                        className='w-full rounded-xl border border-gray-700 bg-gray-800/70 p-6 shadow-lg backdrop-blur lg:max-w-sm'
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ duration: 0.4, delay: 0.1 }}
+                                >
+                                        <h2 className='text-xl font-semibold text-emerald-400'>ملخص السلة</h2>
+                                        <ul className='mt-4 space-y-3 text-sm text-gray-300'>
+                                                {cart.map((item) => (
+                                                        <li key={item._id} className='flex justify-between gap-4'>
+                                                                <span className='font-medium text-white'>{item.name}</span>
+                                                                <span>
+                                                                        {item.quantity} × {formatCurrency(item.price)}
+                                                                </span>
+                                                        </li>
+                                                ))}
+                                        </ul>
+
+                                        <div className='mt-6 space-y-2 border-t border-gray-700 pt-4 text-sm text-gray-300'>
+                                                <div className='flex justify-between'>
+                                                        <span>الإجمالي الفرعي</span>
+                                                        <span>{formatCurrency(subtotal)}</span>
+                                                </div>
+                                                {savings > 0 && (
+                                                        <div className='flex justify-between text-emerald-400'>
+                                                                <span>التوفير</span>
+                                                                <span>-{formatCurrency(savings)}</span>
+                                                        </div>
+                                                )}
+                                                <div className='flex justify-between text-base font-semibold text-white'>
+                                                        <span>الإجمالي</span>
+                                                        <span>{formatCurrency(total)}</span>
+                                                </div>
+                                        </div>
+
+                                        <p className='mt-4 text-xs text-gray-500'>
+                                                سيتم فتح واتساب مع رسالة جاهزة تتضمن تفاصيل طلبك لإرسالها إلى متجر الصاحب.
+                                        </p>
+                                </motion.aside>
+                        </div>
+                </div>
+        );
+};
+
+export default CheckoutPage;
