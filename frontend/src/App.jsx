@@ -41,15 +41,7 @@ function App() {
 	if (checkingAuth) return <LoadingSpinner />;
 
         return (
-                <div className='min-h-screen bg-payzone-navy text-payzone-white relative overflow-hidden'>
-                        {/* Background gradient */}
-                        <div className='pointer-events-none absolute inset-0 overflow-hidden'>
-                                <div className='absolute inset-0 opacity-80'>
-                                        <div className='absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(ellipse_at_top,_rgba(75,74,207,0.35)_0%,_rgba(14,39,72,0.85)_45%,_rgba(14,39,72,1)_90%)]' />
-                                </div>
-                                <div className='absolute inset-y-0 right-0 w-1/3 translate-x-1/3 bg-[radial-gradient(circle_at_top,_rgba(210,156,74,0.18)_0%,_rgba(14,39,72,0)_70%)]' />
-                        </div>
-
+                <div className='relative min-h-screen bg-payzone-navy text-payzone-white'>
                         <div className='relative z-50 pt-20'>
 				<Navbar />
 				<Routes>
