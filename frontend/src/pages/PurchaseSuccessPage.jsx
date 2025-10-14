@@ -10,8 +10,10 @@ const PurchaseSuccessPage = () => {
 	const { clearCart } = useCartStore();
 	const [error, setError] = useState(null);
 
-	useEffect(() => {
-		const handleCheckoutSuccess = async (sessionId) => {
+        useEffect(() => {
+                sessionStorage.removeItem("whatsappOrderSent");
+
+                const handleCheckoutSuccess = async (sessionId) => {
                         try {
                                 await apiClient.post("/payments/checkout-success", { sessionId });
                                 clearCart();
