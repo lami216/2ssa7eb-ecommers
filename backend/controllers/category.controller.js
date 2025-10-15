@@ -32,18 +32,27 @@ const uploadCategoryImage = async (image) => {
 };
 
 const slugify = (value) => {
-        return value
+        if (value === undefined || value === null) {
+                return "";
+        }
+
+        const normalized = value
                 .toString()
-                .normalize("NFD")
-                .replace(/[^\w\s-]/g, "")
+                .normalize("NFKD")
+                .replace(/[\u0300-\u036f]/g, "");
+
+        const slug = normalized
+                .replace(/[^\p{L}\p{N}\s-]/gu, "")
                 .trim()
-                .replace(/\s+/g, "-")
-                .replace(/--+/g, "-")
+                .replace(/[\s_-]+/g, "-")
+                .replace(/^-+|-+$/g, "")
                 .toLowerCase();
+
+        return slug;
 };
 
 const generateUniqueSlug = async (baseName, ignoreId = null) => {
-        const baseSlug = slugify(baseName);
+        const baseSlug = slugify(baseName) || "category";
         let uniqueSlug = baseSlug;
         let counter = 1;
 
