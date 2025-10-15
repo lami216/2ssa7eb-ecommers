@@ -1,4 +1,19 @@
-const API_BASE_URL = import.meta.env.DEV ? "http://localhost:5000/api" : "/api";
+const normalizeBaseUrl = (value) => {
+        if (typeof value !== "string") {
+                return null;
+        }
+
+        const trimmed = value.trim();
+
+        if (!trimmed) {
+                return null;
+        }
+
+        return trimmed.replace(/\/$/, "");
+};
+
+const API_BASE_URL =
+        normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL) || "/api";
 
 let refreshHandler = null;
 let logoutHandler = null;
