@@ -21,7 +21,7 @@ const categorySchema = new mongoose.Schema(
                 },
                 imagePublicId: {
                         type: String,
-                        required: true,
+                        default: null,
                 },
         },
         { timestamps: true }
