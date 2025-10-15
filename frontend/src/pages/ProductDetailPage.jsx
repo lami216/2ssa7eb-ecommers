@@ -5,6 +5,7 @@ import { useCartStore } from "../stores/useCartStore";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { formatMRU } from "../lib/formatMRU";
 import PeopleAlsoBought from "../components/PeopleAlsoBought";
+import { useTranslation } from "react-i18next";
 
 const resolveCoverImage = (product) => {
         if (!product) return null;
@@ -44,12 +45,13 @@ const ProductDetailPage = () => {
                 })
         );
         const addToCart = useCartStore((state) => state.addToCart);
+        const { t, i18n } = useTranslation();
         const [activeImage, setActiveImage] = useState(null);
 
         useEffect(() => {
                 let isMounted = true;
 
-                fetchProductById(id)
+                fetchProductById(id, i18n.language)
                         .then((product) => {
                                 if (isMounted) {
                                         setActiveImage(resolveCoverImage(product));
@@ -60,7 +62,7 @@ const ProductDetailPage = () => {
                         isMounted = false;
                         clearSelectedProduct();
                 };
-        }, [fetchProductById, id, clearSelectedProduct]);
+        }, [fetchProductById, id, clearSelectedProduct, i18n.language]);
 
         useEffect(() => {
                 if (selectedProduct && !activeImage) {
@@ -76,8 +78,8 @@ const ProductDetailPage = () => {
                 return (
                         <div className='relative min-h-screen text-payzone-white'>
                                 <div className='relative z-10 mx-auto max-w-4xl px-4 py-24 text-center'>
-                                        <h1 className='text-3xl font-semibold text-payzone-gold'>Product not found</h1>
-                                        <p className='mt-4 text-white/70'>The product you are looking for might have been removed or is temporarily unavailable.</p>
+                                        <h1 className='text-3xl font-semibold text-payzone-gold'>{t("products.detail.notFound.title")}</h1>
+                                        <p className='mt-4 text-white/70'>{t("products.detail.notFound.description")}</p>
                                 </div>
                         </div>
                 );
@@ -98,13 +100,14 @@ const ProductDetailPage = () => {
                                                                         className='h-full w-full object-contain'
                                                                 />
                                                         ) : (
-                                                                <div className='text-white/60'>No image available</div>
+                                                                <div className='text-white/60'>{t("common.status.noImage")}</div>
                                                         )}
                                                 </div>
                                                 {galleryImages.length > 1 && (
                                                         <div className='mt-4 flex gap-3 overflow-x-auto pb-2'>
                                                                 {galleryImages.map((imageUrl, index) => {
                                                                         const isActive = imageUrl === activeImage;
+                                                                        const localizedIndex = new Intl.NumberFormat(i18n.language).format(index + 1);
                                                                         return (
                                                                                 <button
                                                                                         key={`${imageUrl}-${index}`}
@@ -115,7 +118,7 @@ const ProductDetailPage = () => {
                                                                                                         ? "border-payzone-gold"
                                                                                                         : "border-transparent"
                                                                                         }`}
-                                                                                        aria-label={`View product image ${index + 1}`}
+                                                                                        aria-label={t("products.detail.viewImage", { index: localizedIndex })}
                                                                                 >
                                                                                         <img src={imageUrl} alt='' className='h-full w-full object-cover' />
                                                                                 </button>
@@ -139,7 +142,7 @@ const ProductDetailPage = () => {
                                                         onClick={() => addToCart(selectedProduct)}
                                                         className='mt-4 inline-flex items-center justify-center rounded-lg bg-payzone-gold px-6 py-3 text-lg font-semibold text-payzone-navy transition-colors duration-300 hover:bg-[#b8873d] focus:outline-none focus:ring-4 focus:ring-payzone-indigo/40'
                                                 >
-                                                        Add to cart
+                                                        {t("common.actions.addToCart")}
                                                 </button>
                                         </div>
                                 </div>

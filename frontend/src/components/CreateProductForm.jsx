@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { PlusCircle, Upload, Loader, Star, X } from "lucide-react";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import { useProductStore } from "../stores/useProductStore";
-
-const categories = ["clothes", "whatches", "shoes", "glasses", "perfumes", "jackets", "suits", "food"];
+import { useCategoryStore } from "../stores/useCategoryStore";
 
 const MAX_IMAGES = 3;
 
@@ -16,15 +16,26 @@ const CreateProductForm = () => {
                 category: "",
                 images: [],
                 coverImageIndex: 0,
+                baseLanguage: "en",
         });
 
         const { createProduct, loading } = useProductStore();
+        const { categories, fetchCategories } = useCategoryStore();
+        const { t, i18n } = useTranslation();
+
+        useEffect(() => {
+                setNewProduct((previous) => ({ ...previous, baseLanguage: i18n.language || "en" }));
+        }, [i18n.language]);
+
+        useEffect(() => {
+                fetchCategories(i18n.language);
+        }, [fetchCategories, i18n.language]);
 
         const handleSubmit = async (e) => {
                 e.preventDefault();
                 try {
                         if (!newProduct.images.length) {
-                                toast.error("Please add at least one product image.");
+                                toast.error(t("admin.createProduct.messages.missingImages"));
                                 return;
                         }
 
@@ -41,14 +52,15 @@ const CreateProductForm = () => {
                                 price: Number(newProduct.price),
                                 category: newProduct.category,
                                 images: orderedImages,
+                                baseLanguage: newProduct.baseLanguage,
                         };
 
                         if (Number.isNaN(payload.price)) {
-                                toast.error("Please enter a valid price.");
+                                toast.error(t("admin.createProduct.messages.invalidPrice"));
                                 return;
                         }
 
-                        await createProduct(payload);
+                        await createProduct(payload, i18n.language);
                         setNewProduct({
                                 name: "",
                                 description: "",
@@ -56,8 +68,9 @@ const CreateProductForm = () => {
                                 category: "",
                                 images: [],
                                 coverImageIndex: 0,
+                                baseLanguage: i18n.language || "en",
                         });
-                        toast.success("Product created successfully");
+                        toast.success(t("admin.createProduct.messages.productCreated"));
                 } catch {
                         console.log("error creating a product");
                 }
@@ -84,14 +97,20 @@ const CreateProductForm = () => {
                                         const remainingSlots = MAX_IMAGES - prev.images.length;
 
                                         if (remainingSlots <= 0) {
-                                                toast.error(`You can upload up to ${MAX_IMAGES} images only.`);
+                                                toast.error(
+                                                        t("admin.createProduct.messages.imagesLimit", { count: MAX_IMAGES })
+                                                );
                                                 return prev;
                                         }
 
                                         const acceptedImages = base64Images.slice(0, remainingSlots);
 
                                         if (base64Images.length > remainingSlots) {
-                                                toast.error(`Only ${remainingSlots} more image(s) can be added.`);
+                                                toast.error(
+                                                        t("admin.createProduct.messages.imagesRemaining", {
+                                                                count: remainingSlots,
+                                                        })
+                                                );
                                         }
 
                                         const updatedImages = [...prev.images, ...acceptedImages];
@@ -140,12 +159,14 @@ const CreateProductForm = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8 }}
                 >
-                        <h2 className='mb-6 text-2xl font-semibold text-payzone-gold'>Create New Product</h2>
+                        <h2 className='mb-6 text-2xl font-semibold text-payzone-gold'>
+                                {t("admin.createProduct.title")}
+                        </h2>
 
                         <form onSubmit={handleSubmit} className='space-y-4'>
                                 <div>
                                         <label htmlFor='name' className='block text-sm font-medium text-white/80'>
-                                                Product Name
+                                                {t("admin.createProduct.fields.name")}
                                         </label>
                                         <input
                                                 type='text'
@@ -160,7 +181,7 @@ const CreateProductForm = () => {
 
                                 <div>
                                         <label htmlFor='description' className='block text-sm font-medium text-white/80'>
-                                                Description
+                                                {t("admin.createProduct.fields.description")}
                                         </label>
                                         <textarea
                                                 id='description'
@@ -175,7 +196,7 @@ const CreateProductForm = () => {
 
                                 <div>
                                         <label htmlFor='price' className='block text-sm font-medium text-white/80'>
-                                                Price
+                                                {t("admin.createProduct.fields.price")}
                                         </label>
                                         <input
                                                 type='number'
@@ -190,8 +211,26 @@ const CreateProductForm = () => {
                                 </div>
 
                                 <div>
+                                        <label htmlFor='baseLanguage' className='block text-sm font-medium text-white/80'>
+                                                {t("admin.createProduct.fields.baseLanguage")}
+                                        </label>
+                                        <select
+                                                id='baseLanguage'
+                                                name='baseLanguage'
+                                                value={newProduct.baseLanguage}
+                                                onChange={(e) => setNewProduct({ ...newProduct, baseLanguage: e.target.value })}
+                                                className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
+                                                required
+                                        >
+                                                <option value='en'>{t("common.languages.en")}</option>
+                                                <option value='ar'>{t("common.languages.ar")}</option>
+                                                <option value='fr'>{t("common.languages.fr")}</option>
+                                        </select>
+                                </div>
+
+                                <div>
                                         <label htmlFor='category' className='block text-sm font-medium text-white/80'>
-                                                Category
+                                                {t("admin.createProduct.fields.category")}
                                         </label>
                                         <select
                                                 id='category'
@@ -201,10 +240,12 @@ const CreateProductForm = () => {
                                                 className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
                                                 required
                                         >
-                                                <option value=''>Select a category</option>
+                                                <option value=''>
+                                                        {t("admin.createProduct.placeholders.category")}
+                                                </option>
                                                 {categories.map((category) => (
-                                                        <option key={category} value={category}>
-                                                                {category}
+                                                        <option key={category._id} value={category.slug}>
+                                                                {category.name}
                                                         </option>
                                                 ))}
                                         </select>
@@ -237,11 +278,11 @@ const CreateProductForm = () => {
                                         </span>
                                 </div>
 
-                                {newProduct.images.length > 0 && (
-                                        <div className='grid grid-cols-2 gap-4 sm:grid-cols-3'>
-                                                {newProduct.images.map((image, index) => {
-                                                        const isCover = index === newProduct.coverImageIndex;
-                                                        return (
+                                        {newProduct.images.length > 0 && (
+                                                <div className='grid grid-cols-2 gap-4 sm:grid-cols-3'>
+                                                        {newProduct.images.map((image, index) => {
+                                                                const isCover = index === newProduct.coverImageIndex;
+                                                                return (
                                                                 <div
                                                                         key={`${image}-${index}`}
                                                                         className={`relative overflow-hidden rounded-lg border ${
@@ -257,18 +298,20 @@ const CreateProductForm = () => {
                                                                                                 isCover ? "text-payzone-gold" : "text-white"
                                                                                         }`}
                                                                                 >
-                                                                                        <Star className='h-3 w-3' />
-                                                                                        {isCover ? "Cover" : "Set as cover"}
-                                                                                </button>
-                                                                                <button
-                                                                                        type='button'
-                                                                                        onClick={() => handleRemoveImage(index)}
-                                                                                        className='inline-flex items-center text-red-300 hover:text-red-200'
+                                                                                                <Star className='h-3 w-3' />
+                                                                                                {isCover
+                                                                                                        ? t("admin.createProduct.fields.cover")
+                                                                                                        : t("admin.createProduct.fields.setAsCover")}
+                                                                                        </button>
+                                                                                        <button
+                                                                                                type='button'
+                                                                                                onClick={() => handleRemoveImage(index)}
+                                                                                                className='inline-flex items-center text-red-300 hover:text-red-200'
                                                                                         aria-label='Remove image'
                                                                                 >
-                                                                                        <X className='h-3 w-3' />
-                                                                                        Remove
-                                                                                </button>
+                                                                                                <X className='h-3 w-3' />
+                                                                                                {t("common.actions.remove")}
+                                                                                        </button>
                                                                         </div>
                                                                 </div>
                                                         );
@@ -284,12 +327,12 @@ const CreateProductForm = () => {
                                         {loading ? (
                                                 <>
                                                         <Loader className='h-5 w-5 animate-spin' aria-hidden='true' />
-                                                        Loading...
+                                                        {t("admin.createProduct.buttons.loading")}
                                                 </>
                                         ) : (
                                                 <>
                                                         <PlusCircle className='h-5 w-5' />
-                                                        Create Product
+                                                        {t("admin.createProduct.buttons.create")}
                                                 </>
                                         )}
                                 </button>

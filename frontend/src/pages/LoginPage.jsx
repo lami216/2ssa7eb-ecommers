@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { LogIn, Mail, Lock, ArrowRight, Loader } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useUserStore } from "../stores/useUserStore";
 
 const LoginPage = () => {
@@ -9,6 +10,7 @@ const LoginPage = () => {
         const [password, setPassword] = useState("");
 
         const { login, loading } = useUserStore();
+        const { t } = useTranslation();
 
         const handleSubmit = (e) => {
                 e.preventDefault();
@@ -23,7 +25,9 @@ const LoginPage = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.8 }}
                         >
-                                <h2 className='mt-6 text-center text-3xl font-extrabold text-payzone-gold'>Welcome back to Payzone</h2>
+                                <h2 className='mt-6 text-center text-3xl font-extrabold text-payzone-gold'>
+                                        {t("auth.login.title")}
+                                </h2>
                         </motion.div>
 
                         <motion.div
@@ -36,7 +40,7 @@ const LoginPage = () => {
                                         <form onSubmit={handleSubmit} className='space-y-6'>
                                                 <div>
                                                         <label htmlFor='email' className='block text-sm font-medium text-white/80'>
-                                                                Email address
+                                                                {t("auth.login.email")}
                                                         </label>
                                                         <div className='relative mt-1 rounded-md shadow-sm'>
                                                                 <div className='pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3'>
@@ -49,14 +53,14 @@ const LoginPage = () => {
                                                                         value={email}
                                                                         onChange={(e) => setEmail(e.target.value)}
                                                                         className='block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 pl-10 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo sm:text-sm'
-                                                                        placeholder='you@example.com'
+                                                                        placeholder={t("auth.login.placeholderEmail")}
                                                                 />
                                                         </div>
                                                 </div>
 
                                                 <div>
                                                         <label htmlFor='password' className='block text-sm font-medium text-white/80'>
-                                                                Password
+                                                                {t("auth.login.password")}
                                                         </label>
                                                         <div className='relative mt-1 rounded-md shadow-sm'>
                                                                 <div className='pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3'>
@@ -69,7 +73,7 @@ const LoginPage = () => {
                                                                         value={password}
                                                                         onChange={(e) => setPassword(e.target.value)}
                                                                         className='block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 pl-10 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo sm:text-sm'
-                                                                        placeholder='••••••••'
+                                                                        placeholder={t("auth.login.placeholderPassword")}
                                                                 />
                                                         </div>
                                                 </div>
@@ -82,21 +86,22 @@ const LoginPage = () => {
                                                         {loading ? (
                                                                 <>
                                                                         <Loader className='h-5 w-5 animate-spin' aria-hidden='true' />
-                                                                        Loading...
+                                                                        {t("auth.login.loading")}
                                                                 </>
                                                         ) : (
                                                                 <>
                                                                         <LogIn className='h-5 w-5' aria-hidden='true' />
-                                                                        Login
+                                                                        {t("auth.login.button")}
                                                                 </>
                                                         )}
                                                 </button>
                                         </form>
 
                                         <p className='mt-8 text-center text-sm text-white/70'>
-                                                Not a member?{" "}
+                                                {t("auth.login.prompt")} {" "}
                                                 <Link to='/signup' className='font-medium text-payzone-indigo transition duration-300 hover:text-payzone-gold'>
-                                                        Sign up now <ArrowRight className='ml-1 inline h-4 w-4' />
+                                                        {t("auth.login.cta")}{" "}
+                                                        <ArrowRight className='ml-1 inline h-4 w-4' />
                                                 </Link>
                                         </p>
                                 </div>

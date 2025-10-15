@@ -1,10 +1,12 @@
 import { motion } from "framer-motion";
 import { Trash, Star } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useProductStore } from "../stores/useProductStore";
 import { formatMRU } from "../lib/formatMRU";
 
 const ProductsList = () => {
         const { deleteProduct, toggleFeaturedProduct, products } = useProductStore();
+        const { t, i18n } = useTranslation();
 
         return (
                 <motion.div
@@ -17,11 +19,11 @@ const ProductsList = () => {
                                 <thead className='bg-payzone-navy/80'>
                                         <tr>
                                                 {[
-                                                        "Product",
-                                                        "Price",
-                                                        "Category",
-                                                        "Featured",
-                                                        "Actions",
+                                                        t("admin.productsTable.headers.product"),
+                                                        t("admin.productsTable.headers.price"),
+                                                        t("admin.productsTable.headers.category"),
+                                                        t("admin.productsTable.headers.featured"),
+                                                        t("admin.productsTable.headers.actions"),
                                                 ].map((heading) => (
                                                         <th
                                                                 key={heading}
@@ -55,7 +57,7 @@ const ProductsList = () => {
                                                         </td>
                                                         <td className='whitespace-nowrap px-6 py-4'>
                                                                 <button
-                                                                        onClick={() => toggleFeaturedProduct(product._id)}
+                                                                        onClick={() => toggleFeaturedProduct(product._id, i18n.language)}
                                                                         className={`rounded-full p-1 transition-colors duration-200 ${
                                                                                 product.isFeatured
                                                                                         ? "bg-payzone-gold text-payzone-navy"

@@ -1,10 +1,12 @@
 import { ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useCartStore } from "../stores/useCartStore";
 import { formatMRU } from "../lib/formatMRU";
 
 const ProductCard = ({ product }) => {
         const { addToCart } = useCartStore();
+        const { t } = useTranslation();
         const coverImage =
                 product.image ||
                 (Array.isArray(product.images) && product.images.length > 0
@@ -18,7 +20,7 @@ const ProductCard = ({ product }) => {
                         <Link
                                 to={`/products/${product._id}`}
                                 className='relative mx-3 mt-3 flex flex-1 overflow-hidden rounded-xl min-h-[16rem] sm:min-h-0'
-                                aria-label={`View details for ${product.name}`}
+                                aria-label={t("product.viewDetails", { name: product.name })}
                         >
                                 {coverImage ? (
                                         <img
@@ -28,7 +30,7 @@ const ProductCard = ({ product }) => {
                                         />
                                 ) : (
                                         <div className='flex h-full w-full items-center justify-center bg-payzone-navy/70 text-sm text-white/60'>
-                                                No image available
+                                                {t("common.status.noImage")}
                                         </div>
                                 )}
                                 <div className='absolute inset-0 bg-gradient-to-t from-payzone-navy/60 via-payzone-navy/20 to-transparent' />
@@ -51,7 +53,7 @@ const ProductCard = ({ product }) => {
                                         onClick={() => addToCart(product)}
                                 >
                                         <ShoppingCart size={20} />
-                                        Add to cart
+                                        {t("common.actions.addToCart")}
                                 </button>
                         </div>
                 </div>
