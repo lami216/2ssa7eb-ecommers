@@ -34,6 +34,28 @@ export const useProductStore = create((set, get) => ({
                         throw error;
                 }
         },
+        updateProduct: async (productId, productData) => {
+                set({ loading: true });
+                try {
+                        const data = await apiClient.put(`/products/${productId}`, productData);
+                        set((prevState) => ({
+                                products: prevState.products.map((product) =>
+                                        product._id === productId ? data : product
+                                ),
+                                selectedProduct:
+                                        prevState.selectedProduct?._id === productId
+                                                ? data
+                                                : prevState.selectedProduct,
+                                loading: false,
+                        }));
+                        toast.success(translate("common.messages.productUpdated"));
+                        return data;
+                } catch (error) {
+                        set({ loading: false });
+                        toast.error(error.response?.data?.message || translate("toast.updateProductError"));
+                        throw error;
+                }
+        },
         fetchAllProducts: async () => {
                 set({ loading: true });
                 try {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { PlusCircle, Upload, Loader, Star, X } from "lucide-react";
+import { PlusCircle, Upload, Loader, Star, X, Save } from "lucide-react";
 import toast from "react-hot-toast";
 import useTranslation from "../hooks/useTranslation";
 import { useProductStore } from "../stores/useProductStore";
@@ -8,17 +8,26 @@ import { useCategoryStore } from "../stores/useCategoryStore";
 
 const MAX_IMAGES = 3;
 
-const CreateProductForm = () => {
-        const [newProduct, setNewProduct] = useState({
-                name: "",
-                description: "",
-                price: "",
-                category: "",
-                images: [],
-                coverImageIndex: 0,
-        });
+const createInitialFormState = () => ({
+        name: "",
+        description: "",
+        price: "",
+        category: "",
+        existingImages: [],
+        newImages: [],
+        coverSource: "existing",
+        coverIndex: 0,
+});
 
-        const { createProduct, loading } = useProductStore();
+const CreateProductForm = () => {
+        const [formState, setFormState] = useState(() => createInitialFormState());
+        const {
+                createProduct,
+                updateProduct,
+                loading,
+                selectedProduct,
+                clearSelectedProduct,
+        } = useProductStore();
         const { categories, fetchCategories } = useCategoryStore();
         const { t } = useTranslation();
 
@@ -26,63 +35,39 @@ const CreateProductForm = () => {
                 fetchCategories();
         }, [fetchCategories]);
 
-        const handleSubmit = async (event) => {
-                event.preventDefault();
-                try {
-                        if (!newProduct.images.length) {
-                                toast.error(t("admin.createProduct.messages.missingImages"));
-                                return;
-                        }
-
-                        const orderedImages = [...newProduct.images];
-
-                        if (orderedImages.length) {
-                                const [coverImage] = orderedImages.splice(newProduct.coverImageIndex, 1);
-                                orderedImages.unshift(coverImage);
-                        }
-
-                        const payload = {
-                                name: newProduct.name.trim(),
-                                description: newProduct.description.trim(),
-                                price: Number(newProduct.price),
-                                category: newProduct.category,
-                                images: orderedImages,
-                        };
-
-                        if (!payload.name) {
-                                toast.error(t("admin.createProduct.messages.nameRequired"));
-                                return;
-                        }
-
-                        if (!payload.description) {
-                                toast.error(t("admin.createProduct.messages.descriptionRequired"));
-                                return;
-                        }
-
-                        if (!payload.category) {
-                                toast.error(t("admin.createProduct.messages.categoryRequired"));
-                                return;
-                        }
-
-                        if (Number.isNaN(payload.price)) {
-                                toast.error(t("admin.createProduct.messages.invalidPrice"));
-                                return;
-                        }
-
-                        await createProduct(payload);
-                        setNewProduct({
-                                name: "",
-                                description: "",
-                                price: "",
-                                category: "",
-                                images: [],
-                                coverImageIndex: 0,
-                        });
-                        toast.success(t("admin.createProduct.messages.productCreated"));
-                } catch {
-                        console.log("error creating a product");
+        useEffect(() => {
+                if (!selectedProduct) {
+                        setFormState(createInitialFormState());
+                        return;
                 }
-        };
+
+                const existingImages = Array.isArray(selectedProduct.images)
+                        ? selectedProduct.images
+                                  .map((image) => ({
+                                          url: typeof image === "object" ? image.url : image,
+                                          public_id: typeof image === "object" ? image.public_id : null,
+                                  }))
+                                  .filter((image) => typeof image.url === "string" && image.url.length > 0)
+                        : [];
+
+                setFormState({
+                        name: selectedProduct.name ?? "",
+                        description: selectedProduct.description ?? "",
+                        price:
+                                selectedProduct.price !== undefined && selectedProduct.price !== null
+                                        ? String(selectedProduct.price)
+                                        : "",
+                        category: selectedProduct.category ?? "",
+                        existingImages,
+                        newImages: [],
+                        coverSource: existingImages.length ? "existing" : "new",
+                        coverIndex: 0,
+                });
+        }, [selectedProduct]);
+
+        const totalImages = formState.existingImages.length + formState.newImages.length;
+
+        const isEditing = Boolean(selectedProduct);
 
         const handleImagesChange = (event) => {
                 const input = event.target;
@@ -101,14 +86,14 @@ const CreateProductForm = () => {
                         )
                 )
                         .then((base64Images) => {
-                                setNewProduct((prev) => {
-                                        const remainingSlots = MAX_IMAGES - prev.images.length;
+                                setFormState((previous) => {
+                                        const remainingSlots = MAX_IMAGES - (previous.existingImages.length + previous.newImages.length);
 
                                         if (remainingSlots <= 0) {
                                                 toast.error(
                                                         t("admin.createProduct.messages.imagesLimit", { count: MAX_IMAGES })
                                                 );
-                                                return prev;
+                                                return previous;
                                         }
 
                                         const acceptedImages = base64Images.slice(0, remainingSlots);
@@ -121,13 +106,24 @@ const CreateProductForm = () => {
                                                 );
                                         }
 
-                                        const updatedImages = [...prev.images, ...acceptedImages];
-                                        const nextCoverIndex = prev.images.length === 0 ? 0 : prev.coverImageIndex;
+                                        if (!acceptedImages.length) {
+                                                return previous;
+                                        }
+
+                                        const nextNewImages = [...previous.newImages, ...acceptedImages];
+                                        let coverSource = previous.coverSource;
+                                        let coverIndex = previous.coverIndex;
+
+                                        if (previous.existingImages.length + previous.newImages.length === 0) {
+                                                coverSource = "new";
+                                                coverIndex = 0;
+                                        }
 
                                         return {
-                                                ...prev,
-                                                images: updatedImages,
-                                                coverImageIndex: Math.min(nextCoverIndex, updatedImages.length - 1),
+                                                ...previous,
+                                                newImages: nextNewImages,
+                                                coverSource,
+                                                coverIndex,
                                         };
                                 });
                         })
@@ -137,28 +133,193 @@ const CreateProductForm = () => {
                         });
         };
 
-        const handleRemoveImage = (indexToRemove) => {
-                setNewProduct((prev) => {
-                        const updatedImages = prev.images.filter((_, index) => index !== indexToRemove);
-                        let nextCoverIndex = prev.coverImageIndex;
+        const handleRemoveExistingImage = (indexToRemove) => {
+                setFormState((previous) => {
+                        const updatedExisting = previous.existingImages.filter((_, index) => index !== indexToRemove);
 
-                        if (indexToRemove === prev.coverImageIndex) {
-                                nextCoverIndex = 0;
-                        } else if (indexToRemove < prev.coverImageIndex) {
-                                nextCoverIndex = Math.max(prev.coverImageIndex - 1, 0);
+                        let coverSource = previous.coverSource;
+                        let coverIndex = previous.coverIndex;
+
+                        if (previous.coverSource === "existing") {
+                                if (indexToRemove === previous.coverIndex) {
+                                        if (updatedExisting.length) {
+                                                coverIndex = 0;
+                                        } else if (previous.newImages.length) {
+                                                coverSource = "new";
+                                                coverIndex = 0;
+                                        } else {
+                                                coverIndex = 0;
+                                        }
+                                } else if (indexToRemove < previous.coverIndex) {
+                                        coverIndex = Math.max(previous.coverIndex - 1, 0);
+                                }
                         }
 
                         return {
-                                ...prev,
-                                images: updatedImages,
-                                coverImageIndex: updatedImages.length ? nextCoverIndex : 0,
+                                ...previous,
+                                existingImages: updatedExisting,
+                                coverSource,
+                                coverIndex,
                         };
                 });
         };
 
-        const handleSetCover = (index) => {
-                setNewProduct((prev) => ({ ...prev, coverImageIndex: index }));
+        const handleRemoveNewImage = (indexToRemove) => {
+                setFormState((previous) => {
+                        const updatedNew = previous.newImages.filter((_, index) => index !== indexToRemove);
+
+                        let coverSource = previous.coverSource;
+                        let coverIndex = previous.coverIndex;
+
+                        if (previous.coverSource === "new") {
+                                if (indexToRemove === previous.coverIndex) {
+                                        if (updatedNew.length) {
+                                                coverIndex = 0;
+                                        } else if (previous.existingImages.length) {
+                                                coverSource = "existing";
+                                                coverIndex = 0;
+                                        } else {
+                                                coverIndex = 0;
+                                        }
+                                } else if (indexToRemove < previous.coverIndex) {
+                                        coverIndex = Math.max(previous.coverIndex - 1, 0);
+                                }
+                        }
+
+                        return {
+                                ...previous,
+                                newImages: updatedNew,
+                                coverSource,
+                                coverIndex,
+                        };
+                });
         };
+
+        const handleSetCover = (type, index) => {
+                setFormState((previous) => ({
+                        ...previous,
+                        coverSource: type,
+                        coverIndex: index,
+                }));
+        };
+
+        const resetForm = () => {
+                setFormState(createInitialFormState());
+                clearSelectedProduct();
+        };
+
+        const buildOrderedImages = () => {
+                let existing = [...formState.existingImages];
+                let fresh = [...formState.newImages];
+
+                if (formState.coverSource === "existing" && existing.length) {
+                        if (formState.coverIndex >= 0 && formState.coverIndex < existing.length) {
+                                const [cover] = existing.splice(formState.coverIndex, 1);
+                                existing = [cover, ...existing];
+                        }
+                } else if (formState.coverSource === "new" && fresh.length) {
+                        if (formState.coverIndex >= 0 && formState.coverIndex < fresh.length) {
+                                const [cover] = fresh.splice(formState.coverIndex, 1);
+                                fresh = [cover, ...fresh];
+                        }
+                } else if (!existing.length && fresh.length) {
+                        const [cover] = fresh.splice(0, 1);
+                        fresh = [cover, ...fresh];
+                } else if (!fresh.length && existing.length) {
+                        const [cover] = existing.splice(0, 1);
+                        existing = [cover, ...existing];
+                }
+
+                return { existing, fresh };
+        };
+
+        const handleSubmit = async (event) => {
+                event.preventDefault();
+
+                const trimmedName = formState.name.trim();
+                const trimmedDescription = formState.description.trim();
+
+                if (!trimmedName) {
+                        toast.error(t("admin.createProduct.messages.nameRequired"));
+                        return;
+                }
+
+                if (!trimmedDescription) {
+                        toast.error(t("admin.createProduct.messages.descriptionRequired"));
+                        return;
+                }
+
+                if (!formState.category) {
+                        toast.error(t("admin.createProduct.messages.categoryRequired"));
+                        return;
+                }
+
+                if (totalImages === 0) {
+                        toast.error(t("admin.createProduct.messages.missingImages"));
+                        return;
+                }
+
+                const numericPrice = Number(formState.price);
+
+                if (Number.isNaN(numericPrice)) {
+                        toast.error(t("admin.createProduct.messages.invalidPrice"));
+                        return;
+                }
+
+                const { existing, fresh } = buildOrderedImages();
+
+                try {
+                        if (isEditing && selectedProduct) {
+                                await updateProduct(selectedProduct._id, {
+                                        name: trimmedName,
+                                        description: trimmedDescription,
+                                        price: numericPrice,
+                                        category: formState.category,
+                                        existingImages: existing.map((image) => image.public_id).filter(Boolean),
+                                        newImages: fresh,
+                                        cover: {
+                                                source: formState.coverSource,
+                                                index: formState.coverIndex,
+                                        },
+                                });
+                                resetForm();
+                        } else {
+                                await createProduct({
+                                        name: trimmedName,
+                                        description: trimmedDescription,
+                                        price: numericPrice,
+                                        category: formState.category,
+                                        images: fresh,
+                                });
+                                setFormState(createInitialFormState());
+                        }
+                } catch {
+                        console.log("error saving product");
+                }
+        };
+
+        const galleryItems = [
+                ...formState.existingImages.map((image, index) => ({
+                        type: "existing",
+                        url: image.url,
+                        index,
+                        key: image.public_id || `${image.url}-${index}`,
+                })),
+                ...formState.newImages.map((image, index) => ({
+                        type: "new",
+                        url: image,
+                        index,
+                        key: `${image}-${index}`,
+                })),
+        ];
+
+        const title = isEditing
+                ? t("admin.createProduct.editTitle", { name: selectedProduct?.name ?? "" })
+                : t("admin.createProduct.title");
+
+        const submitLabel = isEditing
+                ? t("admin.createProduct.buttons.update")
+                : t("admin.createProduct.buttons.create");
 
         return (
                 <motion.div
@@ -167,9 +328,19 @@ const CreateProductForm = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8 }}
                 >
-                        <h2 className='mb-6 text-2xl font-semibold text-payzone-gold'>
-                                {t("admin.createProduct.title")}
-                        </h2>
+                        <div className='mb-6 flex items-start justify-between gap-4'>
+                                <h2 className='text-2xl font-semibold text-payzone-gold'>{title}</h2>
+                                {isEditing && (
+                                        <button
+                                                type='button'
+                                                onClick={resetForm}
+                                                className='inline-flex items-center gap-2 rounded-md border border-payzone-indigo/40 px-3 py-1 text-sm text-white transition hover:border-payzone-gold'
+                                        >
+                                                <X className='h-4 w-4' />
+                                                {t("common.actions.cancel")}
+                                        </button>
+                                )}
+                        </div>
 
                         <form onSubmit={handleSubmit} className='space-y-4'>
                                 <div>
@@ -180,8 +351,8 @@ const CreateProductForm = () => {
                                                 type='text'
                                                 id='name'
                                                 name='name'
-                                                value={newProduct.name}
-                                                onChange={(event) => setNewProduct({ ...newProduct, name: event.target.value })}
+                                                value={formState.name}
+                                                onChange={(event) => setFormState({ ...formState, name: event.target.value })}
                                                 className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
                                                 required
                                         />
@@ -194,8 +365,10 @@ const CreateProductForm = () => {
                                         <textarea
                                                 id='description'
                                                 name='description'
-                                                value={newProduct.description}
-                                                onChange={(event) => setNewProduct({ ...newProduct, description: event.target.value })}
+                                                value={formState.description}
+                                                onChange={(event) =>
+                                                        setFormState({ ...formState, description: event.target.value })
+                                                }
                                                 rows='3'
                                                 className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
                                                 required
@@ -210,8 +383,8 @@ const CreateProductForm = () => {
                                                 type='number'
                                                 id='price'
                                                 name='price'
-                                                value={newProduct.price}
-                                                onChange={(event) => setNewProduct({ ...newProduct, price: event.target.value })}
+                                                value={formState.price}
+                                                onChange={(event) => setFormState({ ...formState, price: event.target.value })}
                                                 step='0.01'
                                                 className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
                                                 required
@@ -225,8 +398,10 @@ const CreateProductForm = () => {
                                         <select
                                                 id='category'
                                                 name='category'
-                                                value={newProduct.category}
-                                                onChange={(event) => setNewProduct({ ...newProduct, category: event.target.value })}
+                                                value={formState.category}
+                                                onChange={(event) =>
+                                                        setFormState({ ...formState, category: event.target.value })
+                                                }
                                                 className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
                                                 required
                                         >
@@ -249,43 +424,58 @@ const CreateProductForm = () => {
                                                 accept='image/*'
                                                 multiple
                                                 onChange={handleImagesChange}
-                                                disabled={newProduct.images.length >= MAX_IMAGES}
+                                                disabled={totalImages >= MAX_IMAGES}
                                         />
                                         <label
                                                 htmlFor='images'
                                                 className={`inline-flex items-center gap-2 rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-sm font-medium text-white transition duration-300 focus:outline-none focus:ring-2 focus:ring-payzone-indigo ${
-                                                        newProduct.images.length >= MAX_IMAGES
+                                                        totalImages >= MAX_IMAGES
                                                                 ? "cursor-not-allowed opacity-60"
                                                                 : "cursor-pointer hover:border-payzone-gold hover:bg-payzone-navy/80"
                                                 }`}
-                                                aria-disabled={newProduct.images.length >= MAX_IMAGES}
+                                                aria-disabled={totalImages >= MAX_IMAGES}
                                         >
                                                 <Upload className='h-5 w-5' />
                                                 {t("admin.createProduct.buttons.uploadImages")}
                                         </label>
                                         <span className='mr-3 text-sm text-white/60'>
-                                                {newProduct.images.length} / {MAX_IMAGES} {t("admin.createProduct.fields.images")}
+                                                {totalImages} / {MAX_IMAGES} {t("admin.createProduct.fields.images")}
                                         </span>
                                 </div>
 
-                                {newProduct.images.length > 0 && (
+                                {galleryItems.length > 0 && (
                                         <div className='grid grid-cols-2 gap-4 sm:grid-cols-3'>
-                                                {newProduct.images.map((image, index) => {
-                                                        const isCover = index === newProduct.coverImageIndex;
+                                                {galleryItems.map((item) => {
+                                                        const isCover =
+                                                                formState.coverSource === item.type &&
+                                                                formState.coverIndex === item.index;
+                                                        const removeHandler =
+                                                                item.type === "existing"
+                                                                        ? () => handleRemoveExistingImage(item.index)
+                                                                        : () => handleRemoveNewImage(item.index);
+
                                                         return (
                                                                 <div
-                                                                        key={`${image}-${index}`}
+                                                                        key={item.key}
                                                                         className={`relative overflow-hidden rounded-lg border ${
-                                                                                isCover ? "border-payzone-gold" : "border-payzone-indigo/40"
+                                                                                isCover
+                                                                                        ? "border-payzone-gold"
+                                                                                        : "border-payzone-indigo/40"
                                                                         } bg-payzone-navy/60`}
                                                                 >
-                                                                        <img src={image} alt={`معاينة ${index + 1}`} className='h-32 w-full object-cover' />
+                                                                        <img
+                                                                                src={item.url}
+                                                                                alt={`معاينة ${item.index + 1}`}
+                                                                                className='h-32 w-full object-cover'
+                                                                        />
                                                                         <div className='absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/60 px-2 py-1 text-xs text-white'>
                                                                                 <button
                                                                                         type='button'
-                                                                                        onClick={() => handleSetCover(index)}
+                                                                                        onClick={() => handleSetCover(item.type, item.index)}
                                                                                         className={`inline-flex items-center gap-1 ${
-                                                                                                isCover ? "text-payzone-gold" : "text-white"
+                                                                                                isCover
+                                                                                                        ? "text-payzone-gold"
+                                                                                                        : "text-white"
                                                                                         }`}
                                                                                 >
                                                                                         <Star className='h-3 w-3' />
@@ -295,7 +485,7 @@ const CreateProductForm = () => {
                                                                                 </button>
                                                                                 <button
                                                                                         type='button'
-                                                                                        onClick={() => handleRemoveImage(index)}
+                                                                                        onClick={removeHandler}
                                                                                         className='inline-flex items-center text-red-300 hover:text-red-200'
                                                                                         aria-label={t("common.actions.remove")}
                                                                                 >
@@ -312,7 +502,7 @@ const CreateProductForm = () => {
                                 <button
                                         type='submit'
                                         className='flex w-full items-center justify-center gap-2 rounded-md bg-payzone-gold px-4 py-2 text-sm font-semibold text-payzone-navy transition duration-300 hover:bg-[#b8873d] focus:outline-none focus:ring-2 focus:ring-payzone-indigo/60 disabled:opacity-50'
-                                        disabled={loading || newProduct.images.length === 0}
+                                        disabled={loading || totalImages === 0}
                                 >
                                         {loading ? (
                                                 <>
@@ -321,8 +511,8 @@ const CreateProductForm = () => {
                                                 </>
                                         ) : (
                                                 <>
-                                                        <PlusCircle className='h-5 w-5' />
-                                                        {t("admin.createProduct.buttons.create")}
+                                                        {isEditing ? <Save className='h-5 w-5' /> : <PlusCircle className='h-5 w-5' />}
+                                                        {submitLabel}
                                                 </>
                                         )}
                                 </button>
@@ -330,4 +520,5 @@ const CreateProductForm = () => {
                 </motion.div>
         );
 };
+
 export default CreateProductForm;

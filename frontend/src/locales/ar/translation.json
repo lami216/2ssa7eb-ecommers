@@ -50,6 +50,7 @@
                         "noCartItems": "لا توجد عناصر في السلة",
                         "couponRemoved": "تمت إزالة الكوبون",
                         "productCreated": "تم إنشاء المنتج بنجاح",
+                        "productUpdated": "تم تحديث المنتج بنجاح",
                         "categoryCreated": "تم إنشاء الفئة بنجاح",
                         "categoryUpdated": "تم تحديث الفئة بنجاح",
                         "categoryDeleted": "تم حذف الفئة بنجاح",
@@ -116,6 +117,7 @@
                 },
                 "createProduct": {
                         "title": "إنشاء منتج جديد",
+                        "editTitle": "تعديل المنتج {{name}}",
                         "fields": {
                                 "name": "اسم المنتج",
                                 "description": "الوصف",
@@ -136,6 +138,7 @@
                         "buttons": {
                                 "uploadImages": "رفع الصور",
                                 "create": "إنشاء المنتج",
+                                "update": "حفظ التعديلات",
                                 "loading": "جاري التحميل..."
                         },
                         "messages": {
