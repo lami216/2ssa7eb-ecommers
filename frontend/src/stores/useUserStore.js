@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import { toast } from "react-hot-toast";
 import apiClient, { registerAuthHandlers } from "../lib/apiClient";
+import i18n from "../lib/i18n";
+
+const translate = (key, options) => i18n.t(key, options);
 
 export const useUserStore = create((set) => ({
 	user: null,
@@ -10,17 +13,17 @@ export const useUserStore = create((set) => ({
 	signup: async ({ name, email, password, confirmPassword }) => {
 		set({ loading: true });
 
-		if (password !== confirmPassword) {
-			set({ loading: false });
-			return toast.error("Passwords do not match");
-		}
+                if (password !== confirmPassword) {
+                        set({ loading: false });
+                        return toast.error(translate("common.messages.passwordMismatch"));
+                }
 
 		try {
                         const data = await apiClient.post("/auth/signup", { name, email, password });
                         set({ user: data, loading: false });
                 } catch (error) {
                         set({ loading: false });
-                        toast.error(error.response?.data?.message || "An error occurred");
+                        toast.error(error.response?.data?.message || translate("toast.genericError"));
                 }
         },
         login: async (email, password) => {
@@ -32,7 +35,7 @@ export const useUserStore = create((set) => ({
                         set({ user: data, loading: false });
                 } catch (error) {
                         set({ loading: false });
-                        toast.error(error.response?.data?.message || "An error occurred");
+                        toast.error(error.response?.data?.message || translate("toast.genericError"));
                 }
         },
 
@@ -41,7 +44,7 @@ export const useUserStore = create((set) => ({
                         await apiClient.post("/auth/logout");
                         set({ user: null });
                 } catch (error) {
-                        toast.error(error.response?.data?.message || "An error occurred during logout");
+                        toast.error(error.response?.data?.message || translate("toast.logoutError"));
                 }
         },
 

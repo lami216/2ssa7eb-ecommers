@@ -1,25 +1,32 @@
-import { BarChart, PlusCircle, ShoppingBasket } from "lucide-react";
-import { useEffect, useState } from "react";
+import { BarChart, PlusCircle, ShoppingBasket, FolderTree } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 import AnalyticsTab from "../components/AnalyticsTab";
 import CreateProductForm from "../components/CreateProductForm";
 import ProductsList from "../components/ProductsList";
+import CategoryManager from "../components/CategoryManager";
 import { useProductStore } from "../stores/useProductStore";
 
-const tabs = [
-	{ id: "create", label: "Create Product", icon: PlusCircle },
-	{ id: "products", label: "Products", icon: ShoppingBasket },
-	{ id: "analytics", label: "Analytics", icon: BarChart },
-];
-
 const AdminPage = () => {
-	const [activeTab, setActiveTab] = useState("create");
-	const { fetchAllProducts } = useProductStore();
+        const [activeTab, setActiveTab] = useState("create");
+        const { fetchAllProducts } = useProductStore();
+        const { t, i18n } = useTranslation();
 
-	useEffect(() => {
-		fetchAllProducts();
-	}, [fetchAllProducts]);
+        useEffect(() => {
+                fetchAllProducts(i18n.language);
+        }, [fetchAllProducts, i18n.language]);
+
+        const tabs = useMemo(
+                () => [
+                        { id: "create", label: t("admin.tabs.create"), icon: PlusCircle },
+                        { id: "products", label: t("admin.tabs.products"), icon: ShoppingBasket },
+                        { id: "categories", label: t("admin.tabs.categories"), icon: FolderTree },
+                        { id: "analytics", label: t("admin.tabs.analytics"), icon: BarChart },
+                ],
+                [t]
+        );
 
         return (
                 <div className='relative min-h-screen overflow-hidden'>
@@ -30,7 +37,7 @@ const AdminPage = () => {
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ duration: 0.8 }}
                                 >
-                                        Admin Dashboard
+                                        {t("admin.dashboardTitle")}
                                 </motion.h1>
 
                                 <div className='flex justify-center mb-8'>
@@ -47,13 +54,14 @@ const AdminPage = () => {
                                                         <tab.icon className='mr-2 h-5 w-5' />
                                                         {tab.label}
 						</button>
-					))}
-				</div>
-				{activeTab === "create" && <CreateProductForm />}
-				{activeTab === "products" && <ProductsList />}
-				{activeTab === "analytics" && <AnalyticsTab />}
-			</div>
-		</div>
-	);
+                                        ))}
+                                </div>
+                                {activeTab === "create" && <CreateProductForm />}
+                                {activeTab === "products" && <ProductsList />}
+                                {activeTab === "categories" && <CategoryManager />}
+                                {activeTab === "analytics" && <AnalyticsTab />}
+                        </div>
+                </div>
+        );
 };
 export default AdminPage;

@@ -1,20 +1,34 @@
 import mongoose from "mongoose";
 
+const translationSchema = new mongoose.Schema(
+        {
+                name: {
+                        type: String,
+                        required: true,
+                },
+                description: {
+                        type: String,
+                        default: "",
+                },
+        },
+        { _id: false }
+);
+
 const productSchema = new mongoose.Schema(
-	{
-		name: {
-			type: String,
-			required: true,
-		},
-		description: {
-			type: String,
-			required: true,
-		},
-		price: {
-			type: Number,
-			min: 0,
-			required: true,
-		},
+        {
+                name: {
+                        type: String,
+                        required: true,
+                },
+                description: {
+                        type: String,
+                        required: true,
+                },
+                price: {
+                        type: Number,
+                        min: 0,
+                        required: true,
+                },
                 image: {
                         type: String,
                         required: [true, "Image is required"],
@@ -40,15 +54,24 @@ const productSchema = new mongoose.Schema(
                                 message: "A product can have up to 3 images only",
                         },
                 },
-		category: {
-			type: String,
-			required: true,
-		},
-		isFeatured: {
-			type: Boolean,
-			default: false,
-		},
-	},
+                category: {
+                        type: String,
+                        required: true,
+                },
+                baseLanguage: {
+                        type: String,
+                        default: "en",
+                },
+                translations: {
+                        type: Map,
+                        of: translationSchema,
+                        default: {},
+                },
+                isFeatured: {
+                        type: Boolean,
+                        default: false,
+                },
+        },
 	{ timestamps: true }
 );
 

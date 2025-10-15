@@ -1,6 +1,7 @@
 import { ArrowRight, CheckCircle, HandHeart } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useCartStore } from "../stores/useCartStore";
 import Confetti from "react-confetti";
 import apiClient from "../lib/apiClient";
@@ -10,13 +11,14 @@ const PurchaseSuccessPage = () => {
         const { clearCart } = useCartStore();
         const [error, setError] = useState(null);
         const [isWhatsAppOrder, setIsWhatsAppOrder] = useState(false);
+        const { t } = useTranslation();
 
         useEffect(() => {
                 const pendingWhatsAppOrder = sessionStorage.getItem("whatsappOrderSent");
                 const handleCheckoutSuccess = async (sessionId) => {
                         try {
                                 await apiClient.post("/payments/checkout-success", { sessionId });
-                                clearCart();
+                                await clearCart();
                         } catch (error) {
                                 console.log(error);
                         } finally {
@@ -40,13 +42,29 @@ const PurchaseSuccessPage = () => {
                         finalizeWhatsAppOrder();
                 } else {
                         setIsProcessing(false);
-                        setError("No session ID found in the URL");
+                        setError(t("common.messages.noSessionId"));
                 }
-        }, [clearCart]);
+        }, [clearCart, t]);
 
-        if (isProcessing) return "Processing...";
+        if (isProcessing)
+                return (
+                        <div className='flex h-screen items-center justify-center text-white'>
+                                {t("purchase.success.processing")}
+                        </div>
+                );
 
-        if (error) return `Error: ${error}`;
+        if (error)
+                return (
+                        <div className='flex h-screen items-center justify-center text-white'>
+                                {t("purchase.success.error", { message: error })}
+                        </div>
+                );
+
+        const title = isWhatsAppOrder ? t("purchase.success.whatsAppTitle") : t("purchase.success.title");
+        const message = isWhatsAppOrder ? t("purchase.success.whatsAppMessage") : t("purchase.success.message");
+        const hint = isWhatsAppOrder ? t("purchase.success.whatsAppHint") : t("purchase.success.hint");
+        const thanksText = isWhatsAppOrder ? t("purchase.success.thanksWhatsApp") : t("purchase.success.thanks");
+        const continueLabel = isWhatsAppOrder ? t("purchase.success.whatsAppButton") : t("purchase.success.button");
 
         return (
                 <div className='flex h-screen items-center justify-center px-4'>
@@ -64,29 +82,21 @@ const PurchaseSuccessPage = () => {
                                         <div className='flex justify-center'>
                                                 <CheckCircle className='mb-4 h-16 w-16 text-payzone-gold' />
                                         </div>
-                                        <h1 className='mb-2 text-center text-2xl font-bold text-white sm:text-3xl'>
-                                                {isWhatsAppOrder ? "تم إرسال طلبك عبر واتساب!" : "Purchase Successful!"}
-                                        </h1>
+                                        <h1 className='mb-2 text-center text-2xl font-bold text-white sm:text-3xl'>{title}</h1>
 
-                                        <p className='mb-2 text-center text-white/80'>
-                                                {isWhatsAppOrder
-                                                        ? "تلقينا تفاصيل طلبك عبر الواتساب وسيتواصل معك فريقنا لتأكيده."
-                                                        : "Thank you for your order. We're processing it now."}
-                                        </p>
-                                        <p className='mb-6 text-center text-sm text-payzone-gold'>
-                                                {isWhatsAppOrder
-                                                        ? "ترقب رسالة من Payzone للتأكيد والمتابعة."
-                                                        : "Check your email for order details and updates."}
-                                        </p>
+                                        <p className='mb-2 text-center text-white/80'>{message}</p>
+                                        <p className='mb-6 text-center text-sm text-payzone-gold'>{hint}</p>
                                         {!isWhatsAppOrder && (
                                                 <div className='mb-6 rounded-lg border border-payzone-indigo/40 bg-payzone-navy/60 p-4'>
                                                         <div className='mb-2 flex items-center justify-between'>
-                                                                <span className='text-sm text-white/60'>Order number</span>
+                                                                <span className='text-sm text-white/60'>{t("purchase.success.orderNumber")}</span>
                                                                 <span className='text-sm font-semibold text-payzone-gold'>#12345</span>
                                                         </div>
                                                         <div className='flex items-center justify-between'>
-                                                                <span className='text-sm text-white/60'>Estimated delivery</span>
-                                                                <span className='text-sm font-semibold text-payzone-gold'>3-5 business days</span>
+                                                                <span className='text-sm text-white/60'>{t("purchase.success.estimatedDelivery")}</span>
+                                                                <span className='text-sm font-semibold text-payzone-gold'>
+                                                                        {t("purchase.success.estimatedDeliveryValue")}
+                                                                </span>
                                                         </div>
                                                 </div>
                                         )}
@@ -94,13 +104,13 @@ const PurchaseSuccessPage = () => {
                                         <div className='space-y-4'>
                                                 <button className='flex w-full items-center justify-center rounded-lg bg-payzone-gold px-4 py-2 font-bold text-payzone-navy transition duration-300 hover:bg-[#b8873d]'>
                                                         <HandHeart className='mr-2' size={18} />
-                                                        {isWhatsAppOrder ? "نشكر ثقتك بنا!" : "Thanks for trusting us!"}
+                                                        {thanksText}
                                                 </button>
                                                 <Link
                                                         to={'/'}
                                                         className='flex w-full items-center justify-center rounded-lg border border-payzone-indigo/40 bg-white/5 px-4 py-2 font-bold text-payzone-indigo transition duration-300 hover:text-payzone-gold'
                                                 >
-                                                        {isWhatsAppOrder ? "العودة للتسوق" : "Continue Shopping"}
+                                                        {continueLabel}
                                                         <ArrowRight className='ml-2' size={18} />
                                                 </Link>
                                         </div>

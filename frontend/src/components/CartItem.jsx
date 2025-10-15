@@ -1,18 +1,20 @@
 import { Minus, Plus, Trash } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useCartStore } from "../stores/useCartStore";
 import { formatMRU } from "../lib/formatMRU";
 import { formatNumberEn } from "../lib/formatNumberEn";
 
 const CartItem = ({ item }) => {
-	const { removeFromCart, updateQuantity } = useCartStore();
+        const { removeFromCart, updateQuantity } = useCartStore();
+        const { t } = useTranslation();
 
         return (
                 <div className='rounded-lg border border-payzone-indigo/40 bg-white/5 p-4 shadow-sm backdrop-blur-sm md:p-6'>
-			<div className='space-y-4 md:flex md:items-center md:justify-between md:gap-6 md:space-y-0'>
-				<div className='shrink-0 md:order-1'>
-					<img className='h-20 md:h-32 rounded object-cover' src={item.image} />
-				</div>
-				<label className='sr-only'>Choose quantity:</label>
+                        <div className='space-y-4 md:flex md:items-center md:justify-between md:gap-6 md:space-y-0'>
+                                <div className='shrink-0 md:order-1'>
+                                        <img className='h-20 md:h-32 rounded object-cover' src={item.image} />
+                                </div>
+                                <label className='sr-only'>{t("cart.item.chooseQuantity")}</label>
 
 				<div className='flex items-center justify-between md:order-3 md:justify-end'>
 					<div className='flex items-center gap-2'>

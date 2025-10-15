@@ -1,8 +1,10 @@
 import { XCircle, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const PurchaseCancelPage = () => {
+        const { t } = useTranslation();
         return (
                 <div className='flex min-h-screen items-center justify-center px-4'>
                         <motion.div
@@ -14,14 +16,12 @@ const PurchaseCancelPage = () => {
                                 <div className='flex justify-center'>
                                         <XCircle className='mb-4 h-16 w-16 text-payzone-indigo' />
                                 </div>
-                                <h1 className='mb-2 text-center text-2xl font-bold text-white sm:text-3xl'>Purchase Cancelled</h1>
-                                <p className='mb-6 text-center text-white/80'>
-                                        Your order has been cancelled. No charges have been made.
-                                </p>
+                                <h1 className='mb-2 text-center text-2xl font-bold text-white sm:text-3xl'>
+                                        {t("purchase.cancel.title")}
+                                </h1>
+                                <p className='mb-6 text-center text-white/80'>{t("purchase.cancel.message")}</p>
                                 <div className='mb-6 rounded-lg border border-payzone-indigo/40 bg-payzone-navy/60 p-4'>
-                                        <p className='text-center text-sm text-white/70'>
-                                                If you encountered any issues during the checkout process, please contact our support team.
-                                        </p>
+                                        <p className='text-center text-sm text-white/70'>{t("purchase.cancel.help")}</p>
                                 </div>
                                 <div className='space-y-4'>
                                         <Link
@@ -29,7 +29,7 @@ const PurchaseCancelPage = () => {
                                                 className='flex w-full items-center justify-center rounded-lg bg-payzone-gold px-4 py-2 font-bold text-payzone-navy transition duration-300 hover:bg-[#b8873d]'
                                         >
                                                 <ArrowLeft className='mr-2' size={18} />
-                                                Return to Shop
+                                                {t("purchase.cancel.button")}
                                         </Link>
                                 </div>
                         </motion.div>

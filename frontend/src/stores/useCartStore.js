@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { toast } from "react-hot-toast";
 import apiClient from "../lib/apiClient";
 import { useUserStore } from "./useUserStore";
+import i18n from "../lib/i18n";
 
 const LOCAL_CART_KEY = "guest_cart_items";
 
@@ -35,6 +36,7 @@ const persistCartToStorage = (cart) => {
 };
 
 const getAuthenticatedUser = () => useUserStore.getState().user;
+const translate = (key, options) => i18n.t(key, options);
 
 export const useCartStore = create((set, get) => ({
         cart: loadCartFromStorage(),
@@ -68,7 +70,7 @@ export const useCartStore = create((set, get) => ({
                 const user = getAuthenticatedUser();
 
                 if (!user) {
-                        toast.error("الرجاء تسجيل الدخول لاستخدام كوبون الخصم");
+                        toast.error(translate("common.messages.loginRequiredForCoupon"));
                         return;
                 }
 
@@ -76,15 +78,15 @@ export const useCartStore = create((set, get) => ({
                         const data = await apiClient.post("/coupons/validate", { code });
                         set({ coupon: data, isCouponApplied: true });
                         get().calculateTotals();
-                        toast.success("Coupon applied successfully");
+                        toast.success(translate("common.messages.couponAppliedSuccess"));
                 } catch (error) {
-                        toast.error(error.response?.data?.message || "Failed to apply coupon");
+                        toast.error(error.response?.data?.message || translate("toast.applyCouponError"));
                 }
         },
         removeCoupon: () => {
                 set({ coupon: null, isCouponApplied: false });
                 get().calculateTotals();
-                toast.success("Coupon removed");
+                toast.success(translate("common.messages.couponRemoved"));
         },
 
         getCartItems: async () => {
@@ -105,7 +107,7 @@ export const useCartStore = create((set, get) => ({
                 } catch (error) {
                         const fallbackCart = loadCartFromStorage();
                         set({ cart: fallbackCart });
-                        toast.error(error.response?.data?.message || "An error occurred");
+                        toast.error(error.response?.data?.message || translate("toast.cartFetchError"));
                         get().calculateTotals();
                 }
         },
@@ -135,15 +137,15 @@ export const useCartStore = create((set, get) => ({
 
                 if (!user) {
                         updateLocalCart();
-                        toast.success("تمت إضافة المنتج إلى السلة");
+                        toast.success(translate("common.messages.productAddedToCart"));
                         return;
                 }
 
                 try {
                         await apiClient.post("/cart", { productId: product._id });
-                        toast.success("Product added to cart");
+                        toast.success(translate("common.messages.productAddedToCart"));
                 } catch (error) {
-                        toast.error(error.response?.data?.message || "An error occurred");
+                        toast.error(error.response?.data?.message || translate("toast.addToCartError"));
                 }
 
                 updateLocalCart();
@@ -163,7 +165,7 @@ export const useCartStore = create((set, get) => ({
                 try {
                         await apiClient.delete(`/cart`, { body: { productId } });
                 } catch (error) {
-                        toast.error(error.response?.data?.message || "Failed to remove item");
+                        toast.error(error.response?.data?.message || translate("toast.removeItemError"));
                 }
         },
         updateQuantity: async (productId, quantity) => {
@@ -188,7 +190,7 @@ export const useCartStore = create((set, get) => ({
                 try {
                         await apiClient.put(`/cart/${productId}`, { quantity });
                 } catch (error) {
-                        toast.error(error.response?.data?.message || "Failed to update quantity");
+                        toast.error(error.response?.data?.message || translate("toast.updateQuantityError"));
                 }
         },
         calculateTotals: () => {
