@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Users, Package, ShoppingCart, DollarSign } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import apiClient from "../lib/apiClient";
 import { formatMRU } from "../lib/formatMRU";
@@ -15,6 +16,7 @@ const AnalyticsTab = () => {
         });
         const [isLoading, setIsLoading] = useState(true);
         const [dailySalesData, setDailySalesData] = useState([]);
+        const { t } = useTranslation();
 
         useEffect(() => {
                 const fetchAnalyticsData = async () => {
@@ -33,32 +35,32 @@ const AnalyticsTab = () => {
         }, []);
 
         if (isLoading) {
-                return <div>Loading...</div>;
+                return <div>{t("admin.analytics.loading")}</div>;
         }
 
         return (
                 <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
                         <div className='mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4'>
                                 <AnalyticsCard
-                                        title='Total Users'
+                                        title={t("admin.analytics.cards.users")}
                                         value={formatNumberEn(analyticsData.users)}
                                         icon={Users}
                                         gradient='from-payzone-indigo/70 via-payzone-indigo/60 to-payzone-navy'
                                 />
                                 <AnalyticsCard
-                                        title='Total Products'
+                                        title={t("admin.analytics.cards.products")}
                                         value={formatNumberEn(analyticsData.products)}
                                         icon={Package}
                                         gradient='from-payzone-gold/80 via-payzone-gold/60 to-payzone-navy'
                                 />
                                 <AnalyticsCard
-                                        title='Total Sales'
+                                        title={t("admin.analytics.cards.sales")}
                                         value={formatNumberEn(analyticsData.totalSales)}
                                         icon={ShoppingCart}
                                         gradient='from-payzone-indigo/60 via-payzone-gold/40 to-payzone-navy'
                                 />
                                 <AnalyticsCard
-                                        title='Total Revenue'
+                                        title={t("admin.analytics.cards.revenue")}
                                         value={formatMRU(analyticsData.totalRevenue)}
                                         icon={DollarSign}
                                         gradient='from-payzone-gold via-payzone-indigo/50 to-payzone-navy'
@@ -87,7 +89,7 @@ const AnalyticsTab = () => {
                                                         stroke='#D29C4A'
                                                         strokeWidth={3}
                                                         activeDot={{ r: 8 }}
-                                                        name='Sales'
+                                                        name={t("admin.analytics.chart.sales")}
                                                 />
                                                 <Line
                                                         yAxisId='right'
@@ -96,7 +98,7 @@ const AnalyticsTab = () => {
                                                         stroke='#4B4ACF'
                                                         strokeWidth={3}
                                                         activeDot={{ r: 8 }}
-                                                        name='Revenue'
+                                                        name={t("admin.analytics.chart.revenue")}
                                                 />
                                         </LineChart>
                                 </ResponsiveContainer>

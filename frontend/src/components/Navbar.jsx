@@ -1,13 +1,16 @@
 import { ShoppingCart, UserPlus, LogIn, LogOut, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 const Navbar = () => {
         const { user, logout } = useUserStore();
         const isAdmin = user?.role === "admin";
         const { cart } = useCartStore();
         const cartItemCount = cart.reduce((total, item) => total + (item.quantity ?? 0), 0);
+        const { t } = useTranslation();
 
         const cartLink = (
                 <Link
@@ -15,7 +18,7 @@ const Navbar = () => {
                         className='relative group flex items-center rounded-md bg-white/10 px-4 py-2 text-sm font-semibold text-payzone-white transition duration-300 ease-in-out hover:bg-white/20'
                 >
                         <ShoppingCart className='mr-2' size={18} />
-                        <span className='hidden sm:inline'>السلة</span>
+                        <span className='hidden sm:inline'>{t("nav.cart")}</span>
                         {cartItemCount > 0 && (
                                 <span className='absolute -top-2 -left-2 rounded-full bg-payzone-gold px-2 py-0.5 text-xs font-semibold text-payzone-navy shadow-sm transition duration-300 ease-in-out group-hover:bg-[#b8873d]'>
                                         {cartItemCount}
@@ -43,7 +46,7 @@ const Navbar = () => {
                                                                 to={'/'}
                                                                 className='text-white/80 transition duration-300 ease-in-out hover:text-payzone-indigo'
                                                         >
-                                                                الرئيسية
+                                                                {t("nav.home")}
                                                         </Link>
                                                         {isAdmin && (
                                                                 <Link
@@ -51,12 +54,13 @@ const Navbar = () => {
                                                                         to={'/secret-dashboard'}
                                                                 >
                                                                         <Lock className='inline-block mr-1' size={18} />
-                                                                        <span className='hidden sm:inline'>لوحة التحكم</span>
+                                                                        <span className='hidden sm:inline'>{t("nav.dashboard")}</span>
                                                                 </Link>
                                                         )}
                                                 </nav>
 
                                                 <div className='flex items-center gap-3'>
+                                                        <LanguageSwitcher />
                                                         {cartLink}
                                                         {user ? (
                                                                 <button
@@ -64,7 +68,7 @@ const Navbar = () => {
                                                                         onClick={logout}
                                                                 >
                                                                         <LogOut size={18} />
-                                                                        <span className='hidden sm:inline ml-2'>تسجيل الخروج</span>
+                                                                        <span className='hidden sm:inline ml-2'>{t("nav.logout")}</span>
                                                                 </button>
                                                         ) : (
                                                                 <>
@@ -73,14 +77,14 @@ const Navbar = () => {
                                                                                 className='flex items-center rounded-md bg-payzone-gold px-4 py-2 font-semibold text-payzone-navy transition duration-300 ease-in-out hover:bg-[#b8873d]'
                                                                         >
                                                                                 <UserPlus className='mr-2' size={18} />
-                                                                                إنشاء حساب
+                                                                                {t("nav.signup")}
                                                                         </Link>
                                                                         <Link
                                                                                 to={'/login'}
                                                                                 className='flex items-center rounded-md bg-payzone-indigo px-4 py-2 text-payzone-white transition duration-300 ease-in-out hover:bg-[#3b3ad6]'
                                                                         >
                                                                                 <LogIn className='mr-2' size={18} />
-                                                                                تسجيل الدخول
+                                                                                {t("nav.login")}
                                                                         </Link>
                                                                 </>
                                                         )}

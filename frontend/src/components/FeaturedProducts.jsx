@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useCartStore } from "../stores/useCartStore";
 import { formatMRU } from "../lib/formatMRU";
 
@@ -8,6 +9,7 @@ const FeaturedProducts = ({ featuredProducts }) => {
         const [itemsPerPage, setItemsPerPage] = useState(4);
 
         const { addToCart } = useCartStore();
+        const { t } = useTranslation();
 
         useEffect(() => {
                 const handleResize = () => {
@@ -37,7 +39,9 @@ const FeaturedProducts = ({ featuredProducts }) => {
                 <div className='py-12'>
                         <div className='container mx-auto px-4'>
                                 <h2 className='mb-4 text-center text-5xl font-bold sm:text-6xl'>
-                                        <span className='bg-gradient-to-r from-payzone-gold via-payzone-gold/80 to-payzone-indigo bg-clip-text text-transparent'>Featured</span>
+                                        <span className='bg-gradient-to-r from-payzone-gold via-payzone-gold/80 to-payzone-indigo bg-clip-text text-transparent'>
+                                                {t("home.featuredTitle")}
+                                        </span>
                                 </h2>
                                 <div className='relative'>
                                         <div className='overflow-hidden'>
@@ -65,7 +69,7 @@ const FeaturedProducts = ({ featuredProducts }) => {
                                                                                                 className='flex w-full items-center justify-center gap-2 rounded bg-payzone-gold py-2 px-4 font-semibold text-payzone-navy transition-colors duration-300 hover:bg-[#b8873d]'
                                                                                         >
                                                                                                 <ShoppingCart className='h-5 w-5' />
-                                                                                                Add to Cart
+                                                                                                {t("common.actions.addToCart")}
                                                                                         </button>
                                                                                 </div>
                                                                         </div>

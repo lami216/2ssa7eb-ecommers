@@ -1,6 +1,10 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 import apiClient from "../lib/apiClient";
+import i18n from "../lib/i18n";
+
+const getLanguage = () => i18n.language || "en";
+const translate = (key, options) => i18n.t(key, options);
 
 export const useProductStore = create((set, get) => ({
         products: [],
@@ -17,54 +21,59 @@ export const useProductStore = create((set, get) => ({
         },
         setSelectedProduct: (product) => set({ selectedProduct: product }),
         clearSelectedProduct: () => set({ selectedProduct: null }),
-        createProduct: async (productData) => {
+        createProduct: async (productData, language = getLanguage()) => {
                 set({ loading: true });
                 try {
-                        const data = await apiClient.post("/products", productData);
+                        const data = await apiClient.post(`/products?lang=${language}`, productData);
                         set((prevState) => ({
                                 products: [...prevState.products, data],
                                 loading: false,
                         }));
+                        toast.success(translate("common.messages.productCreated"));
                         return data;
                 } catch (error) {
-                        toast.error(error.response?.data?.message || "Failed to create product");
+                        toast.error(error.response?.data?.message || translate("toast.createProductError"));
                         set({ loading: false });
                         throw error;
                 }
         },
-        fetchAllProducts: async () => {
+        fetchAllProducts: async (language = getLanguage()) => {
                 set({ loading: true });
                 try {
-                        const data = await apiClient.get("/products");
+                        const data = await apiClient.get(`/products?lang=${language}`);
                         get().setProducts(data.products);
                         set({ loading: false });
                 } catch (error) {
-                        set({ error: "Failed to fetch products", loading: false });
-                        toast.error(error.response?.data?.message || "Failed to fetch products");
+                        set({ error: translate("toast.fetchProductsError"), loading: false });
+                        toast.error(error.response?.data?.message || translate("toast.fetchProductsError"));
                 }
         },
-        fetchProductsByCategory: async (category) => {
+        fetchProductsByCategory: async (category, language = getLanguage()) => {
                 set({ loading: true });
                 try {
-                        const data = await apiClient.get(`/products/category/${category}`);
+                        const data = await apiClient.get(`/products/category/${category}?lang=${language}`);
                         get().setProducts(data.products);
                         set({ loading: false });
                 } catch (error) {
-                        set({ error: "Failed to fetch products", loading: false });
-                        toast.error(error.response?.data?.message || "Failed to fetch products");
+                        set({ error: translate("toast.fetchProductsError"), loading: false });
+                        toast.error(error.response?.data?.message || translate("toast.fetchProductsError"));
                 }
         },
-        fetchProductById: async (productId) => {
+        fetchProductById: async (productId, language = getLanguage()) => {
                 const existingProduct = get().products.find((product) => product._id === productId);
                 if (existingProduct) {
-                        set({ selectedProduct: existingProduct });
-                        return existingProduct;
+                        const translations = existingProduct.translations ?? {};
+                        const localized = translations[language]
+                                ? { ...existingProduct, ...translations[language] }
+                                : existingProduct;
+                        set({ selectedProduct: localized });
+                        return localized;
                 }
 
                 set({ productDetailsLoading: true });
 
                 try {
-                        const data = await apiClient.get(`/products/${productId}`);
+                        const data = await apiClient.get(`/products/${productId}?lang=${language}`);
                         set((prevState) => {
                                 const alreadyInList = prevState.products.some((product) => product._id === data._id);
                                 return {
@@ -80,7 +89,7 @@ export const useProductStore = create((set, get) => ({
                         return data;
                 } catch (error) {
                         set({ productDetailsLoading: false });
-                        toast.error(error.response?.data?.message || "Failed to load product");
+                        toast.error(error.response?.data?.message || translate("toast.loadProductError"));
                         throw error;
                 }
         },
@@ -96,13 +105,13 @@ export const useProductStore = create((set, get) => ({
                         }));
                 } catch (error) {
                         set({ loading: false });
-                        toast.error(error.response?.data?.message || "Failed to delete product");
+                        toast.error(error.response?.data?.message || translate("toast.deleteProductError"));
                 }
         },
-        toggleFeaturedProduct: async (productId) => {
+        toggleFeaturedProduct: async (productId, language = getLanguage()) => {
                 set({ loading: true });
                 try {
-                        const data = await apiClient.patch(`/products/${productId}`);
+                        const data = await apiClient.patch(`/products/${productId}?lang=${language}`);
                         set((prevState) => ({
                                 products: prevState.products.map((product) =>
                                         product._id === productId ? { ...product, isFeatured: data.isFeatured } : product
@@ -115,17 +124,17 @@ export const useProductStore = create((set, get) => ({
                         }));
                 } catch (error) {
                         set({ loading: false });
-                        toast.error(error.response?.data?.message || "Failed to update product");
+                        toast.error(error.response?.data?.message || translate("toast.updateProductError"));
                 }
         },
-        fetchFeaturedProducts: async () => {
+        fetchFeaturedProducts: async (language = getLanguage()) => {
                 set({ loading: true });
                 try {
-                        const data = await apiClient.get("/products/featured");
+                        const data = await apiClient.get(`/products/featured?lang=${language}`);
                         get().setProducts(data);
                         set({ loading: false });
                 } catch (error) {
-                        set({ error: "Failed to fetch products", loading: false });
+                        set({ error: translate("toast.fetchProductsError"), loading: false });
                         console.log("Error fetching featured products:", error);
                 }
         },

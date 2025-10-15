@@ -2,11 +2,13 @@ import { motion } from "framer-motion";
 import { useCartStore } from "../stores/useCartStore";
 import { Link, useNavigate } from "react-router-dom";
 import { MoveRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { formatMRU } from "../lib/formatMRU";
 
 const OrderSummary = () => {
         const { total, subtotal, coupon, isCouponApplied } = useCartStore();
         const navigate = useNavigate();
+        const { t } = useTranslation();
 
         const savings = subtotal - total;
         const formattedDiscount =
@@ -24,20 +26,26 @@ const OrderSummary = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
                 >
-                        <p className='text-xl font-semibold text-payzone-gold'>ملخص الطلب</p>
+                        <p className='text-xl font-semibold text-payzone-gold'>
+                                {t("cart.summary.title")}
+                        </p>
 
-			<div className='space-y-4'>
-				<div className='space-y-2'>
-					<dl className='flex items-center justify-between gap-4'>
-                                                <dt className='text-base font-normal text-white/70'>السعر قبل الخصم</dt>
+                        <div className='space-y-4'>
+                                <div className='space-y-2'>
+                                        <dl className='flex items-center justify-between gap-4'>
+                                                <dt className='text-base font-normal text-white/70'>
+                                                        {t("cart.summary.subtotal")}
+                                                </dt>
                                                 <dd className='text-base font-medium text-white'>
                                                         {formatMRU(subtotal)}
                                                 </dd>
-					</dl>
+                                        </dl>
 
-					{savings > 0 && (
-						<dl className='flex items-center justify-between gap-4'>
-                                                        <dt className='text-base font-normal text-white/70'>التوفير</dt>
+                                        {savings > 0 && (
+                                                <dl className='flex items-center justify-between gap-4'>
+                                                        <dt className='text-base font-normal text-white/70'>
+                                                                {t("cart.summary.savings")}
+                                                        </dt>
                                                         <dd className='text-base font-medium text-payzone-gold'>
                                                                 -{formatMRU(savings)}
                                                         </dd>
@@ -46,19 +54,23 @@ const OrderSummary = () => {
 
                                         {coupon && isCouponApplied && (
                                                 <dl className='flex items-center justify-between gap-4'>
-                                                        <dt className='text-base font-normal text-white/70'>الكوبون ({coupon.code})</dt>
+                                                        <dt className='text-base font-normal text-white/70'>
+                                                                {t("cart.summary.coupon", { code: coupon.code })}
+                                                        </dt>
                                                         <dd className='text-base font-medium text-payzone-gold'>
                                                                 -{formattedDiscount ?? coupon.discountPercentage}%
                                                         </dd>
                                                 </dl>
                                         )}
                                         <dl className='flex items-center justify-between gap-4 border-t border-white/10 pt-2'>
-                                                <dt className='text-base font-bold text-white'>الإجمالي</dt>
+                                                <dt className='text-base font-bold text-white'>
+                                                        {t("cart.summary.total")}
+                                                </dt>
                                                 <dd className='text-base font-bold text-payzone-gold'>
                                                         {formatMRU(total)}
                                                 </dd>
                                         </dl>
-				</div>
+                                </div>
 
                                 <motion.button
                                         type='button'
@@ -67,20 +79,22 @@ const OrderSummary = () => {
                                         whileTap={{ scale: 0.95 }}
                                         onClick={handleCheckout}
                                 >
-                                        متابعة إلى إتمام الطلب
+                                        {t("cart.summary.proceed")}
                                 </motion.button>
 
                                 <div className='flex items-center justify-center gap-2'>
-                                        <span className='text-sm font-normal text-white/60'>أو</span>
+                                        <span className='text-sm font-normal text-white/60'>
+                                                {t("cart.summary.or")}
+                                        </span>
                                         <Link
                                                 to='/'
                                                 className='inline-flex items-center gap-2 text-sm font-medium text-payzone-indigo underline transition-colors duration-300 hover:text-payzone-gold hover:no-underline'
                                         >
-                                                متابعة التسوق
+                                                {t("cart.summary.continue")}
                                                 <MoveRight size={16} />
                                         </Link>
                                 </div>
-			</div>
+                        </div>
 		</motion.div>
 	);
 };

@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import { useCartStore } from "../stores/useCartStore";
 import { useUserStore } from "../stores/useUserStore";
 
@@ -8,6 +9,7 @@ const GiftCouponCard = () => {
         const [userInputCode, setUserInputCode] = useState("");
         const user = useUserStore((state) => state.user);
         const { coupon, isCouponApplied, applyCoupon, getMyCoupon, removeCoupon } = useCartStore();
+        const { t } = useTranslation();
 
         useEffect(() => {
                 if (!user) return;
@@ -23,7 +25,7 @@ const GiftCouponCard = () => {
                 if (!userInputCode) return;
 
                 if (!user) {
-                        toast.error("قم بتسجيل الدخول لتفعيل كوبون الخصم");
+                        toast.error(t("common.messages.loginRequiredForCoupon"));
                         return;
                 }
 
@@ -45,13 +47,13 @@ const GiftCouponCard = () => {
                         <div className='space-y-4'>
                                 <div>
                                         <label htmlFor='voucher' className='mb-2 block text-sm font-medium text-white/80'>
-                                                Do you have a voucher or gift card?
+                                                {t("cart.coupon.label")}
                                         </label>
                                         <input
                                                 type='text'
                                                 id='voucher'
                                                 className='block w-full rounded-lg border border-payzone-indigo/40 bg-payzone-navy/60 p-2.5 text-sm text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
-                                                placeholder='Enter code here'
+                                                placeholder={t("cart.coupon.placeholder")}
                                                 value={userInputCode}
                                                 onChange={(e) => setUserInputCode(e.target.value)}
                                                 required
@@ -65,15 +67,20 @@ const GiftCouponCard = () => {
                                         whileTap={{ scale: 0.95 }}
                                         onClick={handleApplyCoupon}
                                 >
-                                        Apply Code
+                                        {t("cart.coupon.apply")}
                                 </motion.button>
                         </div>
                         {isCouponApplied && coupon && (
                                 <div className='mt-4 rounded-lg border border-payzone-indigo/40 bg-payzone-navy/40 p-4'>
-                                        <h3 className='text-lg font-medium text-payzone-gold'>Applied Coupon</h3>
+                                        <h3 className='text-lg font-medium text-payzone-gold'>
+                                                {t("cart.coupon.appliedTitle")}
+                                        </h3>
 
                                         <p className='mt-2 text-sm text-white/70'>
-                                                {coupon.code} - {coupon.discountPercentage}% off
+                                                {t("cart.coupon.discount", {
+                                                        code: coupon.code,
+                                                        discount: coupon.discountPercentage,
+                                                })}
                                         </p>
 
                                         <motion.button
@@ -83,16 +90,21 @@ const GiftCouponCard = () => {
                                                 whileTap={{ scale: 0.95 }}
                                                 onClick={handleRemoveCoupon}
                                         >
-                                                Remove Coupon
+                                                {t("cart.coupon.remove")}
                                         </motion.button>
                                 </div>
                         )}
 
                         {coupon && (
                                 <div className='mt-4 rounded-lg border border-payzone-indigo/20 bg-white/5 p-4'>
-                                        <h3 className='text-lg font-medium text-payzone-gold'>Your Available Coupon:</h3>
+                                        <h3 className='text-lg font-medium text-payzone-gold'>
+                                                {t("cart.coupon.availableTitle")}
+                                        </h3>
                                         <p className='mt-2 text-sm text-white/70'>
-                                                {coupon.code} - {coupon.discountPercentage}% off
+                                                {t("cart.coupon.discount", {
+                                                        code: coupon.code,
+                                                        discount: coupon.discountPercentage,
+                                                })}
                                         </p>
                                 </div>
                         )}

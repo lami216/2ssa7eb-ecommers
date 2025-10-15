@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { UserPlus, Mail, Lock, User, ArrowRight, Loader } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { useUserStore } from "../stores/useUserStore";
 
 const SignUpPage = () => {
@@ -13,6 +14,7 @@ const SignUpPage = () => {
         });
 
         const { signup, loading } = useUserStore();
+        const { t } = useTranslation();
 
         const handleSubmit = (e) => {
                 e.preventDefault();
@@ -49,7 +51,9 @@ const SignUpPage = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.8 }}
                         >
-                                <h2 className='mt-6 text-center text-3xl font-extrabold text-payzone-gold'>Create your Payzone account</h2>
+                                <h2 className='mt-6 text-center text-3xl font-extrabold text-payzone-gold'>
+                                        {t("auth.signup.title")}
+                                </h2>
                         </motion.div>
 
                         <motion.div
@@ -60,10 +64,38 @@ const SignUpPage = () => {
                         >
                                 <div className='rounded-xl border border-payzone-indigo/40 bg-white/5 py-8 px-4 shadow backdrop-blur-sm sm:px-10'>
                                         <form onSubmit={handleSubmit} className='space-y-6'>
-                                                {renderField("name", "Full name", "text", User, "John Doe", "name")}
-                                                {renderField("email", "Email address", "email", Mail, "you@example.com", "email")}
-                                                {renderField("password", "Password", "password", Lock, "••••••••", "password")}
-                                                {renderField("confirmPassword", "Confirm Password", "password", Lock, "••••••••", "confirmPassword")}
+                                                {renderField(
+                                                        "name",
+                                                        t("auth.signup.name"),
+                                                        "text",
+                                                        User,
+                                                        t("auth.signup.placeholderName"),
+                                                        "name"
+                                                )}
+                                                {renderField(
+                                                        "email",
+                                                        t("auth.signup.email"),
+                                                        "email",
+                                                        Mail,
+                                                        t("auth.signup.placeholderEmail"),
+                                                        "email"
+                                                )}
+                                                {renderField(
+                                                        "password",
+                                                        t("auth.signup.password"),
+                                                        "password",
+                                                        Lock,
+                                                        t("auth.signup.placeholderPassword"),
+                                                        "password"
+                                                )}
+                                                {renderField(
+                                                        "confirmPassword",
+                                                        t("auth.signup.confirmPassword"),
+                                                        "password",
+                                                        Lock,
+                                                        t("auth.signup.placeholderPassword"),
+                                                        "confirmPassword"
+                                                )}
 
                                                 <button
                                                         type='submit'
@@ -73,21 +105,22 @@ const SignUpPage = () => {
                                                         {loading ? (
                                                                 <>
                                                                         <Loader className='h-5 w-5 animate-spin' aria-hidden='true' />
-                                                                        Loading...
+                                                                        {t("auth.signup.loading")}
                                                                 </>
                                                         ) : (
                                                                 <>
                                                                         <UserPlus className='h-5 w-5' aria-hidden='true' />
-                                                                        Sign up
+                                                                        {t("auth.signup.button")}
                                                                 </>
                                                         )}
                                                 </button>
                                         </form>
 
                                         <p className='mt-8 text-center text-sm text-white/70'>
-                                                Already have an account?{" "}
+                                                {t("auth.signup.prompt")} {" "}
                                                 <Link to='/login' className='font-medium text-payzone-indigo transition duration-300 hover:text-payzone-gold'>
-                                                        Login here <ArrowRight className='ml-1 inline h-4 w-4' />
+                                                        {t("auth.signup.cta")}{" "}
+                                                        <ArrowRight className='ml-1 inline h-4 w-4' />
                                                 </Link>
                                         </p>
                                 </div>
