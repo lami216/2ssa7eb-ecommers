@@ -1,7 +1,7 @@
 import { BarChart, PlusCircle, ShoppingBasket, FolderTree } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { useTranslation } from "react-i18next";
+import useTranslation from "../hooks/useTranslation";
 
 import AnalyticsTab from "../components/AnalyticsTab";
 import CreateProductForm from "../components/CreateProductForm";
@@ -12,11 +12,11 @@ import { useProductStore } from "../stores/useProductStore";
 const AdminPage = () => {
         const [activeTab, setActiveTab] = useState("create");
         const { fetchAllProducts } = useProductStore();
-        const { t, i18n } = useTranslation();
+        const { t } = useTranslation();
 
         useEffect(() => {
-                fetchAllProducts(i18n.language);
-        }, [fetchAllProducts, i18n.language]);
+                fetchAllProducts();
+        }, [fetchAllProducts]);
 
         const tabs = useMemo(
                 () => [
@@ -51,9 +51,9 @@ const AdminPage = () => {
                                                                         : "bg-white/10 text-white/80 hover:bg-white/20"
                                                         }`}
                                                 >
-                                                        <tab.icon className='mr-2 h-5 w-5' />
+                                                        <tab.icon className='ml-2 h-5 w-5' />
                                                         {tab.label}
-						</button>
+                                                </button>
                                         ))}
                                 </div>
                                 {activeTab === "create" && <CreateProductForm />}

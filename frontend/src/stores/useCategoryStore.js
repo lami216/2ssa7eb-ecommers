@@ -1,10 +1,7 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 import apiClient from "../lib/apiClient";
-import i18n from "../lib/i18n";
-
-const getLanguage = () => i18n.language || "en";
-const translate = (key, options) => i18n.t(key, options);
+import { translate } from "../lib/locale";
 
 export const useCategoryStore = create((set) => ({
         categories: [],
@@ -15,10 +12,10 @@ export const useCategoryStore = create((set) => ({
         setSelectedCategory: (category) => set({ selectedCategory: category }),
         clearSelectedCategory: () => set({ selectedCategory: null }),
 
-        fetchCategories: async (language = getLanguage()) => {
+        fetchCategories: async () => {
                 set({ loading: true, error: null });
                 try {
-                        const data = await apiClient.get(`/categories?lang=${language}`);
+                        const data = await apiClient.get(`/categories`);
                         set({ categories: data?.categories ?? [], loading: false });
                 } catch (error) {
                         set({ loading: false, error: error.response?.data?.message || "Failed to fetch categories" });
@@ -28,9 +25,8 @@ export const useCategoryStore = create((set) => ({
 
         createCategory: async (payload) => {
                 set({ loading: true, error: null });
-                const language = payload?.language || getLanguage();
                 try {
-                        const data = await apiClient.post(`/categories?lang=${language}`, payload);
+                        const data = await apiClient.post(`/categories`, payload);
                         set((state) => ({
                                 categories: [...state.categories, data],
                                 loading: false,
@@ -46,9 +42,8 @@ export const useCategoryStore = create((set) => ({
 
         updateCategory: async (id, payload) => {
                 set({ loading: true, error: null });
-                const language = payload?.language || getLanguage();
                 try {
-                        const data = await apiClient.put(`/categories/${id}?lang=${language}`, payload);
+                        const data = await apiClient.put(`/categories/${id}`, payload);
                         set((state) => ({
                                 categories: state.categories.map((category) =>
                                         category._id === id ? data : category

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { PlusCircle, Upload, Loader, Star, X } from "lucide-react";
 import toast from "react-hot-toast";
-import { useTranslation } from "react-i18next";
+import useTranslation from "../hooks/useTranslation";
 import { useProductStore } from "../stores/useProductStore";
 import { useCategoryStore } from "../stores/useCategoryStore";
 
@@ -16,23 +16,18 @@ const CreateProductForm = () => {
                 category: "",
                 images: [],
                 coverImageIndex: 0,
-                baseLanguage: "en",
         });
 
         const { createProduct, loading } = useProductStore();
         const { categories, fetchCategories } = useCategoryStore();
-        const { t, i18n } = useTranslation();
+        const { t } = useTranslation();
 
         useEffect(() => {
-                setNewProduct((previous) => ({ ...previous, baseLanguage: i18n.language || "en" }));
-        }, [i18n.language]);
+                fetchCategories();
+        }, [fetchCategories]);
 
-        useEffect(() => {
-                fetchCategories(i18n.language);
-        }, [fetchCategories, i18n.language]);
-
-        const handleSubmit = async (e) => {
-                e.preventDefault();
+        const handleSubmit = async (event) => {
+                event.preventDefault();
                 try {
                         if (!newProduct.images.length) {
                                 toast.error(t("admin.createProduct.messages.missingImages"));
@@ -52,15 +47,29 @@ const CreateProductForm = () => {
                                 price: Number(newProduct.price),
                                 category: newProduct.category,
                                 images: orderedImages,
-                                baseLanguage: newProduct.baseLanguage,
                         };
+
+                        if (!payload.name) {
+                                toast.error(t("admin.createProduct.messages.nameRequired"));
+                                return;
+                        }
+
+                        if (!payload.description) {
+                                toast.error(t("admin.createProduct.messages.descriptionRequired"));
+                                return;
+                        }
+
+                        if (!payload.category) {
+                                toast.error(t("admin.createProduct.messages.categoryRequired"));
+                                return;
+                        }
 
                         if (Number.isNaN(payload.price)) {
                                 toast.error(t("admin.createProduct.messages.invalidPrice"));
                                 return;
                         }
 
-                        await createProduct(payload, i18n.language);
+                        await createProduct(payload);
                         setNewProduct({
                                 name: "",
                                 description: "",
@@ -68,7 +77,6 @@ const CreateProductForm = () => {
                                 category: "",
                                 images: [],
                                 coverImageIndex: 0,
-                                baseLanguage: i18n.language || "en",
                         });
                         toast.success(t("admin.createProduct.messages.productCreated"));
                 } catch {
@@ -76,8 +84,8 @@ const CreateProductForm = () => {
                 }
         };
 
-        const handleImagesChange = (e) => {
-                const input = e.target;
+        const handleImagesChange = (event) => {
+                const input = event.target;
                 const files = Array.from(input.files || []);
                 if (!files.length) return;
 
@@ -173,7 +181,7 @@ const CreateProductForm = () => {
                                                 id='name'
                                                 name='name'
                                                 value={newProduct.name}
-                                                onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                                                onChange={(event) => setNewProduct({ ...newProduct, name: event.target.value })}
                                                 className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
                                                 required
                                         />
@@ -187,7 +195,7 @@ const CreateProductForm = () => {
                                                 id='description'
                                                 name='description'
                                                 value={newProduct.description}
-                                                onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                                                onChange={(event) => setNewProduct({ ...newProduct, description: event.target.value })}
                                                 rows='3'
                                                 className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
                                                 required
@@ -203,29 +211,11 @@ const CreateProductForm = () => {
                                                 id='price'
                                                 name='price'
                                                 value={newProduct.price}
-                                                onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                                                onChange={(event) => setNewProduct({ ...newProduct, price: event.target.value })}
                                                 step='0.01'
                                                 className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
                                                 required
                                         />
-                                </div>
-
-                                <div>
-                                        <label htmlFor='baseLanguage' className='block text-sm font-medium text-white/80'>
-                                                {t("admin.createProduct.fields.baseLanguage")}
-                                        </label>
-                                        <select
-                                                id='baseLanguage'
-                                                name='baseLanguage'
-                                                value={newProduct.baseLanguage}
-                                                onChange={(e) => setNewProduct({ ...newProduct, baseLanguage: e.target.value })}
-                                                className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
-                                                required
-                                        >
-                                                <option value='en'>{t("common.languages.en")}</option>
-                                                <option value='ar'>{t("common.languages.ar")}</option>
-                                                <option value='fr'>{t("common.languages.fr")}</option>
-                                        </select>
                                 </div>
 
                                 <div>
@@ -236,7 +226,7 @@ const CreateProductForm = () => {
                                                 id='category'
                                                 name='category'
                                                 value={newProduct.category}
-                                                onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+                                                onChange={(event) => setNewProduct({ ...newProduct, category: event.target.value })}
                                                 className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
                                                 required
                                         >
@@ -263,33 +253,33 @@ const CreateProductForm = () => {
                                         />
                                         <label
                                                 htmlFor='images'
-                                                className={`inline-flex items-center rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-sm font-medium text-white transition duration-300 focus:outline-none focus:ring-2 focus:ring-payzone-indigo ${
+                                                className={`inline-flex items-center gap-2 rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-sm font-medium text-white transition duration-300 focus:outline-none focus:ring-2 focus:ring-payzone-indigo ${
                                                         newProduct.images.length >= MAX_IMAGES
                                                                 ? "cursor-not-allowed opacity-60"
                                                                 : "cursor-pointer hover:border-payzone-gold hover:bg-payzone-navy/80"
                                                 }`}
                                                 aria-disabled={newProduct.images.length >= MAX_IMAGES}
                                         >
-                                                <Upload className='mr-2 h-5 w-5' />
-                                                Upload Images
+                                                <Upload className='h-5 w-5' />
+                                                {t("admin.createProduct.buttons.uploadImages")}
                                         </label>
-                                        <span className='ml-3 text-sm text-white/60'>
-                                                {newProduct.images.length} / {MAX_IMAGES} images selected
+                                        <span className='mr-3 text-sm text-white/60'>
+                                                {newProduct.images.length} / {MAX_IMAGES} {t("admin.createProduct.fields.images")}
                                         </span>
                                 </div>
 
-                                        {newProduct.images.length > 0 && (
-                                                <div className='grid grid-cols-2 gap-4 sm:grid-cols-3'>
-                                                        {newProduct.images.map((image, index) => {
-                                                                const isCover = index === newProduct.coverImageIndex;
-                                                                return (
+                                {newProduct.images.length > 0 && (
+                                        <div className='grid grid-cols-2 gap-4 sm:grid-cols-3'>
+                                                {newProduct.images.map((image, index) => {
+                                                        const isCover = index === newProduct.coverImageIndex;
+                                                        return (
                                                                 <div
                                                                         key={`${image}-${index}`}
                                                                         className={`relative overflow-hidden rounded-lg border ${
                                                                                 isCover ? "border-payzone-gold" : "border-payzone-indigo/40"
                                                                         } bg-payzone-navy/60`}
                                                                 >
-                                                                        <img src={image} alt={`Preview ${index + 1}`} className='h-32 w-full object-cover' />
+                                                                        <img src={image} alt={`معاينة ${index + 1}`} className='h-32 w-full object-cover' />
                                                                         <div className='absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/60 px-2 py-1 text-xs text-white'>
                                                                                 <button
                                                                                         type='button'
@@ -298,20 +288,20 @@ const CreateProductForm = () => {
                                                                                                 isCover ? "text-payzone-gold" : "text-white"
                                                                                         }`}
                                                                                 >
-                                                                                                <Star className='h-3 w-3' />
-                                                                                                {isCover
-                                                                                                        ? t("admin.createProduct.fields.cover")
-                                                                                                        : t("admin.createProduct.fields.setAsCover")}
-                                                                                        </button>
-                                                                                        <button
-                                                                                                type='button'
-                                                                                                onClick={() => handleRemoveImage(index)}
-                                                                                                className='inline-flex items-center text-red-300 hover:text-red-200'
-                                                                                        aria-label='Remove image'
+                                                                                        <Star className='h-3 w-3' />
+                                                                                        {isCover
+                                                                                                ? t("admin.createProduct.fields.cover")
+                                                                                                : t("admin.createProduct.fields.setAsCover")}
+                                                                                </button>
+                                                                                <button
+                                                                                        type='button'
+                                                                                        onClick={() => handleRemoveImage(index)}
+                                                                                        className='inline-flex items-center text-red-300 hover:text-red-200'
+                                                                                        aria-label={t("common.actions.remove")}
                                                                                 >
-                                                                                                <X className='h-3 w-3' />
-                                                                                                {t("common.actions.remove")}
-                                                                                        </button>
+                                                                                        <X className='h-3 w-3' />
+                                                                                        {t("common.actions.remove")}
+                                                                                </button>
                                                                         </div>
                                                                 </div>
                                                         );

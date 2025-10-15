@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 import { useCartStore } from "../stores/useCartStore";
 import { Link, useNavigate } from "react-router-dom";
-import { MoveRight } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { MoveLeft } from "lucide-react";
+import useTranslation from "../hooks/useTranslation";
 import { formatMRU } from "../lib/formatMRU";
 
 const OrderSummary = () => {
@@ -91,7 +91,7 @@ const OrderSummary = () => {
                                                 className='inline-flex items-center gap-2 text-sm font-medium text-payzone-indigo underline transition-colors duration-300 hover:text-payzone-gold hover:no-underline'
                                         >
                                                 {t("cart.summary.continue")}
-                                                <MoveRight size={16} />
+                                                <MoveLeft size={16} />
                                         </Link>
                                 </div>
                         </div>

@@ -1,6 +1,5 @@
 import Category from "../models/category.model.js";
 import cloudinary from "../lib/cloudinary.js";
-import { applyTranslation, buildTranslations, normalizeTranslations } from "../lib/translation.js";
 
 const slugify = (value) => {
         return value
@@ -28,22 +27,15 @@ const generateUniqueSlug = async (baseName, ignoreId = null) => {
         }
 };
 
-const serializeCategory = (category, language) => {
-        const plain = typeof category.toObject === "function" ? category.toObject() : category;
-        const localized = applyTranslation({ document: plain, language });
-
-        return {
-                ...localized,
-                translations: normalizeTranslations(localized.translations),
-        };
+const serializeCategory = (category) => {
+        if (!category) return category;
+        return typeof category.toObject === "function" ? category.toObject() : category;
 };
 
 export const getCategories = async (req, res) => {
         try {
-                const { lang } = req.query;
                 const categories = await Category.find({}).lean();
-                const formatted = categories.map((category) => serializeCategory(category, lang));
-                res.json({ categories: formatted });
+                res.json({ categories });
         } catch (error) {
                 console.log("Error in getCategories controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
@@ -52,9 +44,13 @@ export const getCategories = async (req, res) => {
 
 export const createCategory = async (req, res) => {
         try {
-                const { name, description = "", baseLanguage = "en", image, translations } = req.body;
+                const { name, description = "", image } = req.body;
 
-                if (!name) {
+                const trimmedName = typeof name === "string" ? name.trim() : "";
+                const trimmedDescription =
+                        typeof description === "string" ? description.trim() : "";
+
+                if (!trimmedName) {
                         return res.status(400).json({ message: "Name is required" });
                 }
 
@@ -62,30 +58,21 @@ export const createCategory = async (req, res) => {
                         return res.status(400).json({ message: "Category image is required" });
                 }
 
-                const translationsMap = await buildTranslations({
-                        name,
-                        description,
-                        baseLanguage,
-                        manualTranslations: translations,
-                });
-
                 const uploadResult = await cloudinary.uploader.upload(image, {
                         folder: "categories",
                 });
 
-                const slug = await generateUniqueSlug(name);
+                const slug = await generateUniqueSlug(trimmedName);
 
                 const category = await Category.create({
-                        name,
-                        description,
+                        name: trimmedName,
+                        description: trimmedDescription,
                         slug,
                         imageUrl: uploadResult.secure_url,
                         imagePublicId: uploadResult.public_id,
-                        baseLanguage,
-                        translations: translationsMap,
                 });
 
-                res.status(201).json(serializeCategory(category, req.query.lang || baseLanguage));
+                res.status(201).json(serializeCategory(category));
         } catch (error) {
                 console.log("Error in createCategory controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
@@ -95,14 +82,7 @@ export const createCategory = async (req, res) => {
 export const updateCategory = async (req, res) => {
         try {
                 const { id } = req.params;
-                const {
-                        name,
-                        description,
-                        baseLanguage,
-                        image,
-                        translations,
-                        autoTranslate = true,
-                } = req.body;
+                const { name, description, image } = req.body;
 
                 const category = await Category.findById(id);
 
@@ -110,23 +90,16 @@ export const updateCategory = async (req, res) => {
                         return res.status(404).json({ message: "Category not found" });
                 }
 
-                let updatedName = category.name;
-                let updatedDescription = category.description;
-                let updatedBaseLanguage = category.baseLanguage;
-
                 if (typeof name === "string" && name.trim()) {
-                        updatedName = name.trim();
-                        if (updatedName !== category.name) {
-                                category.slug = await generateUniqueSlug(updatedName, category._id);
+                        const trimmed = name.trim();
+                        if (trimmed !== category.name) {
+                                category.slug = await generateUniqueSlug(trimmed, category._id);
                         }
+                        category.name = trimmed;
                 }
 
                 if (typeof description === "string") {
-                        updatedDescription = description;
-                }
-
-                if (typeof baseLanguage === "string" && baseLanguage.trim()) {
-                        updatedBaseLanguage = baseLanguage;
+                        category.description = description.trim();
                 }
 
                 if (image && typeof image === "string" && image.startsWith("data:")) {
@@ -146,26 +119,9 @@ export const updateCategory = async (req, res) => {
                         category.imagePublicId = uploadResult.public_id;
                 }
 
-                const existingTranslations = normalizeTranslations(category.translations);
-                let mergedTranslations = { ...existingTranslations, ...normalizeTranslations(translations) };
-
-                if (autoTranslate) {
-                        mergedTranslations = await buildTranslations({
-                                name: updatedName,
-                                description: updatedDescription,
-                                baseLanguage: updatedBaseLanguage,
-                                manualTranslations: mergedTranslations,
-                        });
-                }
-
-                category.name = updatedName;
-                category.description = updatedDescription;
-                category.baseLanguage = updatedBaseLanguage;
-                category.translations = mergedTranslations;
-
                 await category.save();
 
-                res.json(serializeCategory(category, req.query.lang || updatedBaseLanguage));
+                res.json(serializeCategory(category));
         } catch (error) {
                 console.log("Error in updateCategory controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });

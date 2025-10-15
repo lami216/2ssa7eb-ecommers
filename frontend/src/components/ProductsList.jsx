@@ -1,12 +1,12 @@
 import { motion } from "framer-motion";
 import { Trash, Star } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import useTranslation from "../hooks/useTranslation";
 import { useProductStore } from "../stores/useProductStore";
 import { formatMRU } from "../lib/formatMRU";
 
 const ProductsList = () => {
         const { deleteProduct, toggleFeaturedProduct, products } = useProductStore();
-        const { t, i18n } = useTranslation();
+        const { t } = useTranslation();
 
         return (
                 <motion.div
@@ -28,7 +28,7 @@ const ProductsList = () => {
                                                         <th
                                                                 key={heading}
                                                                 scope='col'
-                                                                className='px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white/70'
+                                                                className='px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-white/70'
                                                         >
                                                                 {heading}
                                                         </th>
@@ -57,7 +57,7 @@ const ProductsList = () => {
                                                         </td>
                                                         <td className='whitespace-nowrap px-6 py-4'>
                                                                 <button
-                                                                        onClick={() => toggleFeaturedProduct(product._id, i18n.language)}
+                                                                        onClick={() => toggleFeaturedProduct(product._id)}
                                                                         className={`rounded-full p-1 transition-colors duration-200 ${
                                                                                 product.isFeatured
                                                                                         ? "bg-payzone-gold text-payzone-navy"

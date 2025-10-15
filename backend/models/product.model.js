@@ -1,19 +1,5 @@
 import mongoose from "mongoose";
 
-const translationSchema = new mongoose.Schema(
-        {
-                name: {
-                        type: String,
-                        required: true,
-                },
-                description: {
-                        type: String,
-                        default: "",
-                },
-        },
-        { _id: false }
-);
-
 const productSchema = new mongoose.Schema(
         {
                 name: {
@@ -58,21 +44,12 @@ const productSchema = new mongoose.Schema(
                         type: String,
                         required: true,
                 },
-                baseLanguage: {
-                        type: String,
-                        default: "en",
-                },
-                translations: {
-                        type: Map,
-                        of: translationSchema,
-                        default: {},
-                },
                 isFeatured: {
                         type: Boolean,
                         default: false,
                 },
         },
-	{ timestamps: true }
+        { timestamps: true }
 );
 
 const Product = mongoose.model("Product", productSchema);

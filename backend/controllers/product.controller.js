@@ -1,23 +1,16 @@
 import { redis } from "../lib/redis.js";
 import cloudinary from "../lib/cloudinary.js";
 import Product from "../models/product.model.js";
-import { applyTranslation, buildTranslations, normalizeTranslations } from "../lib/translation.js";
 
-const serializeProduct = (product, language) => {
-        const plain = typeof product.toObject === "function" ? product.toObject() : product;
-        const localized = applyTranslation({ document: plain, language });
-        return {
-                ...localized,
-                translations: normalizeTranslations(localized.translations),
-        };
+const serializeProduct = (product) => {
+        if (!product) return product;
+        return typeof product.toObject === "function" ? product.toObject() : product;
 };
 
 export const getAllProducts = async (req, res) => {
         try {
-                const { lang } = req.query;
                 const products = await Product.find({}).lean();
-                const formatted = products.map((product) => serializeProduct(product, lang));
-                res.json({ products: formatted });
+                res.json({ products });
         } catch (error) {
                 console.log("Error in getAllProducts controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
@@ -26,48 +19,53 @@ export const getAllProducts = async (req, res) => {
 
 export const getFeaturedProducts = async (req, res) => {
         try {
-                const { lang } = req.query;
                 let featuredProducts = await redis.get("featured_products");
                 if (featuredProducts) {
                         const parsed = JSON.parse(featuredProducts);
-                        const localized = parsed.map((product) => serializeProduct(product, lang));
-                        return res.json(localized);
+                        return res.json(parsed);
                 }
 
-		// if not in redis, fetch from mongodb
-		// .lean() is gonna return a plain javascript object instead of a mongodb document
-		// which is good for performance
                 featuredProducts = await Product.find({ isFeatured: true }).lean();
 
-                if (!featuredProducts) {
+                if (!featuredProducts || !featuredProducts.length) {
                         return res.status(404).json({ message: "No featured products found" });
                 }
 
-		// store in redis for future quick access
-
                 await redis.set("featured_products", JSON.stringify(featuredProducts));
 
-                const localized = featuredProducts.map((product) => serializeProduct(product, lang));
-
-                res.json(localized);
-	} catch (error) {
-		console.log("Error in getFeaturedProducts controller", error.message);
-		res.status(500).json({ message: "Server error", error: error.message });
-	}
+                res.json(featuredProducts);
+        } catch (error) {
+                console.log("Error in getFeaturedProducts controller", error.message);
+                res.status(500).json({ message: "Server error", error: error.message });
+        }
 };
 
 export const createProduct = async (req, res) => {
         try {
-                const { name, description, price, category, images, baseLanguage = "en", translations } = req.body;
+                const { name, description, price, category, images } = req.body;
+
+                const trimmedName = typeof name === "string" ? name.trim() : "";
+                const trimmedDescription =
+                        typeof description === "string" ? description.trim() : "";
+
+                if (!trimmedName) {
+                        return res.status(400).json({ message: "Product name is required" });
+                }
+
+                if (!trimmedDescription) {
+                        return res.status(400).json({ message: "Product description is required" });
+                }
 
                 if (!Array.isArray(images) || images.length === 0) {
                         return res.status(400).json({ message: "At least one product image is required" });
                 }
 
                 if (images.length > 3) {
-                        return res
-                                .status(400)
-                                .json({ message: "You can upload up to 3 images per product" });
+                        return res.status(400).json({ message: "You can upload up to 3 images per product" });
+                }
+
+                if (typeof category !== "string" || !category.trim()) {
+                        return res.status(400).json({ message: "Category is required" });
                 }
 
                 const sanitizedImages = images
@@ -116,25 +114,16 @@ export const createProduct = async (req, res) => {
                         throw uploadError;
                 }
 
-                const translationsMap = await buildTranslations({
-                        name,
-                        description,
-                        baseLanguage,
-                        manualTranslations: normalizeTranslations(translations),
-                });
-
                 const product = await Product.create({
-                        name,
-                        description,
-                        baseLanguage,
-                        translations: translationsMap,
+                        name: trimmedName,
+                        description: trimmedDescription,
                         price: numericPrice,
                         image: uploadedImages[0]?.url,
                         images: uploadedImages,
-                        category,
+                        category: category.trim(),
                 });
 
-                res.status(201).json(serializeProduct(product, req.query.lang || baseLanguage));
+                res.status(201).json(serializeProduct(product));
         } catch (error) {
                 console.log("Error in createProduct controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
@@ -181,14 +170,13 @@ export const deleteProduct = async (req, res) => {
 
 export const getProductById = async (req, res) => {
         try {
-                const { lang } = req.query;
                 const product = await Product.findById(req.params.id);
 
                 if (!product) {
                         return res.status(404).json({ message: "Product not found" });
                 }
 
-                res.json(serializeProduct(product, lang));
+                res.json(serializeProduct(product));
         } catch (error) {
                 console.log("Error in getProductById controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
@@ -197,7 +185,6 @@ export const getProductById = async (req, res) => {
 
 export const getRecommendedProducts = async (req, res) => {
         try {
-                const { lang } = req.query;
                 const products = await Product.aggregate([
                         {
                                 $sample: { size: 4 },
@@ -210,15 +197,13 @@ export const getRecommendedProducts = async (req, res) => {
                                         image: 1,
                                         images: 1,
                                         price: 1,
-                                        translations: 1,
-                                        baseLanguage: 1,
+                                        category: 1,
+                                        isFeatured: 1,
                                 },
                         },
                 ]);
 
-                const formatted = products.map((product) => serializeProduct(product, lang));
-
-                res.json(formatted);
+                res.json(products);
         } catch (error) {
                 console.log("Error in getRecommendedProducts controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
@@ -228,10 +213,8 @@ export const getRecommendedProducts = async (req, res) => {
 export const getProductsByCategory = async (req, res) => {
         const { category } = req.params;
         try {
-                const { lang } = req.query;
                 const products = await Product.find({ category }).lean();
-                const formatted = products.map((product) => serializeProduct(product, lang));
-                res.json({ products: formatted });
+                res.json({ products });
         } catch (error) {
                 console.log("Error in getProductsByCategory controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
@@ -240,29 +223,26 @@ export const getProductsByCategory = async (req, res) => {
 
 export const toggleFeaturedProduct = async (req, res) => {
         try {
-                const { lang } = req.query;
                 const product = await Product.findById(req.params.id);
                 if (product) {
                         product.isFeatured = !product.isFeatured;
                         const updatedProduct = await product.save();
                         await updateFeaturedProductsCache();
-                        res.json(serializeProduct(updatedProduct, lang));
+                        res.json(serializeProduct(updatedProduct));
                 } else {
                         res.status(404).json({ message: "Product not found" });
                 }
-	} catch (error) {
-		console.log("Error in toggleFeaturedProduct controller", error.message);
-		res.status(500).json({ message: "Server error", error: error.message });
-	}
+        } catch (error) {
+                console.log("Error in toggleFeaturedProduct controller", error.message);
+                res.status(500).json({ message: "Server error", error: error.message });
+        }
 };
 
 async function updateFeaturedProductsCache() {
         try {
-                // The lean() method  is used to return plain JavaScript objects instead of full Mongoose documents. This can significantly improve performance
-
                 const featuredProducts = await Product.find({ isFeatured: true }).lean();
                 await redis.set("featured_products", JSON.stringify(featuredProducts));
         } catch (error) {
-                console.log("error in update cache function");
+                console.log("error in update cache function", error.message);
         }
 }

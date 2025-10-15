@@ -1,5 +1,5 @@
 import { Minus, Plus, Trash } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import useTranslation from "../hooks/useTranslation";
 import { useCartStore } from "../stores/useCartStore";
 import { formatMRU } from "../lib/formatMRU";
 import { formatNumberEn } from "../lib/formatNumberEn";

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import useTranslation from "../hooks/useTranslation";
 import { useCartStore } from "../stores/useCartStore";
 import { formatMRU } from "../lib/formatMRU";
 
@@ -10,6 +10,12 @@ const FeaturedProducts = ({ featuredProducts }) => {
 
         const { addToCart } = useCartStore();
         const { t } = useTranslation();
+
+        const products = useMemo(
+                () => (Array.isArray(featuredProducts) ? featuredProducts : []),
+                [featuredProducts]
+        );
+        const totalItems = products.length;
 
         useEffect(() => {
                 const handleResize = () => {
@@ -24,16 +30,24 @@ const FeaturedProducts = ({ featuredProducts }) => {
                 return () => window.removeEventListener("resize", handleResize);
         }, []);
 
+        useEffect(() => {
+                setCurrentIndex((previous) =>
+                        Math.min(previous, Math.max(totalItems - itemsPerPage, 0))
+                );
+        }, [totalItems, itemsPerPage]);
+
         const nextSlide = () => {
-                setCurrentIndex((prevIndex) => prevIndex + itemsPerPage);
+                setCurrentIndex((prevIndex) =>
+                        Math.min(prevIndex + itemsPerPage, Math.max(totalItems - itemsPerPage, 0))
+                );
         };
 
         const prevSlide = () => {
-                setCurrentIndex((prevIndex) => prevIndex - itemsPerPage);
+                setCurrentIndex((prevIndex) => Math.max(prevIndex - itemsPerPage, 0));
         };
 
         const isStartDisabled = currentIndex === 0;
-        const isEndDisabled = currentIndex >= featuredProducts.length - itemsPerPage;
+        const isEndDisabled = currentIndex >= Math.max(totalItems - itemsPerPage, 0);
 
         return (
                 <div className='py-12'>
@@ -49,7 +63,7 @@ const FeaturedProducts = ({ featuredProducts }) => {
                                                         className='flex transition-transform duration-300 ease-in-out'
                                                         style={{ transform: `translateX(-${currentIndex * (100 / itemsPerPage)}%)` }}
                                                 >
-                                                        {featuredProducts?.map((product) => (
+                                                        {products.map((product) => (
                                                                 <div key={product._id} className='w-full flex-shrink-0 px-2 sm:w-1/2 lg:w-1/3 xl:w-1/4'>
                                                                         <div className='group flex h-full flex-col overflow-hidden rounded-xl border border-payzone-indigo/30 bg-white/5 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-payzone-gold/60 hover:shadow-xl'>
                                                                                 <div className='overflow-hidden'>
@@ -80,25 +94,25 @@ const FeaturedProducts = ({ featuredProducts }) => {
                                         <button
                                                 onClick={prevSlide}
                                                 disabled={isStartDisabled}
-                                                className={`absolute top-1/2 -left-4 flex -translate-y-1/2 transform items-center justify-center rounded-full p-2 transition-colors duration-300 ${
+                                                className={`absolute top-1/2 -right-4 flex -translate-y-1/2 transform items-center justify-center rounded-full p-2 transition-colors duration-300 ${
                                                         isStartDisabled
                                                                 ? "cursor-not-allowed bg-white/10 text-white/40"
                                                                 : "bg-payzone-indigo text-white hover:bg-[#3b3ad6]"
                                                 }`}
                                         >
-                                                <ChevronLeft className='h-6 w-6' />
+                                                <ChevronRight className='h-6 w-6' />
                                         </button>
 
                                         <button
                                                 onClick={nextSlide}
                                                 disabled={isEndDisabled}
-                                                className={`absolute top-1/2 -right-4 flex -translate-y-1/2 transform items-center justify-center rounded-full p-2 transition-colors duration-300 ${
+                                                className={`absolute top-1/2 -left-4 flex -translate-y-1/2 transform items-center justify-center rounded-full p-2 transition-colors duration-300 ${
                                                         isEndDisabled
                                                                 ? "cursor-not-allowed bg-white/10 text-white/40"
                                                                 : "bg-payzone-indigo text-white hover:bg-[#3b3ad6]"
                                                 }`}
                                         >
-                                                <ChevronRight className='h-6 w-6' />
+                                                <ChevronLeft className='h-6 w-6' />
                                         </button>
                                 </div>
                         </div>

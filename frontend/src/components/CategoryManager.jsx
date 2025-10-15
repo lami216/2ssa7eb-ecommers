@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ImagePlus, Trash2, Edit3, X, Save } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+import useTranslation from "../hooks/useTranslation";
 import { useCategoryStore } from "../stores/useCategoryStore";
 
 const CategoryManager = () => {
@@ -16,98 +16,39 @@ const CategoryManager = () => {
                 fetchCategories,
                 loading,
         } = useCategoryStore();
-        const { t, i18n } = useTranslation();
+        const { t } = useTranslation();
 
-        const languages = useMemo(
-                () => [
-                        { code: "en", label: t("common.languages.en") },
-                        { code: "ar", label: t("common.languages.ar") },
-                        { code: "fr", label: t("common.languages.fr") },
-                ],
-                [t]
-        );
-
-        const createEmptyTranslations = useCallback(
-                () =>
-                        languages.reduce((accumulator, language) => {
-                                accumulator[language.code] = { name: "", description: "" };
-                                return accumulator;
-                        }, {}),
-                [languages]
-        );
-
-        const [activeLanguage, setActiveLanguage] = useState(languages[0]?.code ?? "en");
-        const [formState, setFormState] = useState({
-                baseLanguage: "en",
-                translations: createEmptyTranslations(),
-                image: "",
-                imagePreview: "",
-                imageChanged: false,
-        });
-
-        useEffect(() => {
-                fetchCategories(i18n.language);
-        }, [fetchCategories, i18n.language]);
-
-        useEffect(() => {
-                const defaultLanguage = languages.find((language) => language.code === i18n.language)?.code ?? languages[0]?.code;
-                if (defaultLanguage) {
-                        setActiveLanguage(defaultLanguage);
-                }
-        }, [i18n.language, languages]);
-
-        const resetForm = useCallback(() => {
-                setFormState({
-                        baseLanguage: "en",
-                        translations: createEmptyTranslations(),
+        const createEmptyForm = useCallback(
+                () => ({
+                        name: "",
+                        description: "",
                         image: "",
                         imagePreview: "",
                         imageChanged: false,
-                });
-        }, [createEmptyTranslations]);
+                }),
+                []
+        );
+
+        const [formState, setFormState] = useState(() => createEmptyForm());
+
+        useEffect(() => {
+                fetchCategories();
+        }, [fetchCategories]);
 
         useEffect(() => {
                 if (!selectedCategory) {
-                        resetForm();
+                        setFormState(createEmptyForm());
                         return;
                 }
 
-                const normalizedTranslations = createEmptyTranslations();
-                const translations = selectedCategory.translations || {};
-
-                Object.keys(normalizedTranslations).forEach((languageCode) => {
-                        const translation = translations[languageCode];
-                        normalizedTranslations[languageCode] = {
-                                name: translation?.name ?? "",
-                                description: translation?.description ?? "",
-                        };
-                });
-
-                const baseLanguage = selectedCategory.baseLanguage || "en";
-
                 setFormState({
-                        baseLanguage,
-                        translations: normalizedTranslations,
+                        name: selectedCategory.name ?? "",
+                        description: selectedCategory.description ?? "",
                         image: "",
-                        imagePreview: selectedCategory.imageUrl,
+                        imagePreview: selectedCategory.imageUrl ?? "",
                         imageChanged: false,
                 });
-                const preferredLanguage = languages.find((language) => language.code === baseLanguage)?.code || languages[0]?.code || "en";
-                setActiveLanguage(preferredLanguage);
-        }, [selectedCategory, createEmptyTranslations, resetForm, languages]);
-
-        const handleTranslationChange = (languageCode, field, value) => {
-                setFormState((previous) => ({
-                        ...previous,
-                        translations: {
-                                ...previous.translations,
-                                [languageCode]: {
-                                        ...previous.translations[languageCode],
-                                        [field]: value,
-                                },
-                        },
-                }));
-        };
+        }, [selectedCategory, createEmptyForm]);
 
         const handleImageChange = (event) => {
                 const file = event.target.files?.[0];
@@ -127,12 +68,17 @@ const CategoryManager = () => {
                 event.target.value = "";
         };
 
+        const resetForm = () => {
+                clearSelectedCategory();
+                setFormState(createEmptyForm());
+        };
+
         const handleSubmit = async (event) => {
                 event.preventDefault();
-                const baseLanguage = formState.baseLanguage;
-                const baseTranslation = formState.translations[baseLanguage] ?? { name: "", description: "" };
+                const trimmedName = formState.name.trim();
+                const trimmedDescription = formState.description.trim();
 
-                if (!baseTranslation.name?.trim()) {
+                if (!trimmedName) {
                         toast.error(t("categories.manager.form.nameRequired"));
                         return;
                 }
@@ -142,26 +88,12 @@ const CategoryManager = () => {
                         return;
                 }
 
-                const preparedTranslations = Object.entries(formState.translations).reduce((accumulator, [languageCode, value]) => {
-                        if (value?.name?.trim()) {
-                                accumulator[languageCode] = {
-                                        name: value.name.trim(),
-                                        description: value.description?.trim() ?? "",
-                                };
-                        }
-                        return accumulator;
-                }, {});
-
                 const payload = {
-                        name: baseTranslation.name.trim(),
-                        description: baseTranslation.description?.trim() ?? "",
-                        baseLanguage,
-                        translations: preparedTranslations,
-                        language: i18n.language,
-                        autoTranslate: true,
+                        name: trimmedName,
+                        description: trimmedDescription,
                 };
 
-                if (formState.image && (selectedCategory ? formState.imageChanged : true)) {
+                if (formState.image && (formState.imageChanged || !selectedCategory)) {
                         payload.image = formState.image;
                 }
 
@@ -172,7 +104,6 @@ const CategoryManager = () => {
                                 await createCategory(payload);
                         }
                         resetForm();
-                        clearSelectedCategory();
                 } catch (error) {
                         console.error("Category save failed", error);
                 }
@@ -183,7 +114,6 @@ const CategoryManager = () => {
         };
 
         const handleCancelEdit = () => {
-                clearSelectedCategory();
                 resetForm();
         };
 
@@ -192,8 +122,6 @@ const CategoryManager = () => {
                         deleteCategory(category._id);
                 }
         };
-
-        const activeTranslation = formState.translations[activeLanguage] ?? { name: "", description: "" };
 
         return (
                 <div className='mx-auto mb-12 max-w-5xl space-y-8'>
@@ -218,28 +146,20 @@ const CategoryManager = () => {
                                 <form onSubmit={handleSubmit} className='space-y-6'>
                                         <div className='grid gap-4 sm:grid-cols-2'>
                                                 <div>
-                                                        <label className='block text-sm font-medium text-white/80' htmlFor='category-base-language'>
-                                                                {t("categories.manager.form.baseLanguage")}
+                                                        <label className='block text-sm font-medium text-white/80' htmlFor='category-name'>
+                                                                {t("categories.manager.form.name")}
                                                         </label>
-                                                        <select
-                                                                id='category-base-language'
+                                                        <input
+                                                                id='category-name'
+                                                                type='text'
                                                                 className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
-                                                                value={formState.baseLanguage}
-                                                                onChange={(event) => {
-                                                                        const nextLanguage = event.target.value;
-                                                                        setFormState((previous) => ({
-                                                                                ...previous,
-                                                                                baseLanguage: nextLanguage,
-                                                                        }));
-                                                                        setActiveLanguage(nextLanguage);
-                                                                }}
-                                                        >
-                                                                {languages.map((language) => (
-                                                                        <option key={language.code} value={language.code}>
-                                                                                {language.label}
-                                                                        </option>
-                                                                ))}
-                                                        </select>
+                                                                value={formState.name}
+                                                                onChange={(event) => setFormState((previous) => ({
+                                                                        ...previous,
+                                                                        name: event.target.value,
+                                                                }))}
+                                                                required
+                                                        />
                                                 </div>
                                                 <div>
                                                         <label className='block text-sm font-medium text-white/80'>
@@ -265,7 +185,7 @@ const CategoryManager = () => {
                                                                 {formState.imagePreview && (
                                                                         <img
                                                                                 src={formState.imagePreview}
-                                                                                alt='Category preview'
+                                                                                alt='معاينة الفئة'
                                                                                 className='h-14 w-14 rounded-lg object-cover'
                                                                         />
                                                                 )}
@@ -275,52 +195,19 @@ const CategoryManager = () => {
                                         </div>
 
                                         <div>
-                                                <div className='mb-4 flex flex-wrap gap-2'>
-                                                        {languages.map((language) => {
-                                                                const isActive = language.code === activeLanguage;
-                                                                return (
-                                                                        <button
-                                                                                key={language.code}
-                                                                                type='button'
-                                                                                onClick={() => setActiveLanguage(language.code)}
-                                                                                className={`rounded-md px-3 py-1 text-sm transition ${
-                                                                                        isActive
-                                                                                                ? "bg-payzone-gold text-payzone-navy"
-                                                                                                : "bg-white/10 text-white/70 hover:bg-white/20"
-                                                                                }`}
-                                                                        >
-                                                                                {language.label}
-                                                                        </button>
-                                                                );
-                                                        })}
-                                                </div>
-                                                <div className='grid gap-4 sm:grid-cols-2'>
-                                                        <div>
-                                                                <label className='block text-sm font-medium text-white/80' htmlFor='category-name'>
-                                                                        {t("categories.manager.form.name")}
-                                                                </label>
-                                                                <input
-                                                                        id='category-name'
-                                                                        type='text'
-                                                                        className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
-                                                                        value={activeTranslation.name}
-                                                                        onChange={(event) => handleTranslationChange(activeLanguage, "name", event.target.value)}
-                                                                        required={activeLanguage === formState.baseLanguage}
-                                                                />
-                                                        </div>
-                                                        <div>
-                                                                <label className='block text-sm font-medium text-white/80' htmlFor='category-description'>
-                                                                        {t("categories.manager.form.description")}
-                                                                </label>
-                                                                <textarea
-                                                                        id='category-description'
-                                                                        rows={3}
-                                                                        className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
-                                                                        value={activeTranslation.description}
-                                                                        onChange={(event) => handleTranslationChange(activeLanguage, "description", event.target.value)}
-                                                                />
-                                                        </div>
-                                                </div>
+                                                <label className='block text-sm font-medium text-white/80' htmlFor='category-description'>
+                                                        {t("categories.manager.form.description")}
+                                                </label>
+                                                <textarea
+                                                        id='category-description'
+                                                        rows={3}
+                                                        className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
+                                                        value={formState.description}
+                                                        onChange={(event) => setFormState((previous) => ({
+                                                                ...previous,
+                                                                description: event.target.value,
+                                                        }))}
+                                                />
                                         </div>
 
                                         <button

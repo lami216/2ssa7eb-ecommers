@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useProductStore } from "../stores/useProductStore";
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useTranslation } from "react-i18next";
+import useTranslation from "../hooks/useTranslation";
 import ProductCard from "../components/ProductCard";
 import { useCategoryStore } from "../stores/useCategoryStore";
 
@@ -10,17 +10,17 @@ const CategoryPage = () => {
         const { fetchProductsByCategory, products } = useProductStore();
         const { categories, fetchCategories } = useCategoryStore();
         const { category } = useParams();
-        const { t, i18n } = useTranslation();
+        const { t } = useTranslation();
 
         useEffect(() => {
-                fetchProductsByCategory(category, i18n.language);
-        }, [fetchProductsByCategory, category, i18n.language]);
+                fetchProductsByCategory(category);
+        }, [fetchProductsByCategory, category]);
 
         useEffect(() => {
                 if (!categories.length) {
-                        fetchCategories(i18n.language);
+                        fetchCategories();
                 }
-        }, [categories.length, fetchCategories, i18n.language]);
+        }, [categories.length, fetchCategories]);
 
         const categoryName = useMemo(() => {
                 const match = categories.find((item) => item.slug === category);
