@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { toast } from "react-hot-toast";
 import apiClient from "../lib/apiClient";
 import { useUserStore } from "./useUserStore";
-import i18n from "../lib/i18n";
+import { translate } from "../lib/locale";
 
 const LOCAL_CART_KEY = "guest_cart_items";
 
@@ -36,7 +36,6 @@ const persistCartToStorage = (cart) => {
 };
 
 const getAuthenticatedUser = () => useUserStore.getState().user;
-const translate = (key, options) => i18n.t(key, options);
 
 export const useCartStore = create((set, get) => ({
         cart: loadCartFromStorage(),
@@ -198,9 +197,8 @@ export const useCartStore = create((set, get) => ({
                 const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
                 let total = subtotal;
 
-                if (coupon) {
-                        const discount = subtotal * (coupon.discountPercentage / 100);
-                        total = subtotal - discount;
+                if (coupon && coupon.discountPercentage) {
+                        total = subtotal - subtotal * (coupon.discountPercentage / 100);
                 }
 
                 set({ subtotal, total });

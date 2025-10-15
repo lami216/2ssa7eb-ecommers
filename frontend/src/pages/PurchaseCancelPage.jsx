@@ -1,7 +1,7 @@
 import { XCircle, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import useTranslation from "../hooks/useTranslation";
 
 const PurchaseCancelPage = () => {
         const { t } = useTranslation();
@@ -26,9 +26,9 @@ const PurchaseCancelPage = () => {
                                 <div className='space-y-4'>
                                         <Link
                                                 to={'/'}
-                                                className='flex w-full items-center justify-center rounded-lg bg-payzone-gold px-4 py-2 font-bold text-payzone-navy transition duration-300 hover:bg-[#b8873d]'
+                                                className='flex w-full items-center justify-center gap-2 rounded-lg bg-payzone-gold px-4 py-2 font-bold text-payzone-navy transition duration-300 hover:bg-[#b8873d]'
                                         >
-                                                <ArrowLeft className='mr-2' size={18} />
+                                                <ArrowLeft size={18} />
                                                 {t("purchase.cancel.button")}
                                         </Link>
                                 </div>

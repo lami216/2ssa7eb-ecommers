@@ -1,22 +1,22 @@
 import { useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import useTranslation from "../hooks/useTranslation";
 import CategoryItem from "../components/CategoryItem";
 import { useProductStore } from "../stores/useProductStore";
 import FeaturedProducts from "../components/FeaturedProducts";
 import { useCategoryStore } from "../stores/useCategoryStore";
 
 const HomePage = () => {
-        const { fetchFeaturedProducts, products, isLoading } = useProductStore();
+        const { fetchFeaturedProducts, products, loading: productsLoading } = useProductStore();
         const { categories, fetchCategories, loading: categoriesLoading } = useCategoryStore();
-        const { t, i18n } = useTranslation();
+        const { t } = useTranslation();
 
         useEffect(() => {
-                fetchFeaturedProducts(i18n.language);
-        }, [fetchFeaturedProducts, i18n.language]);
+                fetchFeaturedProducts();
+        }, [fetchFeaturedProducts]);
 
         useEffect(() => {
-                fetchCategories(i18n.language);
-        }, [fetchCategories, i18n.language]);
+                fetchCategories();
+        }, [fetchCategories]);
 
         return (
                 <div className='relative min-h-screen overflow-hidden text-payzone-white'>
@@ -42,7 +42,9 @@ const HomePage = () => {
                                         ))}
                                 </div>
 
-                                {!isLoading && products.length > 0 && <FeaturedProducts featuredProducts={products} />}
+                                {!productsLoading && products.length > 0 && (
+                                        <FeaturedProducts featuredProducts={products} />
+                                )}
                         </div>
                 </div>
 	);

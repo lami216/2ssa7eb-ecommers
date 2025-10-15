@@ -5,7 +5,7 @@ import { useCartStore } from "../stores/useCartStore";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { formatMRU } from "../lib/formatMRU";
 import PeopleAlsoBought from "../components/PeopleAlsoBought";
-import { useTranslation } from "react-i18next";
+import useTranslation from "../hooks/useTranslation";
 
 const resolveCoverImage = (product) => {
         if (!product) return null;
@@ -45,13 +45,13 @@ const ProductDetailPage = () => {
                 })
         );
         const addToCart = useCartStore((state) => state.addToCart);
-        const { t, i18n } = useTranslation();
+        const { t } = useTranslation();
         const [activeImage, setActiveImage] = useState(null);
 
         useEffect(() => {
                 let isMounted = true;
 
-                fetchProductById(id, i18n.language)
+                fetchProductById(id)
                         .then((product) => {
                                 if (isMounted) {
                                         setActiveImage(resolveCoverImage(product));
@@ -62,7 +62,7 @@ const ProductDetailPage = () => {
                         isMounted = false;
                         clearSelectedProduct();
                 };
-        }, [fetchProductById, id, clearSelectedProduct, i18n.language]);
+        }, [fetchProductById, id, clearSelectedProduct]);
 
         useEffect(() => {
                 if (selectedProduct && !activeImage) {
@@ -107,7 +107,7 @@ const ProductDetailPage = () => {
                                                         <div className='mt-4 flex gap-3 overflow-x-auto pb-2'>
                                                                 {galleryImages.map((imageUrl, index) => {
                                                                         const isActive = imageUrl === activeImage;
-                                                                        const localizedIndex = new Intl.NumberFormat(i18n.language).format(index + 1);
+                                                                        const localizedIndex = new Intl.NumberFormat("ar").format(index + 1);
                                                                         return (
                                                                                 <button
                                                                                         key={`${imageUrl}-${index}`}

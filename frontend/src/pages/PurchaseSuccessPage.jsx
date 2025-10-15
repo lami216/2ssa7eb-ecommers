@@ -1,7 +1,7 @@
-import { ArrowRight, CheckCircle, HandHeart } from "lucide-react";
+import { ArrowLeft, CheckCircle, HandHeart } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import useTranslation from "../hooks/useTranslation";
 import { useCartStore } from "../stores/useCartStore";
 import Confetti from "react-confetti";
 import apiClient from "../lib/apiClient";
@@ -102,16 +102,16 @@ const PurchaseSuccessPage = () => {
                                         )}
 
                                         <div className='space-y-4'>
-                                                <button className='flex w-full items-center justify-center rounded-lg bg-payzone-gold px-4 py-2 font-bold text-payzone-navy transition duration-300 hover:bg-[#b8873d]'>
-                                                        <HandHeart className='mr-2' size={18} />
+                                                <button className='flex w-full items-center justify-center gap-2 rounded-lg bg-payzone-gold px-4 py-2 font-bold text-payzone-navy transition duration-300 hover:bg-[#b8873d]'>
+                                                        <HandHeart size={18} />
                                                         {thanksText}
                                                 </button>
                                                 <Link
                                                         to={'/'}
-                                                        className='flex w-full items-center justify-center rounded-lg border border-payzone-indigo/40 bg-white/5 px-4 py-2 font-bold text-payzone-indigo transition duration-300 hover:text-payzone-gold'
+                                                        className='flex w-full items-center justify-center gap-2 rounded-lg border border-payzone-indigo/40 bg-white/5 px-4 py-2 font-bold text-payzone-indigo transition duration-300 hover:text-payzone-gold'
                                                 >
                                                         {continueLabel}
-                                                        <ArrowRight className='ml-2' size={18} />
+                                                        <ArrowLeft size={18} />
                                                 </Link>
                                         </div>
                                 </div>

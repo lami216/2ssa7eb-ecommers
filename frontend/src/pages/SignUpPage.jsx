@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { UserPlus, Mail, Lock, User, ArrowRight, Loader } from "lucide-react";
+import { UserPlus, Mail, Lock, User, ArrowLeft, Loader } from "lucide-react";
 import { motion } from "framer-motion";
-import { useTranslation } from "react-i18next";
+import useTranslation from "../hooks/useTranslation";
 import { useUserStore } from "../stores/useUserStore";
 
 const SignUpPage = () => {
@@ -27,7 +27,7 @@ const SignUpPage = () => {
                                 {label}
                         </label>
                         <div className='relative mt-1 rounded-md shadow-sm'>
-                                <div className='pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3'>
+                                <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
                                         <Icon className='h-5 w-5 text-white/50' aria-hidden='true' />
                                 </div>
                                 <input
@@ -36,7 +36,7 @@ const SignUpPage = () => {
                                         required
                                         value={formData[valueKey]}
                                         onChange={(e) => setFormData({ ...formData, [valueKey]: e.target.value })}
-                                        className='block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 pl-10 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo sm:text-sm'
+                                        className='block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 pr-10 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo sm:text-sm'
                                         placeholder={placeholder}
                                 />
                         </div>
@@ -120,7 +120,7 @@ const SignUpPage = () => {
                                                 {t("auth.signup.prompt")} {" "}
                                                 <Link to='/login' className='font-medium text-payzone-indigo transition duration-300 hover:text-payzone-gold'>
                                                         {t("auth.signup.cta")}{" "}
-                                                        <ArrowRight className='ml-1 inline h-4 w-4' />
+                                                        <ArrowLeft className='mr-1 inline h-4 w-4' />
                                                 </Link>
                                         </p>
                                 </div>

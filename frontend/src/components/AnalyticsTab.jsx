@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Users, Package, ShoppingCart, DollarSign } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import useTranslation from "../hooks/useTranslation";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import apiClient from "../lib/apiClient";
 import { formatMRU } from "../lib/formatMRU";

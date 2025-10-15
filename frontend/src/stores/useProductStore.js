@@ -1,10 +1,7 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 import apiClient from "../lib/apiClient";
-import i18n from "../lib/i18n";
-
-const getLanguage = () => i18n.language || "en";
-const translate = (key, options) => i18n.t(key, options);
+import { translate } from "../lib/locale";
 
 export const useProductStore = create((set, get) => ({
         products: [],
@@ -21,10 +18,10 @@ export const useProductStore = create((set, get) => ({
         },
         setSelectedProduct: (product) => set({ selectedProduct: product }),
         clearSelectedProduct: () => set({ selectedProduct: null }),
-        createProduct: async (productData, language = getLanguage()) => {
+        createProduct: async (productData) => {
                 set({ loading: true });
                 try {
-                        const data = await apiClient.post(`/products?lang=${language}`, productData);
+                        const data = await apiClient.post(`/products`, productData);
                         set((prevState) => ({
                                 products: [...prevState.products, data],
                                 loading: false,
@@ -37,10 +34,10 @@ export const useProductStore = create((set, get) => ({
                         throw error;
                 }
         },
-        fetchAllProducts: async (language = getLanguage()) => {
+        fetchAllProducts: async () => {
                 set({ loading: true });
                 try {
-                        const data = await apiClient.get(`/products?lang=${language}`);
+                        const data = await apiClient.get(`/products`);
                         get().setProducts(data.products);
                         set({ loading: false });
                 } catch (error) {
@@ -48,10 +45,10 @@ export const useProductStore = create((set, get) => ({
                         toast.error(error.response?.data?.message || translate("toast.fetchProductsError"));
                 }
         },
-        fetchProductsByCategory: async (category, language = getLanguage()) => {
+        fetchProductsByCategory: async (category) => {
                 set({ loading: true });
                 try {
-                        const data = await apiClient.get(`/products/category/${category}?lang=${language}`);
+                        const data = await apiClient.get(`/products/category/${category}`);
                         get().setProducts(data.products);
                         set({ loading: false });
                 } catch (error) {
@@ -59,21 +56,17 @@ export const useProductStore = create((set, get) => ({
                         toast.error(error.response?.data?.message || translate("toast.fetchProductsError"));
                 }
         },
-        fetchProductById: async (productId, language = getLanguage()) => {
+        fetchProductById: async (productId) => {
                 const existingProduct = get().products.find((product) => product._id === productId);
                 if (existingProduct) {
-                        const translations = existingProduct.translations ?? {};
-                        const localized = translations[language]
-                                ? { ...existingProduct, ...translations[language] }
-                                : existingProduct;
-                        set({ selectedProduct: localized });
-                        return localized;
+                        set({ selectedProduct: existingProduct });
+                        return existingProduct;
                 }
 
                 set({ productDetailsLoading: true });
 
                 try {
-                        const data = await apiClient.get(`/products/${productId}?lang=${language}`);
+                        const data = await apiClient.get(`/products/${productId}`);
                         set((prevState) => {
                                 const alreadyInList = prevState.products.some((product) => product._id === data._id);
                                 return {
@@ -108,10 +101,10 @@ export const useProductStore = create((set, get) => ({
                         toast.error(error.response?.data?.message || translate("toast.deleteProductError"));
                 }
         },
-        toggleFeaturedProduct: async (productId, language = getLanguage()) => {
+        toggleFeaturedProduct: async (productId) => {
                 set({ loading: true });
                 try {
-                        const data = await apiClient.patch(`/products/${productId}?lang=${language}`);
+                        const data = await apiClient.patch(`/products/${productId}`);
                         set((prevState) => ({
                                 products: prevState.products.map((product) =>
                                         product._id === productId ? { ...product, isFeatured: data.isFeatured } : product
@@ -127,10 +120,10 @@ export const useProductStore = create((set, get) => ({
                         toast.error(error.response?.data?.message || translate("toast.updateProductError"));
                 }
         },
-        fetchFeaturedProducts: async (language = getLanguage()) => {
+        fetchFeaturedProducts: async () => {
                 set({ loading: true });
                 try {
-                        const data = await apiClient.get(`/products/featured?lang=${language}`);
+                        const data = await apiClient.get(`/products/featured`);
                         get().setProducts(data);
                         set({ loading: false });
                 } catch (error) {

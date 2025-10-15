@@ -1,24 +1,22 @@
 import { create } from "zustand";
 import { toast } from "react-hot-toast";
 import apiClient, { registerAuthHandlers } from "../lib/apiClient";
-import i18n from "../lib/i18n";
-
-const translate = (key, options) => i18n.t(key, options);
+import { translate } from "../lib/locale";
 
 export const useUserStore = create((set) => ({
-	user: null,
-	loading: false,
-	checkingAuth: true,
+        user: null,
+        loading: false,
+        checkingAuth: true,
 
-	signup: async ({ name, email, password, confirmPassword }) => {
-		set({ loading: true });
+        signup: async ({ name, email, password, confirmPassword }) => {
+                set({ loading: true });
 
                 if (password !== confirmPassword) {
                         set({ loading: false });
                         return toast.error(translate("common.messages.passwordMismatch"));
                 }
 
-		try {
+                try {
                         const data = await apiClient.post("/auth/signup", { name, email, password });
                         set({ user: data, loading: false });
                 } catch (error) {

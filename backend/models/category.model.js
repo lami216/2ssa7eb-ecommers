@@ -1,19 +1,5 @@
 import mongoose from "mongoose";
 
-const translationSchema = new mongoose.Schema(
-        {
-                name: {
-                        type: String,
-                        required: true,
-                },
-                description: {
-                        type: String,
-                        default: "",
-                },
-        },
-        { _id: false }
-);
-
 const categorySchema = new mongoose.Schema(
         {
                 name: {
@@ -36,15 +22,6 @@ const categorySchema = new mongoose.Schema(
                 imagePublicId: {
                         type: String,
                         required: true,
-                },
-                baseLanguage: {
-                        type: String,
-                        default: "en",
-                },
-                translations: {
-                        type: Map,
-                        of: translationSchema,
-                        default: {},
                 },
         },
         { timestamps: true }
