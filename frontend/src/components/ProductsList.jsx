@@ -1,11 +1,11 @@
 import { motion } from "framer-motion";
-import { Trash, Star } from "lucide-react";
+import { Trash, Star, Edit3 } from "lucide-react";
 import useTranslation from "../hooks/useTranslation";
 import { useProductStore } from "../stores/useProductStore";
 import { formatMRU } from "../lib/formatMRU";
 
 const ProductsList = () => {
-        const { deleteProduct, toggleFeaturedProduct, products } = useProductStore();
+        const { deleteProduct, toggleFeaturedProduct, products, setSelectedProduct } = useProductStore();
         const { t } = useTranslation();
 
         return (
@@ -68,6 +68,12 @@ const ProductsList = () => {
                                                                 </button>
                                                         </td>
                                                         <td className='whitespace-nowrap px-6 py-4 text-sm font-medium'>
+                                                                <button
+                                                                        onClick={() => setSelectedProduct(product)}
+                                                                        className='mr-3 inline-flex items-center text-white/80 transition-colors duration-200 hover:text-payzone-gold'
+                                                                >
+                                                                        <Edit3 className='h-5 w-5' />
+                                                                </button>
                                                                 <button
                                                                         onClick={() => deleteProduct(product._id)}
                                                                         className='text-red-400 transition-colors duration-200 hover:text-red-300'

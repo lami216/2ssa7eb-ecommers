@@ -16,10 +16,10 @@ const ProductCard = ({ product }) => {
                         : "");
 
         return (
-                <div className='group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-xl border border-payzone-indigo/30 bg-white/5 shadow-lg transition-all duration-300 hover:border-payzone-gold/60 hover:shadow-xl sm:aspect-square'>
+                <div className='group relative flex w-full flex-col overflow-hidden rounded-xl border border-payzone-indigo/30 bg-white/5 shadow-lg transition-all duration-300 hover:border-payzone-gold/60 hover:shadow-xl sm:aspect-[3/4] lg:aspect-square'>
                         <Link
                                 to={`/products/${product._id}`}
-                                className='relative mx-3 mt-3 flex flex-1 overflow-hidden rounded-xl min-h-[16rem] sm:min-h-0'
+                                className='relative mx-3 mt-3 overflow-hidden rounded-xl aspect-[4/5] min-h-[14rem] sm:min-h-0 sm:aspect-square'
                                 aria-label={t("product.viewDetails", { name: product.name })}
                         >
                                 {coverImage ? (
