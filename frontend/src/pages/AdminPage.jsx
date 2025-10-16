@@ -57,7 +57,7 @@ const AdminPage = () => {
                                         ))}
                                 </div>
                                 {activeTab === "create" && <CreateProductForm />}
-                                {activeTab === "products" && <ProductsList />}
+                                {activeTab === "products" && <ProductsList onEdit={() => setActiveTab("create")} />}
                                 {activeTab === "categories" && <CategoryManager />}
                                 {activeTab === "analytics" && <AnalyticsTab />}
                         </div>

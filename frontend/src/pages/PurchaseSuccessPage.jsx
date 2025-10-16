@@ -1,6 +1,6 @@
 import { ArrowLeft, CheckCircle, HandHeart } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import useTranslation from "../hooks/useTranslation";
 import { useCartStore } from "../stores/useCartStore";
 import Confetti from "react-confetti";
@@ -11,10 +11,16 @@ const PurchaseSuccessPage = () => {
         const { clearCart } = useCartStore();
         const [error, setError] = useState(null);
         const [isWhatsAppOrder, setIsWhatsAppOrder] = useState(false);
+        const location = useLocation();
+        const navigate = useNavigate();
         const { t } = useTranslation();
 
         useEffect(() => {
+                if (isWhatsAppOrder) return;
+
                 const pendingWhatsAppOrder = sessionStorage.getItem("whatsappOrderSent");
+                const isWhatsAppState = location.state?.orderType === "whatsapp";
+
                 const handleCheckoutSuccess = async (sessionId) => {
                         try {
                                 await apiClient.post("/payments/checkout-success", { sessionId });
@@ -34,7 +40,11 @@ const PurchaseSuccessPage = () => {
                 };
 
                 const sessionId = new URLSearchParams(window.location.search).get("session_id");
-                if (sessionId) {
+                if (isWhatsAppState) {
+                        sessionStorage.removeItem("whatsappOrderSent");
+                        finalizeWhatsAppOrder();
+                        navigate(window.location.pathname, { replace: true, state: null });
+                } else if (sessionId) {
                         sessionStorage.removeItem("whatsappOrderSent");
                         handleCheckoutSuccess(sessionId);
                 } else if (pendingWhatsAppOrder) {
@@ -44,7 +54,7 @@ const PurchaseSuccessPage = () => {
                         setIsProcessing(false);
                         setError(t("common.messages.noSessionId"));
                 }
-        }, [clearCart, t]);
+        }, [clearCart, isWhatsAppOrder, location, navigate, t]);
 
         if (isProcessing)
                 return (

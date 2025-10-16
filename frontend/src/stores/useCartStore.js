@@ -111,8 +111,18 @@ export const useCartStore = create((set, get) => ({
                 }
         },
         clearCart: async () => {
+                const user = getAuthenticatedUser();
+
                 persistCartToStorage([]);
                 set({ cart: [], coupon: null, total: 0, subtotal: 0, isCouponApplied: false });
+
+                if (!user) return;
+
+                try {
+                        await apiClient.delete("/cart", { body: {} });
+                } catch (error) {
+                        console.error("Failed to clear remote cart", error);
+                }
         },
         addToCart: async (product) => {
                 const user = getAuthenticatedUser();
