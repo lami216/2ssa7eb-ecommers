@@ -132,8 +132,9 @@ const CheckoutPage = () => {
                 try {
                         window.open(whatsappURL.toString(), "_blank");
                         sessionStorage.setItem("whatsappOrderSent", "true");
-                        clearCart();
-                        navigate("/purchase-success");
+                        toast.success(t("checkout.messages.orderSent"));
+                        await clearCart();
+                        navigate("/purchase-success", { state: { orderType: "whatsapp" } });
                 } catch (error) {
                         console.error("Unable to automatically open WhatsApp order", error);
                         toast.error(t("common.messages.whatsAppOpenFailed"));

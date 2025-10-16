@@ -4,9 +4,32 @@ import useTranslation from "../hooks/useTranslation";
 import { useProductStore } from "../stores/useProductStore";
 import { formatMRU } from "../lib/formatMRU";
 
-const ProductsList = () => {
+const ProductsList = ({ onEdit }) => {
         const { deleteProduct, toggleFeaturedProduct, products, setSelectedProduct } = useProductStore();
         const { t } = useTranslation();
+
+        const handleEdit = (product) => {
+                const confirmed = window.confirm(
+                        t("admin.productsTable.confirmations.edit", { name: product.name })
+                );
+
+                if (!confirmed) return;
+
+                setSelectedProduct(product);
+                if (typeof onEdit === "function") {
+                        onEdit();
+                }
+        };
+
+        const handleDelete = (product) => {
+                const confirmed = window.confirm(
+                        t("admin.productsTable.confirmations.delete", { name: product.name })
+                );
+
+                if (!confirmed) return;
+
+                deleteProduct(product._id);
+        };
 
         return (
                 <motion.div
@@ -68,18 +91,20 @@ const ProductsList = () => {
                                                                 </button>
                                                         </td>
                                                         <td className='whitespace-nowrap px-6 py-4 text-sm font-medium'>
-                                                                <button
-                                                                        onClick={() => setSelectedProduct(product)}
-                                                                        className='mr-3 inline-flex items-center text-white/80 transition-colors duration-200 hover:text-payzone-gold'
-                                                                >
-                                                                        <Edit3 className='h-5 w-5' />
-                                                                </button>
-                                                                <button
-                                                                        onClick={() => deleteProduct(product._id)}
-                                                                        className='text-red-400 transition-colors duration-200 hover:text-red-300'
-                                                                >
-                                                                        <Trash className='h-5 w-5' />
-                                                                </button>
+                                                                <div className='flex items-center justify-end gap-4'>
+                                                                        <button
+                                                                                onClick={() => handleEdit(product)}
+                                                                                className='inline-flex items-center text-white/80 transition-colors duration-200 hover:text-payzone-gold'
+                                                                        >
+                                                                                <Edit3 className='h-5 w-5' />
+                                                                        </button>
+                                                                        <button
+                                                                                onClick={() => handleDelete(product)}
+                                                                                className='text-red-400 transition-colors duration-200 hover:text-red-300'
+                                                                        >
+                                                                                <Trash className='h-5 w-5' />
+                                                                        </button>
+                                                                </div>
                                                         </td>
                                                 </tr>
                                         ))}
