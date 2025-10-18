@@ -9,9 +9,14 @@ const PeopleAlsoBought = ({ productId, category }) => {
         const [recommendations, setRecommendations] = useState([]);
         const [isLoading, setIsLoading] = useState(true);
         const { t } = useTranslation();
+        const recommendationsErrorMessage = t("toast.recommendationsError");
 
         useEffect(() => {
+                let isCancelled = false;
+
                 const fetchRecommendations = async () => {
+                        setIsLoading(true);
+
                         try {
                                 const queryParams = new URLSearchParams();
 
@@ -27,22 +32,30 @@ const PeopleAlsoBought = ({ productId, category }) => {
                                         ? `/products/recommendations?${queryParams.toString()}`
                                         : `/products/recommendations`;
 
-                                setIsLoading(true);
-                                setRecommendations([]);
-
                                 const data = await apiClient.get(endpoint);
-                                setRecommendations(data);
+
+                                if (!isCancelled) {
+                                        setRecommendations(Array.isArray(data) ? data : []);
+                                }
                         } catch (error) {
-                                toast.error(
-                                        error.response?.data?.message || t("toast.recommendationsError")
-                                );
+                                if (!isCancelled) {
+                                        toast.error(
+                                                error.response?.data?.message || recommendationsErrorMessage
+                                        );
+                                }
                         } finally {
-                                setIsLoading(false);
+                                if (!isCancelled) {
+                                        setIsLoading(false);
+                                }
                         }
                 };
 
                 fetchRecommendations();
-        }, [productId, category, t]);
+
+                return () => {
+                        isCancelled = true;
+                };
+        }, [productId, category, recommendationsErrorMessage]);
 
         if (isLoading) return <LoadingSpinner />;
 
