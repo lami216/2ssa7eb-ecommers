@@ -148,7 +148,10 @@ const ProductDetailPage = () => {
                                 </div>
 
                                 <div className='mt-16'>
-                                        <PeopleAlsoBought />
+                                        <PeopleAlsoBought
+                                                productId={selectedProduct._id}
+                                                category={selectedProduct.category}
+                                        />
                                 </div>
                         </div>
                 </div>

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { redis } from "../lib/redis.js";
 import cloudinary from "../lib/cloudinary.js";
 import Product from "../models/product.model.js";
@@ -347,25 +348,64 @@ export const getProductById = async (req, res) => {
 
 export const getRecommendedProducts = async (req, res) => {
         try {
-                const products = await Product.aggregate([
-                        {
-                                $sample: { size: 4 },
+                const { productId, category } = req.query;
+                const sampleSize = 4;
+                const projectionStage = {
+                        $project: {
+                                _id: 1,
+                                name: 1,
+                                description: 1,
+                                image: 1,
+                                images: 1,
+                                price: 1,
+                                category: 1,
+                                isFeatured: 1,
                         },
-                        {
-                                $project: {
-                                        _id: 1,
-                                        name: 1,
-                                        description: 1,
-                                        image: 1,
-                                        images: 1,
-                                        price: 1,
-                                        category: 1,
-                                        isFeatured: 1,
-                                },
-                        },
-                ]);
+                };
 
-                res.json(products);
+                let targetCategory = typeof category === "string" && category.trim() ? category.trim() : null;
+                const excludedIds = [];
+
+                if (productId && mongoose.Types.ObjectId.isValid(productId)) {
+                        excludedIds.push(new mongoose.Types.ObjectId(productId));
+
+                        if (!targetCategory) {
+                                const product = await Product.findById(productId).select("category");
+                                if (product) {
+                                        targetCategory = product.category;
+                                }
+                        }
+                }
+
+                let recommendations = [];
+
+                if (targetCategory) {
+                        const matchStage = {
+                                category: targetCategory,
+                                ...(excludedIds.length
+                                        ? { _id: { $nin: excludedIds } }
+                                        : {}),
+                        };
+
+                        recommendations = await Product.aggregate([
+                                { $match: matchStage },
+                                { $sample: { size: sampleSize } },
+                                projectionStage,
+                        ]);
+                }
+
+                if (!recommendations.length) {
+                        const fallbackMatch = excludedIds.length ? { _id: { $nin: excludedIds } } : null;
+                        const pipeline = [
+                                ...(fallbackMatch ? [{ $match: fallbackMatch }] : []),
+                                { $sample: { size: sampleSize } },
+                                projectionStage,
+                        ];
+
+                        recommendations = await Product.aggregate(pipeline);
+                }
+
+                res.json(recommendations);
         } catch (error) {
                 console.log("Error in getRecommendedProducts controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
