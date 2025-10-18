@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import LoadingSpinner from "./LoadingSpinner";
 import apiClient from "../lib/apiClient";
 
-const PeopleAlsoBought = () => {
+const PeopleAlsoBought = ({ productId, category }) => {
         const [recommendations, setRecommendations] = useState([]);
         const [isLoading, setIsLoading] = useState(true);
         const { t } = useTranslation();
@@ -13,7 +13,24 @@ const PeopleAlsoBought = () => {
         useEffect(() => {
                 const fetchRecommendations = async () => {
                         try {
-                                const data = await apiClient.get(`/products/recommendations`);
+                                const queryParams = new URLSearchParams();
+
+                                if (productId) {
+                                        queryParams.append("productId", productId);
+                                }
+
+                                if (category) {
+                                        queryParams.append("category", category);
+                                }
+
+                                const endpoint = queryParams.toString()
+                                        ? `/products/recommendations?${queryParams.toString()}`
+                                        : `/products/recommendations`;
+
+                                setIsLoading(true);
+                                setRecommendations([]);
+
+                                const data = await apiClient.get(endpoint);
                                 setRecommendations(data);
                         } catch (error) {
                                 toast.error(
@@ -25,7 +42,7 @@ const PeopleAlsoBought = () => {
                 };
 
                 fetchRecommendations();
-        }, [t]);
+        }, [productId, category, t]);
 
         if (isLoading) return <LoadingSpinner />;
 
