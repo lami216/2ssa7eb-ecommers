@@ -164,39 +164,42 @@ const ProductDetailPage = () => {
                                                 )}
                                         </div>
 
-                                        <div className='flex flex-col gap-6 rounded-2xl border border-payzone-indigo/40 bg-white/5 p-8 backdrop-blur-sm'>
-                                                <div className='space-y-4'>
+                                        <div className='flex flex-col gap-8 py-2 lg:pl-4'>
+                                                <div className='space-y-6'>
+                                                        {selectedProduct.category && (
+                                                                <p className='text-sm font-medium uppercase tracking-wide text-payzone-gold/80'>
+                                                                        {selectedProduct.category}
+                                                                </p>
+                                                        )}
                                                         <div className='space-y-2'>
-                                                                {selectedProduct.category && (
-                                                                        <p className='text-sm font-medium uppercase tracking-wide text-payzone-gold/80'>
-                                                                                {selectedProduct.category}
-                                                                        </p>
-                                                                )}
+                                                                <p className='text-sm font-semibold text-white/70'>الإسم</p>
                                                                 <h1 className='text-3xl font-bold text-payzone-gold'>
                                                                         {selectedProduct.name}
                                                                 </h1>
                                                         </div>
-
-                                                        <div className='flex flex-wrap items-center gap-4 text-3xl font-semibold text-payzone-gold'>
-                                                                {isDiscounted ? (
-                                                                        <>
-                                                                                <span className='text-2xl font-normal text-white/60 line-through'>
-                                                                                        {formatMRU(price)}
-                                                                                </span>
-                                                                                <span className='text-4xl font-bold text-red-300'>
-                                                                                        {formatMRU(discountedPrice)}
-                                                                                </span>
-                                                                                <span className='rounded-full bg-red-600/80 px-3 py-1 text-base font-semibold text-white shadow'>
-                                                                                        -{discountPercentage}%
-                                                                                </span>
-                                                                        </>
-                                                                ) : (
-                                                                        <span>{formatMRU(price)}</span>
-                                                                )}
+                                                        <div className='space-y-2'>
+                                                                <p className='text-sm font-semibold text-white/70'>السعر</p>
+                                                                <div className='flex flex-wrap items-center gap-4 text-3xl font-semibold text-payzone-gold'>
+                                                                        {isDiscounted ? (
+                                                                                <>
+                                                                                        <span className='text-2xl font-normal text-white/60 line-through'>
+                                                                                                {formatMRU(price)}
+                                                                                        </span>
+                                                                                        <span className='text-4xl font-bold text-red-300'>
+                                                                                                {formatMRU(discountedPrice)}
+                                                                                        </span>
+                                                                                        <span className='rounded-full bg-red-600/80 px-3 py-1 text-base font-semibold text-white shadow'>
+                                                                                                -{discountPercentage}%
+                                                                                        </span>
+                                                                                </>
+                                                                        ) : (
+                                                                                <span>{formatMRU(price)}</span>
+                                                                        )}
+                                                                </div>
                                                         </div>
                                                 </div>
 
-                                                <div className='flex flex-wrap items-center gap-3 rounded-2xl border border-payzone-indigo/40 bg-payzone-navy/60 px-4 py-3 text-white/80'>
+                                                <div className='flex flex-wrap items-center gap-3 text-white/80'>
                                                         <span className='text-sm font-medium text-white/70'>
                                                                 {t("cart.item.chooseQuantity")}
                                                         </span>
@@ -223,7 +226,7 @@ const ProductDetailPage = () => {
                                                         </div>
                                                 </div>
 
-                                                <div className='space-y-3 rounded-2xl border border-payzone-indigo/30 bg-payzone-navy/40 p-4 text-white/80'>
+                                                <div className='space-y-3 text-white/80'>
                                                         <h2 className='text-lg font-semibold text-payzone-gold'>
                                                                 {t("products.detail.descriptionTitle")}
                                                         </h2>
