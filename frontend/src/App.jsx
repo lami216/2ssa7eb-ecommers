@@ -8,6 +8,7 @@ import CategoryPage from "./pages/CategoryPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import { Toaster } from "react-hot-toast";
 import { useUserStore } from "./stores/useUserStore";
 import { useEffect } from "react";
@@ -44,26 +45,27 @@ function App() {
         return (
                 <div className='relative min-h-screen bg-payzone-navy text-payzone-white'>
                         <div className='relative z-50 pt-20'>
-				<Navbar />
-				<Routes>
-					<Route path='/' element={<HomePage />} />
-					<Route path='/signup' element={!user ? <SignUpPage /> : <Navigate to='/' />} />
-					<Route path='/login' element={!user ? <LoginPage /> : <Navigate to='/' />} />
-					<Route
-						path='/secret-dashboard'
-						element={user?.role === "admin" ? <AdminPage /> : <Navigate to='/login' />}
-					/>
+                                <Navbar />
+                                <Routes>
+                                        <Route path='/' element={<HomePage />} />
+                                        <Route path='/signup' element={!user ? <SignUpPage /> : <Navigate to='/' />} />
+                                        <Route path='/login' element={!user ? <LoginPage /> : <Navigate to='/' />} />
+                                        <Route
+                                                path='/secret-dashboard'
+                                                element={user?.role === "admin" ? <AdminPage /> : <Navigate to='/login' />}
+                                        />
                                         <Route path='/category/:category' element={<CategoryPage />} />
                                         <Route path='/products/:id' element={<ProductDetailPage />} />
                                         <Route path='/cart' element={<CartPage />} />
                                         <Route path='/checkout' element={<CheckoutPage />} />
                                         <Route path='/purchase-success' element={<PurchaseSuccessPage />} />
                                         <Route path='/purchase-cancel' element={<PurchaseCancelPage />} />
-				</Routes>
-			</div>
-			<Toaster />
-		</div>
-	);
+                                </Routes>
+                        </div>
+                        <Toaster />
+                        <Footer />
+                </div>
+        );
 }
 
 export default App;
