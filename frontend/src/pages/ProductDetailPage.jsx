@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Minus, Plus } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useProductStore } from "../stores/useProductStore";
 import { useCartStore } from "../stores/useCartStore";
@@ -48,6 +49,7 @@ const ProductDetailPage = () => {
         const addToCart = useCartStore((state) => state.addToCart);
         const { t } = useTranslation();
         const [activeImage, setActiveImage] = useState(null);
+        const [quantity, setQuantity] = useState(1);
 
         useEffect(() => {
                 let isMounted = true;
@@ -71,6 +73,12 @@ const ProductDetailPage = () => {
                 }
         }, [selectedProduct, activeImage]);
 
+        useEffect(() => {
+                if (selectedProduct) {
+                        setQuantity(1);
+                }
+        }, [selectedProduct]);
+
         if (productDetailsLoading && !selectedProduct) {
                 return <LoadingSpinner />;
         }
@@ -89,13 +97,25 @@ const ProductDetailPage = () => {
         const galleryImages = mapGalleryImages(selectedProduct);
         const { price, discountedPrice, isDiscounted, discountPercentage } = getProductPricing(selectedProduct);
 
-        const handleAddToCart = () => {
-                addToCart({
-                        ...selectedProduct,
-                        discountedPrice,
-                        isDiscounted,
-                        discountPercentage,
-                });
+        const handleAddToCart = async () => {
+                await addToCart(
+                        {
+                                ...selectedProduct,
+                                discountedPrice,
+                                isDiscounted,
+                                discountPercentage,
+                        },
+                        quantity
+                );
+                setQuantity(1);
+        };
+
+        const handleDecreaseQuantity = () => {
+                setQuantity((prev) => Math.max(1, prev - 1));
+        };
+
+        const handleIncreaseQuantity = () => {
+                setQuantity((prev) => prev + 1);
         };
 
         return (
@@ -145,34 +165,76 @@ const ProductDetailPage = () => {
                                         </div>
 
                                         <div className='flex flex-col gap-6 rounded-2xl border border-payzone-indigo/40 bg-white/5 p-8 backdrop-blur-sm'>
-                                                <div>
-                                                        <p className='uppercase tracking-wide text-payzone-gold/80'>{selectedProduct.category}</p>
-                                                        <h1 className='mt-2 text-3xl font-bold text-payzone-gold'>{selectedProduct.name}</h1>
+                                                <div className='space-y-4'>
+                                                        <div className='space-y-2'>
+                                                                {selectedProduct.category && (
+                                                                        <p className='text-sm font-medium uppercase tracking-wide text-payzone-gold/80'>
+                                                                                {selectedProduct.category}
+                                                                        </p>
+                                                                )}
+                                                                <h1 className='text-3xl font-bold text-payzone-gold'>
+                                                                        {selectedProduct.name}
+                                                                </h1>
+                                                        </div>
+
+                                                        <div className='flex flex-wrap items-center gap-4 text-3xl font-semibold text-payzone-gold'>
+                                                                {isDiscounted ? (
+                                                                        <>
+                                                                                <span className='text-2xl font-normal text-white/60 line-through'>
+                                                                                        {formatMRU(price)}
+                                                                                </span>
+                                                                                <span className='text-4xl font-bold text-red-300'>
+                                                                                        {formatMRU(discountedPrice)}
+                                                                                </span>
+                                                                                <span className='rounded-full bg-red-600/80 px-3 py-1 text-base font-semibold text-white shadow'>
+                                                                                        -{discountPercentage}%
+                                                                                </span>
+                                                                        </>
+                                                                ) : (
+                                                                        <span>{formatMRU(price)}</span>
+                                                                )}
+                                                        </div>
                                                 </div>
 
-                                                <p className='text-base leading-relaxed text-white/80'>{selectedProduct.description}</p>
+                                                <div className='flex flex-wrap items-center gap-3 rounded-2xl border border-payzone-indigo/40 bg-payzone-navy/60 px-4 py-3 text-white/80'>
+                                                        <span className='text-sm font-medium text-white/70'>
+                                                                {t("cart.item.chooseQuantity")}
+                                                        </span>
+                                                        <div className='flex items-center gap-3'>
+                                                                <button
+                                                                        type='button'
+                                                                        onClick={handleDecreaseQuantity}
+                                                                        className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition hover:border-payzone-gold/80 hover:bg-payzone-navy/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-payzone-gold'
+                                                                        aria-label={t("cart.item.decrease")}
+                                                                >
+                                                                        <Minus className='h-4 w-4' />
+                                                                </button>
+                                                                <span className='flex h-9 min-w-[3rem] items-center justify-center rounded-xl bg-white/10 text-base font-semibold text-white'>
+                                                                        {quantity}
+                                                                </span>
+                                                                <button
+                                                                        type='button'
+                                                                        onClick={handleIncreaseQuantity}
+                                                                        className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition hover:border-payzone-gold/80 hover:bg-payzone-navy/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-payzone-gold'
+                                                                        aria-label={t("cart.item.increase")}
+                                                                >
+                                                                        <Plus className='h-4 w-4' />
+                                                                </button>
+                                                        </div>
+                                                </div>
 
-                                                <div className='flex flex-wrap items-center gap-4 text-3xl font-semibold text-payzone-gold'>
-                                                        {isDiscounted ? (
-                                                                <>
-                                                                        <span className='text-2xl font-normal text-white/60 line-through'>
-                                                                                {formatMRU(price)}
-                                                                        </span>
-                                                                        <span className='text-4xl font-bold text-red-300'>
-                                                                                {formatMRU(discountedPrice)}
-                                                                        </span>
-                                                                        <span className='rounded-full bg-red-600/80 px-3 py-1 text-base font-semibold text-white shadow'>
-                                                                                -{discountPercentage}%
-                                                                        </span>
-                                                                </>
-                                                        ) : (
-                                                                <span>{formatMRU(price)}</span>
-                                                        )}
+                                                <div className='space-y-3 rounded-2xl border border-payzone-indigo/30 bg-payzone-navy/40 p-4 text-white/80'>
+                                                        <h2 className='text-lg font-semibold text-payzone-gold'>
+                                                                {t("products.detail.descriptionTitle")}
+                                                        </h2>
+                                                        <p className='text-base leading-relaxed'>
+                                                                {selectedProduct.description || t("products.detail.descriptionFallback")}
+                                                        </p>
                                                 </div>
 
                                                 <button
                                                         onClick={handleAddToCart}
-                                                        className='mt-4 inline-flex items-center justify-center rounded-lg bg-payzone-gold px-6 py-3 text-lg font-semibold text-payzone-navy transition-colors duration-300 hover:bg-[#b8873d] focus:outline-none focus:ring-4 focus:ring-payzone-indigo/40'
+                                                        className='inline-flex items-center justify-center rounded-full bg-payzone-gold px-6 py-3 text-lg font-semibold text-payzone-navy transition-colors duration-300 hover:bg-[#b8873d] focus:outline-none focus:ring-4 focus:ring-payzone-indigo/40'
                                                 >
                                                         {t("common.actions.addToCart")}
                                                 </button>
