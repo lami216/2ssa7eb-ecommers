@@ -5,7 +5,6 @@ import { ShoppingCart } from "lucide-react";
 import useTranslation from "../hooks/useTranslation";
 import CartItem from "../components/CartItem";
 import OrderSummary from "../components/OrderSummary";
-import GiftCouponCard from "../components/GiftCouponCard";
 
 const CartPage = () => {
         const { cart } = useCartStore();
@@ -13,49 +12,30 @@ const CartPage = () => {
         const leadText = t("cart.summary.lead");
 
         return (
-                <div className='py-10 md:py-16'>
-                        <div className='mx-auto max-w-screen-xl px-4 2xl:px-0'>
-                                <div className='space-y-8'>
-                                        <div className='text-center lg:text-start'>
-                                                <h1 className='text-3xl font-bold text-white sm:text-4xl'>{t("cart.title")}</h1>
-                                                {leadText && (
-                                                        <p className='mt-2 text-sm text-white/60'>{leadText}</p>
-                                                )}
-                                        </div>
+                <div className='min-h-screen bg-gradient-to-b from-payzone-navy via-[#0b1f3a] to-[#08112a] py-10 text-white sm:py-16' dir='rtl'>
+                        <div className='mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8'>
+                                <header className='space-y-2 text-center md:text-right'>
+                                        <h1 className='text-[clamp(2rem,4vw,2.6rem)] font-bold text-white'>{t("cart.title")}</h1>
+                                        {leadText && <p className='text-sm text-white/70'>{leadText}</p>}
+                                </header>
 
-                                        <div className='grid gap-8 lg:grid-cols-[minmax(0,1fr),360px] xl:grid-cols-[minmax(0,1fr),400px]'>
-                                                <motion.section
-                                                        className='flex-1'
-                                                        initial={{ opacity: 0, x: -20 }}
-                                                        animate={{ opacity: 1, x: 0 }}
-                                                        transition={{ duration: 0.5, delay: 0.2 }}
-                                                >
-                                                        <div className='rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/30 backdrop-blur-md sm:p-8'>
-                                                                {cart.length === 0 ? (
-                                                                        <EmptyCartUI t={t} />
-                                                                ) : (
-                                                                        <div className='space-y-5'>
-                                                                                {cart.map((item) => (
-                                                                                        <CartItem key={item._id} item={item} />
-                                                                                ))}
-                                                                        </div>
-                                                                )}
-                                                        </div>
-                                                </motion.section>
+                                <section className='mt-8 space-y-5'>
+                                        {cart.length === 0 ? (
+                                                <EmptyCartUI t={t} />
+                                        ) : (
+                                                <div className='space-y-4'>
+                                                        {cart.map((item) => (
+                                                                <CartItem key={item._id} item={item} />
+                                                        ))}
+                                                </div>
+                                        )}
+                                </section>
 
-                                                {cart.length > 0 && (
-                                                        <motion.aside
-                                                                className='space-y-6'
-                                                                initial={{ opacity: 0, x: 20 }}
-                                                                animate={{ opacity: 1, x: 0 }}
-                                                                transition={{ duration: 0.5, delay: 0.4 }}
-                                                        >
-                                                                <OrderSummary />
-                                                                <GiftCouponCard />
-                                                        </motion.aside>
-                                                )}
+                                {cart.length > 0 && (
+                                        <div className='mt-10'>
+                                                <OrderSummary />
                                         </div>
-                                </div>
+                                )}
                         </div>
                 </div>
         );
@@ -64,16 +44,16 @@ export default CartPage;
 
 const EmptyCartUI = ({ t }) => (
         <motion.div
-                className='flex flex-col items-center justify-center space-y-4 py-16'
+                className='flex flex-col items-center justify-center space-y-4 rounded-3xl border border-white/10 bg-white/5 px-8 py-16 text-center shadow-xl shadow-black/20 backdrop-blur-md'
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
         >
-                <ShoppingCart className='h-24 w-24 text-payzone-gold' />
-                <h3 className='text-2xl font-semibold text-white'>{t("cart.empty.title")}</h3>
-                <p className='text-white/70'>{t("cart.empty.description")}</p>
+                <ShoppingCart className='h-20 w-20 text-payzone-gold' />
+                <h3 className='text-[clamp(1.5rem,3vw,1.9rem)] font-semibold text-white'>{t("cart.empty.title")}</h3>
+                <p className='max-w-md text-sm text-white/70'>{t("cart.empty.description")}</p>
                 <Link
-                        className='mt-4 rounded-full bg-payzone-gold px-6 py-2 font-semibold text-payzone-navy transition-colors duration-300 hover:bg-[#b8873d]'
+                        className='mt-4 inline-flex min-h-[3rem] min-w-[12rem] items-center justify-center rounded-full bg-payzone-gold px-6 text-sm font-semibold text-payzone-navy transition duration-300 hover:bg-[#b8873d] focus:outline-none focus-visible:ring-2 focus-visible:ring-payzone-gold focus-visible:ring-offset-2 focus-visible:ring-offset-payzone-navy'
                         to='/'
                 >
                         {t("cart.empty.cta")}
