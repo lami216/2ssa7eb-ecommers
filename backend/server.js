@@ -13,7 +13,7 @@ import categoryRoutes from "./routes/category.route.js";
 
 import { connectDB } from "./lib/db.js";
 
-dotenv.config();
+dotenv.config({ path: "./backend/.env" });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
