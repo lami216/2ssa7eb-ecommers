@@ -10,41 +10,53 @@ import GiftCouponCard from "../components/GiftCouponCard";
 const CartPage = () => {
         const { cart } = useCartStore();
         const { t } = useTranslation();
+        const leadText = t("cart.summary.lead");
 
         return (
-                <div className='py-8 md:py-16'>
+                <div className='py-10 md:py-16'>
                         <div className='mx-auto max-w-screen-xl px-4 2xl:px-0'>
-                                <div className='mt-6 sm:mt-8 md:gap-6 lg:flex lg:items-start xl:gap-8'>
-                                        <motion.div
-                                                className='mx-auto w-full flex-none lg:max-w-2xl xl:max-w-4xl'
-                                                initial={{ opacity: 0, x: -20 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                transition={{ duration: 0.5, delay: 0.2 }}
-                                        >
-                                                {cart.length === 0 ? (
-                                                        <EmptyCartUI t={t} />
-                                                ) : (
-                                                        <div className='space-y-6'>
-                                                                {cart.map((item) => (
-                                                                        <CartItem key={item._id} item={item} />
-								))}
-							</div>
-						)}
-					</motion.div>
+                                <div className='space-y-8'>
+                                        <div className='text-center lg:text-start'>
+                                                <h1 className='text-3xl font-bold text-white sm:text-4xl'>{t("cart.title")}</h1>
+                                                {leadText && (
+                                                        <p className='mt-2 text-sm text-white/60'>{leadText}</p>
+                                                )}
+                                        </div>
 
-					{cart.length > 0 && (
-						<motion.div
-							className='mx-auto mt-6 max-w-4xl flex-1 space-y-6 lg:mt-0 lg:w-full'
-							initial={{ opacity: 0, x: 20 }}
-							animate={{ opacity: 1, x: 0 }}
-							transition={{ duration: 0.5, delay: 0.4 }}
-						>
-							<OrderSummary />
-							<GiftCouponCard />
-						</motion.div>
-					)}
-				</div>
-			</div>
+                                        <div className='grid gap-8 lg:grid-cols-[minmax(0,1fr),360px] xl:grid-cols-[minmax(0,1fr),400px]'>
+                                                <motion.section
+                                                        className='flex-1'
+                                                        initial={{ opacity: 0, x: -20 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ duration: 0.5, delay: 0.2 }}
+                                                >
+                                                        <div className='rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-black/30 backdrop-blur-md sm:p-8'>
+                                                                {cart.length === 0 ? (
+                                                                        <EmptyCartUI t={t} />
+                                                                ) : (
+                                                                        <div className='space-y-5'>
+                                                                                {cart.map((item) => (
+                                                                                        <CartItem key={item._id} item={item} />
+                                                                                ))}
+                                                                        </div>
+                                                                )}
+                                                        </div>
+                                                </motion.section>
+
+                                                {cart.length > 0 && (
+                                                        <motion.aside
+                                                                className='space-y-6'
+                                                                initial={{ opacity: 0, x: 20 }}
+                                                                animate={{ opacity: 1, x: 0 }}
+                                                                transition={{ duration: 0.5, delay: 0.4 }}
+                                                        >
+                                                                <OrderSummary />
+                                                                <GiftCouponCard />
+                                                        </motion.aside>
+                                                )}
+                                        </div>
+                                </div>
+                        </div>
                 </div>
         );
 };
@@ -61,7 +73,7 @@ const EmptyCartUI = ({ t }) => (
                 <h3 className='text-2xl font-semibold text-white'>{t("cart.empty.title")}</h3>
                 <p className='text-white/70'>{t("cart.empty.description")}</p>
                 <Link
-                        className='mt-4 rounded-md bg-payzone-gold px-6 py-2 font-semibold text-payzone-navy transition-colors duration-300 hover:bg-[#b8873d]'
+                        className='mt-4 rounded-full bg-payzone-gold px-6 py-2 font-semibold text-payzone-navy transition-colors duration-300 hover:bg-[#b8873d]'
                         to='/'
                 >
                         {t("cart.empty.cta")}

@@ -91,6 +91,28 @@ const CheckoutPage = () => {
 
                 const displayCustomerNumber = normalizedWhatsAppNumber || whatsAppNumber;
 
+                const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+                const orderDetailsPayload = {
+                        customerName: customerName.trim(),
+                        phone: displayCustomerNumber,
+                        address: address.trim(),
+                        items: cart.map((item) => ({
+                                id: item._id,
+                                name: item.name,
+                                description: item.description,
+                                image: item.image,
+                                price: item.price,
+                                quantity: item.quantity,
+                        })),
+                        summary: {
+                                subtotal,
+                                total,
+                                totalQuantity,
+                        },
+                };
+
+                sessionStorage.setItem("lastOrderDetails", JSON.stringify(orderDetailsPayload));
+
                 const messageLines = [
                         t("checkout.messages.newOrder", { name: customerName }),
                         t("checkout.messages.customerWhatsApp", { number: displayCustomerNumber }),
@@ -134,7 +156,9 @@ const CheckoutPage = () => {
                         sessionStorage.setItem("whatsappOrderSent", "true");
                         toast.success(t("checkout.messages.orderSent"));
                         await clearCart();
-                        navigate("/purchase-success", { state: { orderType: "whatsapp" } });
+                        navigate("/purchase-success", {
+                                state: { orderType: "whatsapp", orderDetails: orderDetailsPayload },
+                        });
                 } catch (error) {
                         console.error("Unable to automatically open WhatsApp order", error);
                         toast.error(t("common.messages.whatsAppOpenFailed"));

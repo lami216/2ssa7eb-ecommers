@@ -1,101 +1,54 @@
 import { motion } from "framer-motion";
 import { useCartStore } from "../stores/useCartStore";
-import { Link, useNavigate } from "react-router-dom";
-import { MoveLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import useTranslation from "../hooks/useTranslation";
 import { formatMRU } from "../lib/formatMRU";
+import { formatNumberEn } from "../lib/formatNumberEn";
 
 const OrderSummary = () => {
-        const { total, subtotal, coupon, isCouponApplied } = useCartStore();
+        const { cart, total } = useCartStore();
         const navigate = useNavigate();
         const { t } = useTranslation();
 
-        const savings = subtotal - total;
-        const formattedDiscount =
-                coupon?.discountPercentage !== undefined && coupon?.discountPercentage !== null
-                        ? Number(coupon.discountPercentage).toLocaleString("en-US")
-                        : null;
+        const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+        const isDisabled = totalQuantity === 0;
+
         const handleCheckout = () => {
+                if (isDisabled) return;
                 navigate("/checkout");
         };
 
         return (
                 <motion.div
-                        className='space-y-4 rounded-lg border border-payzone-indigo/40 bg-white/5 p-4 shadow-sm backdrop-blur-sm sm:p-6'
+                        className='space-y-6 rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl shadow-black/20 backdrop-blur-md'
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
                 >
-                        <p className='text-xl font-semibold text-payzone-gold'>
-                                {t("cart.summary.title")}
-                        </p>
+                        <h2 className='text-xl font-semibold text-payzone-gold'>{t("cart.summary.title")}</h2>
 
-                        <div className='space-y-4'>
-                                <div className='space-y-2'>
-                                        <dl className='flex items-center justify-between gap-4'>
-                                                <dt className='text-base font-normal text-white/70'>
-                                                        {t("cart.summary.subtotal")}
-                                                </dt>
-                                                <dd className='text-base font-medium text-white'>
-                                                        {formatMRU(subtotal)}
-                                                </dd>
-                                        </dl>
-
-                                        {savings > 0 && (
-                                                <dl className='flex items-center justify-between gap-4'>
-                                                        <dt className='text-base font-normal text-white/70'>
-                                                                {t("cart.summary.savings")}
-                                                        </dt>
-                                                        <dd className='text-base font-medium text-payzone-gold'>
-                                                                -{formatMRU(savings)}
-                                                        </dd>
-                                                </dl>
-                                        )}
-
-                                        {coupon && isCouponApplied && (
-                                                <dl className='flex items-center justify-between gap-4'>
-                                                        <dt className='text-base font-normal text-white/70'>
-                                                                {t("cart.summary.coupon", { code: coupon.code })}
-                                                        </dt>
-                                                        <dd className='text-base font-medium text-payzone-gold'>
-                                                                -{formattedDiscount ?? coupon.discountPercentage}%
-                                                        </dd>
-                                                </dl>
-                                        )}
-                                        <dl className='flex items-center justify-between gap-4 border-t border-white/10 pt-2'>
-                                                <dt className='text-base font-bold text-white'>
-                                                        {t("cart.summary.total")}
-                                                </dt>
-                                                <dd className='text-base font-bold text-payzone-gold'>
-                                                        {formatMRU(total)}
-                                                </dd>
-                                        </dl>
+                        <div className='space-y-4 rounded-2xl border border-white/10 bg-payzone-navy/70 p-5 text-sm text-white/80 shadow-inner'>
+                                <div className='flex items-center justify-between'>
+                                        <span>{t("cart.summary.productsCount")}</span>
+                                        <span className='text-base font-semibold text-white'>{formatNumberEn(totalQuantity)}</span>
                                 </div>
-
-                                <motion.button
-                                        type='button'
-                                        className='flex w-full items-center justify-center rounded-lg bg-payzone-gold px-5 py-2.5 text-sm font-semibold text-payzone-navy transition-colors duration-300 hover:bg-[#b8873d] focus:outline-none focus:ring-4 focus:ring-payzone-indigo/40'
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={handleCheckout}
-                                >
-                                        {t("cart.summary.proceed")}
-                                </motion.button>
-
-                                <div className='flex items-center justify-center gap-2'>
-                                        <span className='text-sm font-normal text-white/60'>
-                                                {t("cart.summary.or")}
-                                        </span>
-                                        <Link
-                                                to='/'
-                                                className='inline-flex items-center gap-2 text-sm font-medium text-payzone-indigo underline transition-colors duration-300 hover:text-payzone-gold hover:no-underline'
-                                        >
-                                                {t("cart.summary.continue")}
-                                                <MoveLeft size={16} />
-                                        </Link>
+                                <div className='flex items-center justify-between border-t border-white/10 pt-3 text-base font-semibold'>
+                                        <span className='text-payzone-gold'>{t("cart.summary.grandTotal")}</span>
+                                        <span className='text-white'>{formatMRU(total)}</span>
                                 </div>
                         </div>
-		</motion.div>
-	);
+
+                        <motion.button
+                                type='button'
+                                className='w-full rounded-full bg-payzone-gold px-6 py-3 text-sm font-semibold text-payzone-navy transition-colors duration-300 hover:bg-[#b8873d] focus:outline-none focus-visible:ring-2 focus-visible:ring-payzone-gold focus-visible:ring-offset-2 focus-visible:ring-offset-payzone-navy disabled:cursor-not-allowed disabled:opacity-60'
+                                whileHover={!isDisabled ? { scale: 1.02 } : undefined}
+                                whileTap={!isDisabled ? { scale: 0.97 } : undefined}
+                                onClick={handleCheckout}
+                                disabled={isDisabled}
+                        >
+                                {t("cart.summary.proceed")}
+                        </motion.button>
+                </motion.div>
+        );
 };
 export default OrderSummary;
