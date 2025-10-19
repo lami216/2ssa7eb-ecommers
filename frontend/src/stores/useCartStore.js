@@ -144,11 +144,15 @@ export const useCartStore = create((set, get) => ({
                         console.error("Failed to clear remote cart", error);
                 }
         },
-        addToCart: async (product) => {
+        addToCart: async (product, quantity = 1) => {
                 const user = getAuthenticatedUser();
+                const normalizedQuantity = Math.max(1, Number(quantity) || 1);
 
                 const updateLocalCart = () => {
-                        const enrichedProduct = enrichCartItem({ ...product, quantity: 1 });
+                        const enrichedProduct = enrichCartItem({
+                                ...product,
+                                quantity: normalizedQuantity,
+                        });
                         set((prevState) => {
                                 const existingItem = prevState.cart.find((item) => item._id === product._id);
                                 const newCart = existingItem
@@ -157,7 +161,7 @@ export const useCartStore = create((set, get) => ({
                                                                 ? enrichCartItem({
                                                                           ...item,
                                                                           ...product,
-                                                                          quantity: item.quantity + 1,
+                                                                          quantity: Number(item.quantity || 0) + normalizedQuantity,
                                                                   })
                                                                 : item
                                           )
@@ -176,7 +180,10 @@ export const useCartStore = create((set, get) => ({
                 }
 
                 try {
-                        await apiClient.post("/cart", { productId: product._id });
+                        await apiClient.post("/cart", {
+                                productId: product._id,
+                                quantity: normalizedQuantity,
+                        });
                         toast.success(translate("common.messages.productAddedToCart"));
                 } catch (error) {
                         toast.error(error.response?.data?.message || translate("toast.addToCartError"));
