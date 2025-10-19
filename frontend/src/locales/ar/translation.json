@@ -126,14 +126,19 @@
                                 "baseLanguage": "لغة المحتوى",
                                 "images": "الصور",
                                 "cover": "الغلاف",
-                                "setAsCover": "تعيين كغلاف"
+                                "setAsCover": "تعيين كغلاف",
+                                "discountToggle": "تفعيل التخفيض",
+                                "discountHint": "قم بتفعيل هذا الخيار لإضافة نسبة تخفيض على السعر الأساسي.",
+                                "discountPercentage": "نسبة التخفيض (%)",
+                                "discountPreview": "السعر بعد خصم {{discount}}٪ من {{price}} يساوي {{final}}"
                         },
                         "placeholders": {
                                 "name": "أدخل اسم المنتج",
                                 "description": "صف المنتج",
                                 "price": "أدخل السعر",
                                 "category": "اختر الفئة",
-                                "baseLanguage": "اختر لغة المحتوى"
+                                "baseLanguage": "اختر لغة المحتوى",
+                                "discountPercentage": "مثال: 15"
                         },
                         "buttons": {
                                 "uploadImages": "رفع الصور",
@@ -149,13 +154,17 @@
                                 "productCreated": "تم إنشاء المنتج بنجاح",
                                 "nameRequired": "يرجى إدخال اسم المنتج.",
                                 "descriptionRequired": "يرجى كتابة وصف للمنتج.",
-                                "categoryRequired": "يرجى اختيار الفئة."
+                                "categoryRequired": "يرجى اختيار الفئة.",
+                                "discountRequired": "يرجى إدخال نسبة التخفيض.",
+                                "discountInvalid": "نسبة التخفيض يجب أن تكون رقماً صالحاً.",
+                                "discountRange": "نسبة التخفيض يجب أن تكون بين 1% و 99%."
                         }
                 },
                 "productsTable": {
                         "headers": {
                                 "product": "المنتج",
                                 "price": "السعر",
+                                "discount": "التخفيض",
                                 "category": "الفئة",
                                 "featured": "مميز",
                                 "actions": "إجراءات"

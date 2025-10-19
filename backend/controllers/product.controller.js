@@ -3,15 +3,84 @@ import { redis } from "../lib/redis.js";
 import cloudinary from "../lib/cloudinary.js";
 import Product from "../models/product.model.js";
 
+const toBoolean = (value) => {
+        if (typeof value === "boolean") return value;
+        if (typeof value === "number") return value !== 0;
+        if (typeof value === "string") {
+                const normalized = value.trim().toLowerCase();
+                return ["true", "1", "yes", "on"].includes(normalized);
+        }
+        return false;
+};
+
+const normalizeDiscountSettings = ({
+        rawIsDiscounted,
+        rawDiscountPercentage,
+        fallbackPercentage = 0,
+        fallbackIsDiscounted = false,
+}) => {
+        const hasFlag = rawIsDiscounted !== undefined && rawIsDiscounted !== null;
+        const hasPercentage =
+                rawDiscountPercentage !== undefined &&
+                rawDiscountPercentage !== null &&
+                rawDiscountPercentage !== "";
+
+        const isDiscounted = hasFlag ? toBoolean(rawIsDiscounted) : fallbackIsDiscounted;
+        const percentageValue = hasPercentage
+                ? Number(rawDiscountPercentage)
+                : Number(fallbackPercentage);
+
+        if (isDiscounted) {
+                if (Number.isNaN(percentageValue)) {
+                        return { error: "Discount percentage must be a valid number" };
+                }
+
+                if (percentageValue <= 0 || percentageValue >= 100) {
+                        return { error: "Discount percentage must be between 1 and 99" };
+                }
+
+                return {
+                        isDiscounted: true,
+                        discountPercentage: Number(percentageValue.toFixed(2)),
+                };
+        }
+
+        return { isDiscounted: false, discountPercentage: 0 };
+};
+
+const finalizeProductPayload = (product) => {
+        if (!product) return product;
+
+        const price = Number(product.price) || 0;
+        const percentage = Number(product.discountPercentage) || 0;
+        const isDiscounted = Boolean(product.isDiscounted) && percentage > 0;
+        const effectivePercentage = isDiscounted ? Number(percentage.toFixed(2)) : 0;
+        const discountedPrice = isDiscounted
+                ? Number((price - price * (effectivePercentage / 100)).toFixed(2))
+                : price;
+
+        return {
+                ...product,
+                isDiscounted,
+                discountPercentage: effectivePercentage,
+                discountedPrice,
+        };
+};
+
 const serializeProduct = (product) => {
         if (!product) return product;
-        return typeof product.toObject === "function" ? product.toObject() : product;
+        const serialized =
+                typeof product.toObject === "function"
+                        ? product.toObject({ virtuals: true })
+                        : product;
+
+        return finalizeProductPayload(serialized);
 };
 
 export const getAllProducts = async (req, res) => {
         try {
-                const products = await Product.find({}).lean();
-                res.json({ products });
+                const products = await Product.find({}).lean({ virtuals: true });
+                res.json({ products: products.map(finalizeProductPayload) });
         } catch (error) {
                 console.log("Error in getAllProducts controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
@@ -23,18 +92,20 @@ export const getFeaturedProducts = async (req, res) => {
                 let featuredProducts = await redis.get("featured_products");
                 if (featuredProducts) {
                         const parsed = JSON.parse(featuredProducts);
-                        return res.json(parsed);
+                        return res.json(parsed.map(finalizeProductPayload));
                 }
 
-                featuredProducts = await Product.find({ isFeatured: true }).lean();
+                featuredProducts = await Product.find({ isFeatured: true }).lean({ virtuals: true });
 
                 if (!featuredProducts || !featuredProducts.length) {
                         return res.status(404).json({ message: "No featured products found" });
                 }
 
-                await redis.set("featured_products", JSON.stringify(featuredProducts));
+                const finalized = featuredProducts.map(finalizeProductPayload);
 
-                res.json(featuredProducts);
+                await redis.set("featured_products", JSON.stringify(finalized));
+
+                res.json(finalized);
         } catch (error) {
                 console.log("Error in getFeaturedProducts controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
@@ -43,7 +114,7 @@ export const getFeaturedProducts = async (req, res) => {
 
 export const createProduct = async (req, res) => {
         try {
-                const { name, description, price, category, images } = req.body;
+                const { name, description, price, category, images, isDiscounted, discountPercentage } = req.body;
 
                 const trimmedName = typeof name === "string" ? name.trim() : "";
                 const trimmedDescription =
@@ -81,6 +152,15 @@ export const createProduct = async (req, res) => {
 
                 if (Number.isNaN(numericPrice)) {
                         return res.status(400).json({ message: "Price must be a valid number" });
+                }
+
+                const discountSettings = normalizeDiscountSettings({
+                        rawIsDiscounted: isDiscounted,
+                        rawDiscountPercentage: discountPercentage,
+                });
+
+                if (discountSettings.error) {
+                        return res.status(400).json({ message: discountSettings.error });
                 }
 
                 const uploadedImages = [];
@@ -122,6 +202,8 @@ export const createProduct = async (req, res) => {
                         image: uploadedImages[0]?.url,
                         images: uploadedImages,
                         category: category.trim(),
+                        isDiscounted: discountSettings.isDiscounted,
+                        discountPercentage: discountSettings.discountPercentage,
                 });
 
                 res.status(201).json(serializeProduct(product));
@@ -134,7 +216,17 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
         try {
                 const { id } = req.params;
-                const { name, description, price, category, existingImages, newImages, cover } = req.body;
+                const {
+                        name,
+                        description,
+                        price,
+                        category,
+                        existingImages,
+                        newImages,
+                        cover,
+                        isDiscounted,
+                        discountPercentage,
+                } = req.body;
 
                 const product = await Product.findById(id);
 
@@ -273,12 +365,25 @@ export const updateProduct = async (req, res) => {
                                 ? category.trim()
                                 : product.category;
 
+                const discountSettings = normalizeDiscountSettings({
+                        rawIsDiscounted: isDiscounted,
+                        rawDiscountPercentage: discountPercentage,
+                        fallbackIsDiscounted: product.isDiscounted,
+                        fallbackPercentage: product.discountPercentage,
+                });
+
+                if (discountSettings.error) {
+                        return res.status(400).json({ message: discountSettings.error });
+                }
+
                 product.name = trimmedName;
                 product.description = trimmedDescription;
                 product.price = numericPrice;
                 product.category = nextCategory;
                 product.images = finalImages;
                 product.image = finalImages[0]?.url || product.image;
+                product.isDiscounted = discountSettings.isDiscounted;
+                product.discountPercentage = discountSettings.discountPercentage;
 
                 const updatedProduct = await product.save();
 
@@ -360,6 +465,8 @@ export const getRecommendedProducts = async (req, res) => {
                                 price: 1,
                                 category: 1,
                                 isFeatured: 1,
+                                isDiscounted: 1,
+                                discountPercentage: 1,
                         },
                 };
 
@@ -405,7 +512,7 @@ export const getRecommendedProducts = async (req, res) => {
                         recommendations = await Product.aggregate(pipeline);
                 }
 
-                res.json(recommendations);
+                res.json(recommendations.map(finalizeProductPayload));
         } catch (error) {
                 console.log("Error in getRecommendedProducts controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
@@ -415,8 +522,8 @@ export const getRecommendedProducts = async (req, res) => {
 export const getProductsByCategory = async (req, res) => {
         const { category } = req.params;
         try {
-                const products = await Product.find({ category }).lean();
-                res.json({ products });
+                const products = await Product.find({ category }).lean({ virtuals: true });
+                res.json({ products: products.map(finalizeProductPayload) });
         } catch (error) {
                 console.log("Error in getProductsByCategory controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
@@ -442,8 +549,11 @@ export const toggleFeaturedProduct = async (req, res) => {
 
 async function updateFeaturedProductsCache() {
         try {
-                const featuredProducts = await Product.find({ isFeatured: true }).lean();
-                await redis.set("featured_products", JSON.stringify(featuredProducts));
+                const featuredProducts = await Product.find({ isFeatured: true }).lean({ virtuals: true });
+                await redis.set(
+                        "featured_products",
+                        JSON.stringify(featuredProducts.map(finalizeProductPayload))
+                );
         } catch (error) {
                 console.log("error in update cache function", error.message);
         }

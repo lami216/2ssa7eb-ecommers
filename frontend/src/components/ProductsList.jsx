@@ -41,9 +41,10 @@ const ProductsList = ({ onEdit }) => {
                         <table className='min-w-full divide-y divide-white/10'>
                                 <thead className='bg-payzone-navy/80'>
                                         <tr>
-                                                {[
+                                                {[ 
                                                         t("admin.productsTable.headers.product"),
                                                         t("admin.productsTable.headers.price"),
+                                                        t("admin.productsTable.headers.discount"),
                                                         t("admin.productsTable.headers.category"),
                                                         t("admin.productsTable.headers.featured"),
                                                         t("admin.productsTable.headers.actions"),
@@ -73,7 +74,31 @@ const ProductsList = ({ onEdit }) => {
                                                                 </div>
                                                         </td>
                                                         <td className='whitespace-nowrap px-6 py-4'>
-                                                                <div className='text-sm text-payzone-gold'>{formatMRU(product.price)}</div>
+                                                                <div className='flex flex-col items-end text-sm'>
+                                                                        {product.isDiscounted && product.discountPercentage > 0 ? (
+                                                                                <span className='text-xs text-white/60 line-through'>
+                                                                                        {formatMRU(product.price)}
+                                                                                </span>
+                                                                        ) : (
+                                                                                <span className='text-payzone-gold'>
+                                                                                        {formatMRU(product.price)}
+                                                                                </span>
+                                                                        )}
+                                                                </div>
+                                                        </td>
+                                                        <td className='whitespace-nowrap px-6 py-4'>
+                                                                {product.isDiscounted && product.discountPercentage > 0 ? (
+                                                                        <div className='flex items-center justify-end gap-2'>
+                                                                                <span className='rounded-full bg-red-500/20 px-2 py-1 text-xs font-semibold text-red-200'>
+                                                                                        -{product.discountPercentage}%
+                                                                                </span>
+                                                                                <span className='text-sm text-red-200'>
+                                                                                        {formatMRU(product.discountedPrice ?? product.price)}
+                                                                                </span>
+                                                                        </div>
+                                                                ) : (
+                                                                        <span className='text-sm text-white/60'>—</span>
+                                                                )}
                                                         </td>
                                                         <td className='whitespace-nowrap px-6 py-4'>
                                                                 <div className='text-sm text-white/70'>{product.category}</div>

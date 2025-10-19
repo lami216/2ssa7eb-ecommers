@@ -48,9 +48,37 @@ const productSchema = new mongoose.Schema(
                         type: Boolean,
                         default: false,
                 },
+                isDiscounted: {
+                        type: Boolean,
+                        default: false,
+                },
+                discountPercentage: {
+                        type: Number,
+                        min: 0,
+                        max: 100,
+                        default: 0,
+                },
         },
-        { timestamps: true }
+        {
+                timestamps: true,
+                toJSON: { virtuals: true },
+                toObject: { virtuals: true },
+        }
 );
+
+productSchema.virtual("discountedPrice").get(function getDiscountedPrice() {
+        const price = Number(this.price) || 0;
+        const discount = Number(this.discountPercentage) || 0;
+
+        if (!this.isDiscounted || discount <= 0) {
+                return price;
+        }
+
+        const discountValue = price * (discount / 100);
+        const finalPrice = price - discountValue;
+
+        return Number(finalPrice.toFixed(2));
+});
 
 const Product = mongoose.model("Product", productSchema);
 

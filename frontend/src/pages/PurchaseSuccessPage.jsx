@@ -6,6 +6,7 @@ import { useCartStore } from "../stores/useCartStore";
 import apiClient from "../lib/apiClient";
 import { formatMRU } from "../lib/formatMRU";
 import { formatNumberEn } from "../lib/formatNumberEn";
+import { getProductPricing } from "../lib/getProductPricing";
 
 const ORDER_DETAILS_KEY = "lastOrderDetails";
 
@@ -85,9 +86,9 @@ const PurchaseSuccessPage = () => {
                 const totals = storedItems.reduce(
                         (accumulator, item) => {
                                 const quantity = Number(item.quantity) || 0;
-                                const price = Number(item.price) || 0;
+                                const { discountedPrice } = getProductPricing(item);
                                 accumulator.count += quantity;
-                                accumulator.total += price * quantity;
+                                accumulator.total += discountedPrice * quantity;
                                 return accumulator;
                         },
                         { count: 0, total: 0 }
@@ -179,12 +180,17 @@ const PurchaseSuccessPage = () => {
                                                                                 <tbody className='text-payzone-navy'>
                                                                                         {storedItems.length > 0 ? (
                                                                                                 storedItems.map((item) => {
-                                                                                                        const lineTotal = (item.price || 0) * (item.quantity || 0);
+                                                                                                        const {
+                                                                                                                price: originalPrice,
+                                                                                                                discountedPrice,
+                                                                                                                isDiscounted,
+                                                                                                        } = getProductPricing(item);
+                                                                                                        const lineTotal = discountedPrice * (item.quantity || 0);
                                                                                                         return (
-                                                <tr
-                                                        key={item.id || item._id || item.name}
-                                                        className='border-b border-payzone-navy/10 last:border-b-0'
-                                                >
+                                                                                                                <tr
+                                                                                                                        key={item.id || item._id || item.name}
+                                                                                                                        className='border-b border-payzone-navy/10 last:border-b-0'
+                                                                                                                >
                                                                                                                         <td className='px-4 py-4 align-middle'>
                                                                                                                                 <div className='flex justify-center'>
                                                                                                                                         {item.image ? (
@@ -212,7 +218,16 @@ const PurchaseSuccessPage = () => {
                                                                                                                                 {formatNumberEn(item.quantity || 0)}
                                                                                                                         </td>
                                                                                                                         <td className='px-4 py-4 align-middle text-left text-payzone-navy/70'>
-                                                                                                                                {formatMRU(item.price || 0)}
+                                                                                                                                <div className='flex flex-col items-start'>
+                                                                                                                                        {isDiscounted && (
+                                                                                                                                                <span className='text-xs text-payzone-navy/50 line-through'>
+                                                                                                                                                        {formatMRU(originalPrice)}
+                                                                                                                                                </span>
+                                                                                                                                        )}
+                                                                                                                                        <span className='font-semibold text-payzone-navy'>
+                                                                                                                                                {formatMRU(discountedPrice)}
+                                                                                                                                        </span>
+                                                                                                                                </div>
                                                                                                                         </td>
                                                                                                                         <td className='px-4 py-4 align-middle text-left font-semibold'>
                                                                                                                                 {formatMRU(lineTotal)}
