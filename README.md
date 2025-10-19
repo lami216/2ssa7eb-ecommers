@@ -27,7 +27,7 @@ About This Course:
 -   ⌛ And a lot more...
 
 ### Setup .env file
-gg
+
 
 ```bash
 PORT=5000
