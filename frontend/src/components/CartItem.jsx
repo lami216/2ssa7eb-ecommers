@@ -3,12 +3,15 @@ import useTranslation from "../hooks/useTranslation";
 import { useCartStore } from "../stores/useCartStore";
 import { formatMRU } from "../lib/formatMRU";
 import { formatNumberEn } from "../lib/formatNumberEn";
+import { getProductPricing } from "../lib/getProductPricing";
 
 const CartItem = ({ item }) => {
         const { removeFromCart, updateQuantity } = useCartStore();
         const { t } = useTranslation();
 
-        const priceValue = Number(item.price) || 0;
+        const { price: originalPrice, discountedPrice, isDiscounted, discountPercentage } =
+                getProductPricing(item);
+        const priceValue = Number(discountedPrice) || 0;
         const quantityValue = Number(item.quantity) || 0;
         const lineTotal = priceValue * quantityValue;
 
@@ -44,7 +47,16 @@ const CartItem = ({ item }) => {
 
                         <div className='flex flex-col justify-between gap-3'>
                                 <div className='space-y-2'>
-                                        <h3 className='text-[clamp(1.05rem,2.5vw,1.25rem)] font-semibold text-white'>{item.name}</h3>
+                                        <div className='flex items-center justify-between gap-2'>
+                                                <h3 className='text-[clamp(1.05rem,2.5vw,1.25rem)] font-semibold text-white'>
+                                                        {item.name}
+                                                </h3>
+                                                {isDiscounted && (
+                                                        <span className='rounded-full bg-red-500/20 px-2 py-1 text-xs font-semibold text-red-200'>
+                                                                -{discountPercentage}%
+                                                        </span>
+                                                )}
+                                        </div>
                                         {item.description && (
                                                 <p
                                                         className='text-sm text-white/70'
@@ -56,14 +68,23 @@ const CartItem = ({ item }) => {
                                 </div>
                                 <div className='flex flex-wrap items-center gap-2 text-sm text-white/70 sm:flex-nowrap'>
                                         <span className='text-white/50'>{t("cart.item.lineTotal")}</span>
-                                        <span className='text-[clamp(1rem,2.4vw,1.1rem)] font-semibold text-payzone-gold'>{formatMRU(lineTotal)}</span>
+                                        <span className='text-[clamp(1rem,2.4vw,1.1rem)] font-semibold text-payzone-gold'>
+                                                {formatMRU(lineTotal)}
+                                        </span>
                                 </div>
                         </div>
 
                         <div className='col-span-2 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-payzone-navy/70 px-4 py-3 text-sm text-white/80 md:col-span-3 md:col-start-1 md:col-end-4 sm:gap-6'>
                                 <div className='flex items-center gap-2 text-base font-semibold text-payzone-gold min-w-[150px] justify-end'>
                                         <span className='text-xs font-medium text-white/60'>{t("cart.item.unitPrice")}</span>
-                                        <span>{formatMRU(priceValue)}</span>
+                                        <div className='flex flex-col items-end'>
+                                                {isDiscounted && (
+                                                        <span className='text-xs font-medium text-white/50 line-through'>
+                                                                {formatMRU(originalPrice)}
+                                                        </span>
+                                                )}
+                                                <span>{formatMRU(priceValue)}</span>
+                                        </div>
                                 </div>
                                 <div className='flex flex-1 items-center justify-center gap-3 min-w-[190px] sm:min-w-[210px]'>
                                         <label className='sr-only' htmlFor={`quantity-${item._id}`}>

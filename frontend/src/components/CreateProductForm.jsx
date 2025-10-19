@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import useTranslation from "../hooks/useTranslation";
 import { useProductStore } from "../stores/useProductStore";
 import { useCategoryStore } from "../stores/useCategoryStore";
+import { formatMRU } from "../lib/formatMRU";
 
 const MAX_IMAGES = 3;
 
@@ -13,6 +14,8 @@ const createInitialFormState = () => ({
         description: "",
         price: "",
         category: "",
+        isDiscounted: false,
+        discountPercentage: "",
         existingImages: [],
         newImages: [],
         coverSource: "existing",
@@ -58,6 +61,13 @@ const CreateProductForm = () => {
                                         ? String(selectedProduct.price)
                                         : "",
                         category: selectedProduct.category ?? "",
+                        isDiscounted: Boolean(selectedProduct.isDiscounted) &&
+                                Number(selectedProduct.discountPercentage) > 0,
+                        discountPercentage:
+                                selectedProduct.discountPercentage !== undefined &&
+                                selectedProduct.discountPercentage !== null
+                                        ? String(selectedProduct.discountPercentage)
+                                        : "",
                         existingImages,
                         newImages: [],
                         coverSource: existingImages.length ? "existing" : "new",
@@ -68,6 +78,19 @@ const CreateProductForm = () => {
         const totalImages = formState.existingImages.length + formState.newImages.length;
 
         const isEditing = Boolean(selectedProduct);
+
+        const hasDiscount = formState.isDiscounted;
+        const numericPricePreview = Number(formState.price);
+        const numericDiscountValue = Number(formState.discountPercentage);
+        const isDiscountPreviewValid =
+                hasDiscount &&
+                !Number.isNaN(numericDiscountValue) &&
+                numericDiscountValue > 0 &&
+                numericDiscountValue < 100 &&
+                !Number.isNaN(numericPricePreview);
+        const discountedPreviewPrice = isDiscountPreviewValid
+                ? Number((numericPricePreview - numericPricePreview * (numericDiscountValue / 100)).toFixed(2))
+                : null;
 
         const handleImagesChange = (event) => {
                 const input = event.target;
@@ -208,6 +231,22 @@ const CreateProductForm = () => {
                 clearSelectedProduct();
         };
 
+        const handleToggleDiscount = () => {
+                setFormState((previous) => ({
+                        ...previous,
+                        isDiscounted: !previous.isDiscounted,
+                        discountPercentage: !previous.isDiscounted ? previous.discountPercentage || "" : "",
+                }));
+        };
+
+        const handleDiscountPercentageChange = (event) => {
+                const { value } = event.target;
+                setFormState((previous) => ({
+                        ...previous,
+                        discountPercentage: value,
+                }));
+        };
+
         const buildOrderedImages = () => {
                 let existing = [...formState.existingImages];
                 let fresh = [...formState.newImages];
@@ -266,6 +305,30 @@ const CreateProductForm = () => {
                         return;
                 }
 
+                const hasDiscountToggle = Boolean(formState.isDiscounted);
+                const numericDiscount = Number(formState.discountPercentage);
+
+                let normalizedDiscount = 0;
+
+                if (hasDiscountToggle) {
+                        if (!formState.discountPercentage) {
+                                toast.error(t("admin.createProduct.messages.discountRequired"));
+                                return;
+                        }
+
+                        if (Number.isNaN(numericDiscount)) {
+                                toast.error(t("admin.createProduct.messages.discountInvalid"));
+                                return;
+                        }
+
+                        if (numericDiscount <= 0 || numericDiscount >= 100) {
+                                toast.error(t("admin.createProduct.messages.discountRange"));
+                                return;
+                        }
+
+                        normalizedDiscount = Number(numericDiscount.toFixed(2));
+                }
+
                 const { existing, fresh } = buildOrderedImages();
 
                 try {
@@ -281,6 +344,8 @@ const CreateProductForm = () => {
                                                 source: formState.coverSource,
                                                 index: formState.coverIndex,
                                         },
+                                        isDiscounted: hasDiscountToggle,
+                                        discountPercentage: normalizedDiscount,
                                 });
                                 resetForm();
                         } else {
@@ -290,6 +355,8 @@ const CreateProductForm = () => {
                                         price: numericPrice,
                                         category: formState.category,
                                         images: fresh,
+                                        isDiscounted: hasDiscountToggle,
+                                        discountPercentage: normalizedDiscount,
                                 });
                                 setFormState(createInitialFormState());
                         }
@@ -389,6 +456,67 @@ const CreateProductForm = () => {
                                                 className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
                                                 required
                                         />
+                                </div>
+
+                                <div className='rounded-lg border border-payzone-indigo/40 bg-payzone-navy/50 p-4'>
+                                        <div className='flex items-start justify-between gap-4'>
+                                                <div>
+                                                        <p className='text-sm font-medium text-white/80'>
+                                                                {t("admin.createProduct.fields.discountToggle")}
+                                                        </p>
+                                                        <p className='mt-1 text-xs text-white/60'>
+                                                                {t("admin.createProduct.fields.discountHint")}
+                                                        </p>
+                                                </div>
+                                                <button
+                                                        type='button'
+                                                        role='switch'
+                                                        aria-checked={formState.isDiscounted}
+                                                        onClick={handleToggleDiscount}
+                                                        className={`relative inline-flex h-7 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-payzone-gold ${
+                                                                formState.isDiscounted
+                                                                        ? "bg-red-500"
+                                                                        : "bg-white/30"
+                                                        }`}
+                                                >
+                                                        <span
+                                                                className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition duration-200 ${
+                                                                        formState.isDiscounted ? "translate-x-7" : "translate-x-1"
+                                                                }`}
+                                                        />
+                                                </button>
+                                        </div>
+
+                                        {formState.isDiscounted && (
+                                                <div className='mt-4 space-y-2'>
+                                                        <label
+                                                                htmlFor='discountPercentage'
+                                                                className='block text-sm font-medium text-white/80'
+                                                        >
+                                                                {t("admin.createProduct.fields.discountPercentage")}
+                                                        </label>
+                                                        <input
+                                                                id='discountPercentage'
+                                                                type='number'
+                                                                min='1'
+                                                                max='99'
+                                                                step='0.01'
+                                                                value={formState.discountPercentage}
+                                                                onChange={handleDiscountPercentageChange}
+                                                                className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
+                                                                placeholder={t("admin.createProduct.placeholders.discountPercentage")}
+                                                        />
+                                                        {discountedPreviewPrice !== null && (
+                                                                <p className='text-xs text-payzone-gold'>
+                                                                        {t("admin.createProduct.fields.discountPreview", {
+                                                                                price: formatMRU(numericPricePreview || 0),
+                                                                                discount: formState.discountPercentage || "0",
+                                                                                final: formatMRU(discountedPreviewPrice),
+                                                                        })}
+                                                                </p>
+                                                        )}
+                                                </div>
+                                        )}
                                 </div>
 
                                 <div>

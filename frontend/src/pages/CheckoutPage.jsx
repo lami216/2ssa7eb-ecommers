@@ -6,6 +6,7 @@ import useTranslation from "../hooks/useTranslation";
 import { useCartStore } from "../stores/useCartStore";
 import { formatMRU } from "../lib/formatMRU";
 import { formatNumberEn } from "../lib/formatNumberEn";
+import { getProductPricing } from "../lib/getProductPricing";
 
 const CheckoutPage = () => {
         const { cart, total, subtotal, coupon, isCouponApplied, clearCart } = useCartStore();
@@ -59,7 +60,8 @@ const CheckoutPage = () => {
         const productsSummary = useMemo(
                 () =>
                         cart.map((item, index) => {
-                                const lineTotal = item.price * item.quantity;
+                                const { discountedPrice } = getProductPricing(item);
+                                const lineTotal = discountedPrice * item.quantity;
                                 const productIndex = formatNumberEn(index + 1);
                                 const quantity = formatNumberEn(item.quantity);
                                 return `${productIndex}. ${item.name} × ${quantity} = ${formatMRU(lineTotal)}`;
@@ -96,14 +98,21 @@ const CheckoutPage = () => {
                         customerName: customerName.trim(),
                         phone: displayCustomerNumber,
                         address: address.trim(),
-                        items: cart.map((item) => ({
-                                id: item._id,
-                                name: item.name,
-                                description: item.description,
-                                image: item.image,
-                                price: item.price,
-                                quantity: item.quantity,
-                        })),
+                        items: cart.map((item) => {
+                                const { price, discountedPrice, discountPercentage, isDiscounted } =
+                                        getProductPricing(item);
+                                return {
+                                        id: item._id,
+                                        name: item.name,
+                                        description: item.description,
+                                        image: item.image,
+                                        price: discountedPrice,
+                                        originalPrice: price,
+                                        discountPercentage,
+                                        isDiscounted,
+                                        quantity: item.quantity,
+                                };
+                        }),
                         summary: {
                                 subtotal,
                                 total,
@@ -242,14 +251,24 @@ const CheckoutPage = () => {
                                 >
                                         <h2 className='text-xl font-semibold text-payzone-gold'>{t("checkout.summary.title")}</h2>
                                         <ul className='mt-4 space-y-3 text-sm text-white/70'>
-                                                {cart.map((item) => (
-                                                        <li key={item._id} className='flex justify-between gap-4'>
-                                                                <span className='font-medium text-white'>{item.name}</span>
-                                                                <span>
-                                                                        {formatNumberEn(item.quantity)} × {formatMRU(item.price)}
-                                                                </span>
-                                                        </li>
-                                                ))}
+                                                {cart.map((item) => {
+                                                        const { price, discountedPrice, isDiscounted } = getProductPricing(item);
+                                                        return (
+                                                                <li key={item._id} className='flex justify-between gap-4'>
+                                                                        <span className='font-medium text-white'>{item.name}</span>
+                                                                        <span className='flex flex-col items-end'>
+                                                                                {isDiscounted && (
+                                                                                        <span className='text-xs text-white/50 line-through'>
+                                                                                                {formatNumberEn(item.quantity)} × {formatMRU(price)}
+                                                                                        </span>
+                                                                                )}
+                                                                                <span>
+                                                                                        {formatNumberEn(item.quantity)} × {formatMRU(discountedPrice)}
+                                                                                </span>
+                                                                        </span>
+                                                                </li>
+                                                        );
+                                                })}
                                         </ul>
 
                                         <div className='mt-6 space-y-2 border-t border-white/10 pt-4 text-sm text-white/70'>

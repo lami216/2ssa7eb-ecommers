@@ -3,10 +3,21 @@ import { toast } from "react-hot-toast";
 import apiClient from "../lib/apiClient";
 import { useUserStore } from "./useUserStore";
 import { translate } from "../lib/locale";
+import { getProductPricing } from "../lib/getProductPricing";
 
 const LOCAL_CART_KEY = "guest_cart_items";
 
 const isBrowser = typeof window !== "undefined";
+
+const enrichCartItem = (item) => {
+        const { discountedPrice, isDiscounted, discountPercentage } = getProductPricing(item);
+        return {
+                ...item,
+                discountedPrice,
+                isDiscounted,
+                discountPercentage,
+        };
+};
 
 const loadCartFromStorage = () => {
         if (!isBrowser) return [];
@@ -18,7 +29,7 @@ const loadCartFromStorage = () => {
                 const parsedCart = JSON.parse(storedCart);
                 if (!Array.isArray(parsedCart)) return [];
 
-                return parsedCart.map((item) => ({ ...item, quantity: item.quantity || 1 }));
+                return parsedCart.map((item) => enrichCartItem({ ...item, quantity: item.quantity || 1 }));
         } catch (error) {
                 console.error("Failed to load cart from storage", error);
                 return [];
@@ -42,6 +53,7 @@ export const useCartStore = create((set, get) => ({
         coupon: null,
         total: 0,
         subtotal: 0,
+        discountedSubtotal: 0,
         isCouponApplied: false,
 
         initializeCart: () => {
@@ -100,8 +112,9 @@ export const useCartStore = create((set, get) => ({
 
                 try {
                         const data = await apiClient.get("/cart");
-                        set({ cart: data });
-                        persistCartToStorage(data);
+                        const enriched = Array.isArray(data) ? data.map(enrichCartItem) : [];
+                        set({ cart: enriched });
+                        persistCartToStorage(enriched);
                         get().calculateTotals();
                 } catch (error) {
                         const fallbackCart = loadCartFromStorage();
@@ -114,7 +127,14 @@ export const useCartStore = create((set, get) => ({
                 const user = getAuthenticatedUser();
 
                 persistCartToStorage([]);
-                set({ cart: [], coupon: null, total: 0, subtotal: 0, isCouponApplied: false });
+                set({
+                        cart: [],
+                        coupon: null,
+                        total: 0,
+                        subtotal: 0,
+                        discountedSubtotal: 0,
+                        isCouponApplied: false,
+                });
 
                 if (!user) return;
 
@@ -128,15 +148,20 @@ export const useCartStore = create((set, get) => ({
                 const user = getAuthenticatedUser();
 
                 const updateLocalCart = () => {
+                        const enrichedProduct = enrichCartItem({ ...product, quantity: 1 });
                         set((prevState) => {
                                 const existingItem = prevState.cart.find((item) => item._id === product._id);
                                 const newCart = existingItem
                                         ? prevState.cart.map((item) =>
                                                         item._id === product._id
-                                                                ? { ...item, quantity: item.quantity + 1 }
+                                                                ? enrichCartItem({
+                                                                          ...item,
+                                                                          ...product,
+                                                                          quantity: item.quantity + 1,
+                                                                  })
                                                                 : item
                                           )
-                                        : [...prevState.cart, { ...product, quantity: 1 }];
+                                        : [...prevState.cart, enrichedProduct];
 
                                 persistCartToStorage(newCart);
                                 return { cart: newCart };
@@ -204,13 +229,23 @@ export const useCartStore = create((set, get) => ({
         },
         calculateTotals: () => {
                 const { cart, coupon } = get();
-                const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-                let total = subtotal;
+
+                let originalSubtotal = 0;
+                let discountedSubtotal = 0;
+
+                cart.forEach((item) => {
+                        const { price, discountedPrice } = getProductPricing(item);
+                        const quantity = Number(item.quantity) || 0;
+                        originalSubtotal += price * quantity;
+                        discountedSubtotal += discountedPrice * quantity;
+                });
+
+                let total = discountedSubtotal;
 
                 if (coupon && coupon.discountPercentage) {
-                        total = subtotal - subtotal * (coupon.discountPercentage / 100);
+                        total = discountedSubtotal - discountedSubtotal * (coupon.discountPercentage / 100);
                 }
 
-                set({ subtotal, total });
+                set({ subtotal: originalSubtotal, discountedSubtotal, total });
         },
 }));

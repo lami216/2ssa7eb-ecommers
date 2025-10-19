@@ -3,10 +3,18 @@ import { Link } from "react-router-dom";
 import useTranslation from "../hooks/useTranslation";
 import { useCartStore } from "../stores/useCartStore";
 import { formatMRU } from "../lib/formatMRU";
+import { getProductPricing } from "../lib/getProductPricing";
 
 const ProductCard = ({ product }) => {
         const { addToCart } = useCartStore();
         const { t } = useTranslation();
+        const { price, discountedPrice, isDiscounted, discountPercentage } = getProductPricing(product);
+        const productForCart = {
+                ...product,
+                discountedPrice,
+                isDiscounted,
+                discountPercentage,
+        };
         const coverImage =
                 product.image ||
                 (Array.isArray(product.images) && product.images.length > 0
@@ -15,6 +23,10 @@ const ProductCard = ({ product }) => {
                                 : product.images[0]?.url
                         : "");
 
+        const handleAddToCart = () => {
+                addToCart(productForCart);
+        };
+
         return (
                 <div className='group relative flex w-full flex-col overflow-hidden rounded-xl border border-payzone-indigo/30 bg-white/5 shadow-lg transition-all duration-300 hover:border-payzone-gold/60 hover:shadow-xl sm:aspect-[3/4] lg:aspect-square'>
                         <Link
@@ -22,6 +34,11 @@ const ProductCard = ({ product }) => {
                                 className='relative mx-3 mt-3 overflow-hidden rounded-xl aspect-[4/5] min-h-[14rem] sm:min-h-0 sm:aspect-square'
                                 aria-label={t("product.viewDetails", { name: product.name })}
                         >
+                                {isDiscounted && (
+                                        <span className='absolute right-3 top-3 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white shadow-lg'>
+                                                -{discountPercentage}%
+                                        </span>
+                                )}
                                 {coverImage ? (
                                         <img
                                                 className='h-full w-full object-cover transition-transform duration-500 group-hover:scale-110'
@@ -47,10 +64,21 @@ const ProductCard = ({ product }) => {
                                                 </p>
                                         )}
                                 </Link>
-                                <p className='mt-3 text-lg font-semibold leading-tight text-payzone-gold'>{formatMRU(product.price)}</p>
+                                <div className='mt-3 flex items-baseline gap-2'>
+                                        {isDiscounted ? (
+                                                <>
+                                                        <span className='text-sm text-white/60 line-through'>{formatMRU(price)}</span>
+                                                        <span className='text-lg font-bold text-red-300'>{formatMRU(discountedPrice)}</span>
+                                                </>
+                                        ) : (
+                                                <span className='text-lg font-semibold leading-tight text-payzone-gold'>
+                                                        {formatMRU(price)}
+                                                </span>
+                                        )}
+                                </div>
                                 <button
                                         className='mt-auto flex items-center justify-center gap-2 rounded-lg bg-payzone-gold px-5 py-2 text-sm font-medium text-payzone-navy transition-colors duration-300 hover:bg-[#b8873d] focus:outline-none focus:ring-4 focus:ring-payzone-indigo/40'
-                                        onClick={() => addToCart(product)}
+                                        onClick={handleAddToCart}
                                 >
                                         <ShoppingCart size={20} />
                                         {t("common.actions.addToCart")}

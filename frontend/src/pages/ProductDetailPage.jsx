@@ -6,6 +6,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import { formatMRU } from "../lib/formatMRU";
 import PeopleAlsoBought from "../components/PeopleAlsoBought";
 import useTranslation from "../hooks/useTranslation";
+import { getProductPricing } from "../lib/getProductPricing";
 
 const resolveCoverImage = (product) => {
         if (!product) return null;
@@ -86,13 +87,28 @@ const ProductDetailPage = () => {
         }
 
         const galleryImages = mapGalleryImages(selectedProduct);
+        const { price, discountedPrice, isDiscounted, discountPercentage } = getProductPricing(selectedProduct);
+
+        const handleAddToCart = () => {
+                addToCart({
+                        ...selectedProduct,
+                        discountedPrice,
+                        isDiscounted,
+                        discountPercentage,
+                });
+        };
 
         return (
                 <div className='relative min-h-screen overflow-hidden text-payzone-white'>
                         <div className='relative z-10 mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8'>
                                 <div className='grid gap-10 lg:grid-cols-2'>
                                         <div>
-                                                <div className='flex h-96 items-center justify-center overflow-hidden rounded-2xl border border-payzone-indigo/40 bg-payzone-navy/60'>
+                                                <div className='relative flex h-96 items-center justify-center overflow-hidden rounded-2xl border border-payzone-indigo/40 bg-payzone-navy/60'>
+                                                        {isDiscounted && (
+                                                                <span className='absolute right-4 top-4 rounded-full bg-red-600 px-4 py-1 text-sm font-semibold text-white shadow-lg'>
+                                                                        -{discountPercentage}%
+                                                                </span>
+                                                        )}
                                                         {activeImage ? (
                                                                 <img
                                                                         src={activeImage}
@@ -136,10 +152,26 @@ const ProductDetailPage = () => {
 
                                                 <p className='text-base leading-relaxed text-white/80'>{selectedProduct.description}</p>
 
-                                                <div className='text-3xl font-semibold text-payzone-gold'>{formatMRU(selectedProduct.price)}</div>
+                                                <div className='flex flex-wrap items-center gap-4 text-3xl font-semibold text-payzone-gold'>
+                                                        {isDiscounted ? (
+                                                                <>
+                                                                        <span className='text-2xl font-normal text-white/60 line-through'>
+                                                                                {formatMRU(price)}
+                                                                        </span>
+                                                                        <span className='text-4xl font-bold text-red-300'>
+                                                                                {formatMRU(discountedPrice)}
+                                                                        </span>
+                                                                        <span className='rounded-full bg-red-600/80 px-3 py-1 text-base font-semibold text-white shadow'>
+                                                                                -{discountPercentage}%
+                                                                        </span>
+                                                                </>
+                                                        ) : (
+                                                                <span>{formatMRU(price)}</span>
+                                                        )}
+                                                </div>
 
                                                 <button
-                                                        onClick={() => addToCart(selectedProduct)}
+                                                        onClick={handleAddToCart}
                                                         className='mt-4 inline-flex items-center justify-center rounded-lg bg-payzone-gold px-6 py-3 text-lg font-semibold text-payzone-navy transition-colors duration-300 hover:bg-[#b8873d] focus:outline-none focus:ring-4 focus:ring-payzone-indigo/40'
                                                 >
                                                         {t("common.actions.addToCart")}
