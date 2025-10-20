@@ -115,6 +115,7 @@
                         "create": "إنشاء منتج",
                         "products": "المنتجات",
                         "analytics": "الإحصائيات",
+                        "orders": "الطلبات",
                         "categories": "الفئات",
                         "coupons": "الكوبونات"
                 },
@@ -171,6 +172,48 @@
                                 "discountRange": "نسبة الخصم يجب أن تكون بين 1% و90%",
                                 "expiresRequired": "يرجى تحديد تاريخ الانتهاء",
                                 "expiresFuture": "يجب أن يكون تاريخ الانتهاء في المستقبل"
+                        }
+                },
+                "orders": {
+                        "title": "طلبات العملاء عبر واتساب",
+                        "refresh": "تحديث القائمة",
+                        "empty": "لا توجد طلبات مسجلة حتى الآن.",
+                        "itemCount": "{{count}} منتج",
+                        "table": {
+                                "orderNumber": "رقم الطلب",
+                                "customer": "العميل",
+                                "total": "الإجمالي",
+                                "status": "الحالة",
+                                "createdAt": "تاريخ الإنشاء",
+                                "actions": "الإجراءات"
+                        },
+                        "actions": {
+                                "cancel": "إلغاء الطلب"
+                        },
+                        "statusLabels": {
+                                "pending": "قيد المراجعة",
+                                "paid_whatsapp": "مدفوع - واتساب",
+                                "paid": "مدفوع",
+                                "processing": "قيد التجهيز",
+                                "shipped": "جارٍ الشحن",
+                                "delivered": "تم التسليم",
+                                "cancelled": "ملغي"
+                        },
+                        "statusNotes": {
+                                "cancelled": "تم إلغاء هذا الطلب ويمكن إعادة تفعيله عبر تغيير الحالة."
+                        },
+                        "paymentMethods": {
+                                "whatsapp": "واتساب"
+                        },
+                        "prompts": {
+                                "cancelReason": "ما سبب إلغاء الطلب؟ (اختياري)"
+                        },
+                        "messages": {
+                                "fetchError": "تعذر تحميل الطلبات",
+                                "statusUpdated": "تم تحديث حالة الطلب بنجاح",
+                                "statusUpdateError": "تعذر تحديث حالة الطلب",
+                                "cancelled": "تم إلغاء الطلب بنجاح",
+                                "cancelError": "تعذر إلغاء الطلب"
                         }
                 },
                 "createProduct": {
@@ -334,7 +377,10 @@
                         "savings": "قيمة التوفير: {{amount}}",
                         "total": "الإجمالي المستحق: {{amount}}",
                         "thanks": "شكراً لتسوقك من بايزون!",
-                        "orderSent": "تم إرسال طلبك بنجاح عبر واتساب!"
+                        "orderSent": "تم إرسال طلبك بنجاح عبر واتساب!",
+                        "orderNumber": "رقم الطلب: #{{number}}",
+                        "orderCreated": "تم إنشاء الطلب بنجاح!",
+                        "orderCreationFailed": "تعذر إنشاء الطلب. يرجى المحاولة مرة أخرى."
                 }
         },
         "auth": {
@@ -386,6 +432,8 @@
                                 "quantity": "العدد",
                                 "unitPrice": "سعر الوحدة",
                                 "total": "المجموع",
+                                "orderNumberLabel": "رقم الطلب: #{{orderNumber}}",
+                                "orderTotalLabel": "إجمالي الطلب: {{amount}}",
                                 "empty": "لا توجد منتجات مسجلة في هذا الطلب.",
                                 "summaryTitle": "المجموع النهائي",
                                 "countLabel": "عدد المنتجات",

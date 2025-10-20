@@ -23,7 +23,14 @@ const AnalyticsTab = () => {
                         try {
                                 const data = await apiClient.get("/analytics");
                                 setAnalyticsData(data.analyticsData);
-                                setDailySalesData(data.dailySalesData);
+                                const normalizedDailyData = Array.isArray(data.dailySalesData)
+                                        ? data.dailySalesData.map((entry) => ({
+                                                  date: entry.date,
+                                                  sales: Number(entry.sales || 0),
+                                                  revenue: Number(entry.revenue || 0),
+                                          }))
+                                        : [];
+                                setDailySalesData(normalizedDailyData);
                         } catch (error) {
                                 console.error("Error fetching analytics data:", error);
                         } finally {
@@ -75,7 +82,7 @@ const AnalyticsTab = () => {
                                 <ResponsiveContainer width='100%' height={400}>
                                         <LineChart data={dailySalesData}>
                                                 <CartesianGrid stroke='rgba(255,255,255,0.1)' strokeDasharray='3 3' />
-                                                <XAxis dataKey='name' stroke='#F8FAFC' tick={{ fill: "#F8FAFC" }} />
+                                                <XAxis dataKey='date' stroke='#F8FAFC' tick={{ fill: "#F8FAFC" }} />
                                                 <YAxis yAxisId='left' stroke='#F8FAFC' tick={{ fill: "#F8FAFC" }} />
                                                 <YAxis yAxisId='right' orientation='right' stroke='#F8FAFC' tick={{ fill: "#F8FAFC" }} />
                                                 <Tooltip
