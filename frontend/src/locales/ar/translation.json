@@ -56,7 +56,9 @@
                         "categoryDeleted": "تم حذف الفئة بنجاح",
                         "passwordMismatch": "كلمتا المرور غير متطابقتين.",
                         "productAddedToCart": "تمت إضافة المنتج إلى السلة",
-                        "couponAppliedSuccess": "تم تطبيق الكوبون بنجاح"
+                        "couponAppliedSuccess": "تم تطبيق الكوبون بنجاح",
+                        "couponCreated": "تم إنشاء الكوبون بنجاح",
+                        "couponUpdated": "تم تحديث الكوبون بنجاح"
                 }
         },
         "nav": {
@@ -113,7 +115,63 @@
                         "create": "إنشاء منتج",
                         "products": "المنتجات",
                         "analytics": "الإحصائيات",
-                        "categories": "الفئات"
+                        "categories": "الفئات",
+                        "coupons": "الكوبونات"
+                },
+                "coupons": {
+                        "title": "إدارة الكوبونات",
+                        "subtitle": "أضف كوبونات جديدة وعدّل التفاصيل الحالية دون مغادرة الصفحة.",
+                        "searchPlaceholder": "ابحث عن رمز الكوبون",
+                        "addButton": "إضافة كوبون",
+                        "empty": "لا توجد كوبونات مطابقة للمعايير الحالية.",
+                        "status": {
+                                "active": "نشط",
+                                "inactive": "غير نشط"
+                        },
+                        "actions": {
+                                "activate": "تفعيل",
+                                "deactivate": "إيقاف"
+                        },
+                        "table": {
+                                "code": "رمز الكوبون",
+                                "discount": "نسبة الخصم",
+                                "expiresAt": "تاريخ الانتهاء",
+                                "isActive": "الحالة",
+                                "createdAt": "تاريخ الإنشاء",
+                                "actions": "الإجراءات"
+                        },
+                        "sort": {
+                                "createdAt": "الأحدث",
+                                "code": "حسب الرمز",
+                                "discount": "حسب نسبة الخصم",
+                                "expiresAt": "حسب تاريخ الانتهاء",
+                                "isActive": "حسب الحالة"
+                        },
+                        "pagination": {
+                                "summary": "الصفحة {{page}} من {{totalPages}} — إجمالي {{total}} كوبون",
+                                "prev": "السابق",
+                                "next": "التالي"
+                        },
+                        "form": {
+                                "createTitle": "إضافة كوبون جديد",
+                                "createSubtitle": "أدخل تفاصيل الكوبون وتأكد من صلاحية التاريخ.",
+                                "editTitle": "تعديل الكوبون {{code}}",
+                                "editSubtitle": "يمكنك تحديث الحقول أو تغيير حالة الكوبون.",
+                                "code": "رمز الكوبون",
+                                "discountPercentage": "نسبة الخصم (%)",
+                                "expiresAt": "تاريخ الانتهاء",
+                                "isActive": "حالة الكوبون",
+                                "submitCreate": "حفظ الكوبون",
+                                "submitEdit": "تحديث الكوبون"
+                        },
+                        "validation": {
+                                "codeRequired": "رمز الكوبون مطلوب",
+                                "codeFormat": "يجب أن يتكون رمز الكوبون من أحرف كبيرة أو أرقام بدون مسافات",
+                                "discountRequired": "يرجى إدخال نسبة الخصم",
+                                "discountRange": "نسبة الخصم يجب أن تكون بين 1% و90%",
+                                "expiresRequired": "يرجى تحديد تاريخ الانتهاء",
+                                "expiresFuture": "يجب أن يكون تاريخ الانتهاء في المستقبل"
+                        }
                 },
                 "createProduct": {
                         "title": "إنشاء منتج جديد",
@@ -358,6 +416,9 @@
                 "cartFetchError": "تعذر تحميل عناصر السلة",
                 "addToCartError": "تعذر إضافة المنتج إلى السلة",
                 "removeItemError": "تعذر إزالة العنصر",
-                "updateQuantityError": "تعذر تحديث الكمية"
+                "updateQuantityError": "تعذر تحديث الكمية",
+                "couponCreateError": "تعذر إنشاء الكوبون",
+                "couponUpdateError": "تعذر تحديث الكوبون",
+                "couponFetchError": "تعذر تحميل الكوبونات"
         }
 }
