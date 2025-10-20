@@ -1,10 +1,14 @@
 import React from "react";
+import SocialLinks from "./SocialLinks";
 
 const Footer = () => {
         const buildTime = new Date(import.meta.env.VITE_BUILD_TIME).toLocaleString();
         return (
-                <footer style={{ textAlign: "center", marginTop: "2rem", opacity: 0.7 }}>
-                        <small>آخر تحديث للموقع: {buildTime}</small>
+                <footer className='mt-16 bg-payzone-navy text-payzone-white'>
+                        <div className='container mx-auto flex flex-col items-center px-4 py-10 text-center'>
+                                <SocialLinks />
+                                <small className='mt-6 text-xs text-white/60'>آخر تحديث للموقع: {buildTime}</small>
+                        </div>
                 </footer>
         );
 };
