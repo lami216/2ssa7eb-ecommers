@@ -5,6 +5,7 @@ import { ShoppingCart } from "lucide-react";
 import useTranslation from "../hooks/useTranslation";
 import CartItem from "../components/CartItem";
 import OrderSummary from "../components/OrderSummary";
+import GiftCouponCard from "../components/GiftCouponCard";
 
 const CartPage = () => {
         const { cart } = useCartStore();
@@ -32,7 +33,8 @@ const CartPage = () => {
                                 </section>
 
                                 {cart.length > 0 && (
-                                        <div className='mt-10'>
+                                        <div className='mt-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)] xl:grid-cols-[1fr,0.9fr]'>
+                                                <GiftCouponCard />
                                                 <OrderSummary />
                                         </div>
                                 )}

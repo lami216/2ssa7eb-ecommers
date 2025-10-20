@@ -51,6 +51,7 @@ const getAuthenticatedUser = () => useUserStore.getState().user;
 export const useCartStore = create((set, get) => ({
         cart: loadCartFromStorage(),
         coupon: null,
+        availableCoupon: null,
         total: 0,
         subtotal: 0,
         discountedSubtotal: 0,
@@ -66,15 +67,19 @@ export const useCartStore = create((set, get) => ({
                 const user = getAuthenticatedUser();
 
                 if (!user) {
-                        set({ coupon: null, isCouponApplied: false });
+                        set({ availableCoupon: null });
                         return;
                 }
 
                 try {
-                        const data = await apiClient.get("/coupons");
-                        set({ coupon: data });
+                        const data = await apiClient.get("/coupons/active");
+                        set((state) => ({
+                                availableCoupon: data?.coupon ?? null,
+                                coupon: state.isCouponApplied ? state.coupon : null,
+                        }));
                 } catch (error) {
                         console.error("Error fetching coupon:", error);
+                        set({ availableCoupon: null });
                 }
         },
         applyCoupon: async (code) => {
@@ -87,7 +92,12 @@ export const useCartStore = create((set, get) => ({
 
                 try {
                         const data = await apiClient.post("/coupons/validate", { code });
-                        set({ coupon: data, isCouponApplied: true });
+                        const coupon = data?.coupon ?? null;
+                        if (!coupon) {
+                                toast.error(translate("toast.applyCouponError"));
+                                return;
+                        }
+                        set({ coupon, availableCoupon: coupon, isCouponApplied: true });
                         get().calculateTotals();
                         toast.success(translate("common.messages.couponAppliedSuccess"));
                 } catch (error) {
@@ -98,6 +108,7 @@ export const useCartStore = create((set, get) => ({
                 set({ coupon: null, isCouponApplied: false });
                 get().calculateTotals();
                 toast.success(translate("common.messages.couponRemoved"));
+                get().getMyCoupon();
         },
 
         getCartItems: async () => {
@@ -235,7 +246,7 @@ export const useCartStore = create((set, get) => ({
                 }
         },
         calculateTotals: () => {
-                const { cart, coupon } = get();
+                const { cart, coupon, isCouponApplied } = get();
 
                 let originalSubtotal = 0;
                 let discountedSubtotal = 0;
@@ -249,7 +260,7 @@ export const useCartStore = create((set, get) => ({
 
                 let total = discountedSubtotal;
 
-                if (coupon && coupon.discountPercentage) {
+                if (coupon && isCouponApplied && coupon.discountPercentage) {
                         total = discountedSubtotal - discountedSubtotal * (coupon.discountPercentage / 100);
                 }
 

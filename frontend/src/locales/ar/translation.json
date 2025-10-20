@@ -289,6 +289,8 @@
                 "summary": {
                         "title": "ملخص الطلب",
                         "productsCount": "عدد المنتجات",
+                        "discountedSubtotal": "بعد خصومات المنتجات",
+                        "couponSavings": "توفير الكوبون ({{code}})",
                         "grandTotal": "المجموع النهائي",
                         "proceed": "متابعة إلى الدفع",
                         "lead": "راجع منتجاتك وعدّل الكميات قبل المتابعة."
