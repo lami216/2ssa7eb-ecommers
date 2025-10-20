@@ -78,7 +78,7 @@ const FeaturedProducts = ({ featuredProducts }) => {
                                                                                 <div className='group flex h-full flex-col overflow-hidden rounded-xl border border-payzone-indigo/30 bg-white/5 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-payzone-gold/60 hover:shadow-xl'>
                                                                                         <div className='relative overflow-hidden'>
                                                                                                 {isDiscounted && (
-                                                                                                        <span className='absolute right-3 top-3 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white shadow-lg'>
+                                                                                                        <span className='absolute right-3 top-3 z-10 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white shadow-lg'>
                                                                                                                 -{discountPercentage}%
                                                                                                         </span>
                                                                                                 )}
@@ -90,18 +90,18 @@ const FeaturedProducts = ({ featuredProducts }) => {
                                                                                         </div>
                                                                                         <div className='p-4'>
                                                                                                 <h3 className='mb-2 text-lg font-semibold text-white'>{product.name}</h3>
-                                                                                                <div className='mb-4 flex items-baseline gap-2'>
+                                                                                                <div className='mb-4 flex flex-wrap items-baseline gap-2'>
                                                                                                         {isDiscounted ? (
                                                                                                                 <>
-                                                                                                                        <span className='text-sm text-white/60 line-through'>
+                                                                                                                        <span className='max-w-full break-words text-sm text-white/60 line-through'>
                                                                                                                                 {formatMRU(price)}
                                                                                                                         </span>
-                                                                                                                        <span className='text-lg font-bold text-red-300'>
+                                                                                                                        <span className='max-w-full break-words text-lg font-bold text-red-300'>
                                                                                                                                 {formatMRU(discountedPrice)}
                                                                                                                         </span>
                                                                                                                 </>
                                                                                                         ) : (
-                                                                                                                <span className='text-lg font-medium text-payzone-gold'>
+                                                                                                                <span className='max-w-full break-words text-lg font-medium text-payzone-gold'>
                                                                                                                         {formatMRU(price)}
                                                                                                                 </span>
                                                                                                         )}
