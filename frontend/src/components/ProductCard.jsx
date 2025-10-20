@@ -35,7 +35,7 @@ const ProductCard = ({ product }) => {
                                 aria-label={t("product.viewDetails", { name: product.name })}
                         >
                                 {isDiscounted && (
-                                        <span className='absolute right-3 top-3 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white shadow-lg'>
+                                        <span className='absolute right-3 top-3 z-10 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white shadow-lg'>
                                                 -{discountPercentage}%
                                         </span>
                                 )}
@@ -50,21 +50,21 @@ const ProductCard = ({ product }) => {
                                                 {t("common.status.noImage")}
                                         </div>
                                 )}
-                                <div className='absolute inset-0 bg-gradient-to-t from-payzone-navy/60 via-payzone-navy/20 to-transparent' />
+                                <div className='pointer-events-none absolute inset-0 z-0 bg-gradient-to-t from-payzone-navy/60 via-payzone-navy/20 to-transparent' />
                         </Link>
 
                         <div className='mt-4 flex flex-1 flex-col px-5 pb-5'>
                                 <Link to={`/products/${product._id}`} className='block transition-colors duration-300 hover:text-payzone-gold'>
                                         <h5 className='text-lg font-semibold tracking-tight text-white'>{product.name}</h5>
                                 </Link>
-                                <div className='mt-3 flex items-baseline gap-2'>
+                                <div className='mt-3 flex flex-wrap items-baseline gap-2'>
                                         {isDiscounted ? (
                                                 <>
-                                                        <span className='text-sm text-white/60 line-through'>{formatMRU(price)}</span>
-                                                        <span className='text-lg font-bold text-red-300'>{formatMRU(discountedPrice)}</span>
+                                                        <span className='max-w-full break-words text-sm text-white/60 line-through'>{formatMRU(price)}</span>
+                                                        <span className='max-w-full break-words text-lg font-bold text-red-300'>{formatMRU(discountedPrice)}</span>
                                                 </>
                                         ) : (
-                                                <span className='text-lg font-semibold leading-tight text-payzone-gold'>
+                                                <span className='max-w-full break-words text-lg font-semibold leading-tight text-payzone-gold'>
                                                         {formatMRU(price)}
                                                 </span>
                                         )}
