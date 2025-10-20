@@ -2,21 +2,26 @@ import Order from "../models/order.model.js";
 import Product from "../models/product.model.js";
 import User from "../models/user.model.js";
 
+const PAID_STATUSES = ["paid", "paid_whatsapp", "delivered"];
+
 export const getAnalyticsData = async () => {
-	const totalUsers = await User.countDocuments();
-	const totalProducts = await Product.countDocuments();
+        const totalUsers = await User.countDocuments();
+        const totalProducts = await Product.countDocuments();
 
-	const salesData = await Order.aggregate([
-		{
-			$group: {
-				_id: null, // it groups all documents together,
-				totalSales: { $sum: 1 },
-				totalRevenue: { $sum: "$totalAmount" },
-			},
-		},
-	]);
+        const salesData = await Order.aggregate([
+                {
+                        $match: { status: { $in: PAID_STATUSES } },
+                },
+                {
+                        $group: {
+                                _id: null, // it groups all documents together,
+                                totalSales: { $sum: 1 },
+                                totalRevenue: { $sum: "$total" },
+                        },
+                },
+        ]);
 
-	const { totalSales, totalRevenue } = salesData[0] || { totalSales: 0, totalRevenue: 0 };
+        const { totalSales, totalRevenue } = salesData[0] || { totalSales: 0, totalRevenue: 0 };
 
 	return {
 		users: totalUsers,
@@ -29,19 +34,20 @@ export const getAnalyticsData = async () => {
 export const getDailySalesData = async (startDate, endDate) => {
 	try {
 		const dailySalesData = await Order.aggregate([
-			{
-				$match: {
-					createdAt: {
-						$gte: startDate,
-						$lte: endDate,
-					},
-				},
-			},
+                        {
+                                $match: {
+                                        createdAt: {
+                                                $gte: startDate,
+                                                $lte: endDate,
+                                        },
+                                        status: { $in: PAID_STATUSES },
+                                },
+                        },
 			{
 				$group: {
 					_id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-					sales: { $sum: 1 },
-					revenue: { $sum: "$totalAmount" },
+                                        sales: { $sum: 1 },
+                                        revenue: { $sum: "$total" },
 				},
 			},
 			{ $sort: { _id: 1 } },

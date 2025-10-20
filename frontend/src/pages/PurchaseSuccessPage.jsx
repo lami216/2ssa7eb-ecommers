@@ -145,22 +145,47 @@ const PurchaseSuccessPage = () => {
                                                 </button>
                                         </div>
 
+                                        {orderDetails?.orderNumber && (
+                                                <div className='mt-6 flex justify-center'>
+                                                        <div className='rounded-2xl border border-payzone-gold/40 bg-payzone-gold/10 px-6 py-3 text-center text-payzone-navy shadow-sm'>
+                                                                <div className='text-sm font-semibold text-payzone-navy'>
+                                                                        {t("purchase.success.details.orderNumberLabel", {
+                                                                                orderNumber: formatNumberEn(orderDetails.orderNumber),
+                                                                        })}
+                                                                </div>
+                                                                <div className='mt-1 text-xs text-payzone-navy/70'>
+                                                                        {t("purchase.success.details.orderTotalLabel", {
+                                                                                amount: formatMRU(totalAmount),
+                                                                        })}
+                                                                </div>
+                                                        </div>
+                                                </div>
+                                        )}
+
                                         <section className='mt-8 space-y-6'>
                                                 {orderDetails ? (
                                                         <>
                                                                 <div className='rounded-2xl border border-payzone-navy/10 bg-white p-5 shadow-sm sm:p-6'>
-                                                                        <div className='text-sm font-semibold text-payzone-navy/50'>تفاصيل التوصيل</div>
+                                                                        <div className='text-sm font-semibold text-payzone-navy/50'>
+                                                                                {t("purchase.success.details.customer")}
+                                                                        </div>
                                                                         <div className='mt-4 space-y-3 text-right text-base font-medium'>
                                                                                 <div className='flex items-baseline justify-between gap-4'>
-                                                                                        <span className='text-payzone-navy/50'>الاسم</span>
+                                                                                        <span className='text-payzone-navy/50'>
+                                                                                                {t("purchase.success.details.name")}
+                                                                                        </span>
                                                                                         <span className='flex-1 text-left text-payzone-navy'>{orderDetails?.customerName || "-"}</span>
                                                                                 </div>
                                                                                 <div className='flex items-baseline justify-between gap-4'>
-                                                                                        <span className='text-payzone-navy/50'>الهاتف</span>
+                                                                                        <span className='text-payzone-navy/50'>
+                                                                                                {t("purchase.success.details.phone")}
+                                                                                        </span>
                                                                                         <span className='flex-1 text-left text-payzone-navy'>{orderDetails?.phone || "-"}</span>
                                                                                 </div>
                                                                                 <div className='flex items-baseline justify-between gap-4'>
-                                                                                        <span className='text-payzone-navy/50'>العنوان</span>
+                                                                                        <span className='text-payzone-navy/50'>
+                                                                                                {t("purchase.success.details.address")}
+                                                                                        </span>
                                                                                         <span className='flex-1 text-left text-payzone-navy'>{orderDetails?.address || "-"}</span>
                                                                                 </div>
                                                                         </div>
@@ -170,11 +195,21 @@ const PurchaseSuccessPage = () => {
                                                                         <table className='min-w-full border-collapse text-right text-sm sm:text-base'>
                                                                                 <thead className='bg-payzone-navy/5 text-payzone-navy/70'>
                                                                                         <tr>
-                                                                                                <th scope='col' className='px-4 py-3 font-medium'>صورة</th>
-                                                                                                <th scope='col' className='px-4 py-3 font-medium'>اسم المنتج</th>
-                                                                                                <th scope='col' className='px-4 py-3 text-left font-medium'>الكمية</th>
-                                                                                                <th scope='col' className='px-4 py-3 text-left font-medium'>سعر الوحدة</th>
-                                                                                                <th scope='col' className='px-4 py-3 text-left font-medium'>مجموع السطر</th>
+                                                                                                <th scope='col' className='px-4 py-3 font-medium'>
+                                                                                                        {t("purchase.success.details.image")}
+                                                                                                </th>
+                                                                                                <th scope='col' className='px-4 py-3 font-medium'>
+                                                                                                        {t("purchase.success.details.products")}
+                                                                                                </th>
+                                                                                                <th scope='col' className='px-4 py-3 text-left font-medium'>
+                                                                                                        {t("purchase.success.details.quantity")}
+                                                                                                </th>
+                                                                                                <th scope='col' className='px-4 py-3 text-left font-medium'>
+                                                                                                        {t("purchase.success.details.unitPrice")}
+                                                                                                </th>
+                                                                                                <th scope='col' className='px-4 py-3 text-left font-medium'>
+                                                                                                        {t("purchase.success.details.total")}
+                                                                                                </th>
                                                                                         </tr>
                                                                                 </thead>
                                                                                 <tbody className='text-payzone-navy'>
@@ -248,11 +283,11 @@ const PurchaseSuccessPage = () => {
 
                                                                 <div className='rounded-2xl border border-payzone-navy/15 bg-white p-5 shadow-sm sm:p-6'>
                                                                         <div className='flex items-center justify-between text-base text-payzone-navy/70'>
-                                                                                <span>عدد المنتجات الإجمالي</span>
+                                                                                <span>{t("purchase.success.details.countLabel")}</span>
                                                                                 <span className='text-lg font-semibold text-payzone-navy'>{formatNumberEn(totalCount)}</span>
                                                                         </div>
                                                                         <div className='mt-3 flex items-center justify-between border-t border-payzone-navy/10 pt-3 text-base text-payzone-navy/70'>
-                                                                                <span>المجموع النهائي</span>
+                                                                                <span>{t("purchase.success.details.grandTotalLabel")}</span>
                                                                                 <span className='text-lg font-semibold text-payzone-navy'>{formatMRU(totalAmount)}</span>
                                                                         </div>
                                                                 </div>

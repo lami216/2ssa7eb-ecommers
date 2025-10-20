@@ -7,6 +7,7 @@ import { useCartStore } from "../stores/useCartStore";
 import { formatMRU } from "../lib/formatMRU";
 import { formatNumberEn } from "../lib/formatNumberEn";
 import { getProductPricing } from "../lib/getProductPricing";
+import apiClient from "../lib/apiClient";
 
 const CheckoutPage = () => {
         const { cart, total, subtotal, coupon, isCouponApplied, clearCart } = useCartStore();
@@ -15,6 +16,7 @@ const CheckoutPage = () => {
         const [whatsAppNumber, setWhatsAppNumber] = useState("");
         const [address, setAddress] = useState("");
         const [whatsAppError, setWhatsAppError] = useState("");
+        const [isSubmitting, setIsSubmitting] = useState(false);
         const { t } = useTranslation();
 
         useEffect(() => {
@@ -74,6 +76,10 @@ const CheckoutPage = () => {
         const handleSubmit = async (event) => {
                 event.preventDefault();
 
+                if (isSubmitting) {
+                        return;
+                }
+
                 if (!customerName.trim() || !whatsAppNumber.trim() || !address.trim()) {
                         toast.error(t("common.messages.fillAllFields"));
                         return;
@@ -91,12 +97,12 @@ const CheckoutPage = () => {
                         return;
                 }
 
-                const displayCustomerNumber = normalizedWhatsAppNumber || whatsAppNumber;
-
+                const sanitizedPhone = normalizedWhatsAppNumber;
                 const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
-                const orderDetailsPayload = {
+
+                const baseOrderDetails = {
                         customerName: customerName.trim(),
-                        phone: displayCustomerNumber,
+                        phone: sanitizedPhone,
                         address: address.trim(),
                         items: cart.map((item) => {
                                 const { price, discountedPrice, discountPercentage, isDiscounted } =
@@ -120,57 +126,112 @@ const CheckoutPage = () => {
                         },
                 };
 
-                sessionStorage.setItem("lastOrderDetails", JSON.stringify(orderDetailsPayload));
+                const requestPayload = {
+                        items: cart.map((item) => ({
+                                productId: item._id || item.id,
+                                quantity: item.quantity,
+                        })),
+                        customerName: baseOrderDetails.customerName,
+                        phone: sanitizedPhone,
+                        address: baseOrderDetails.address,
+                };
 
-                const messageLines = [
-                        t("checkout.messages.newOrder", { name: customerName }),
-                        t("checkout.messages.customerWhatsApp", { number: displayCustomerNumber }),
-                        t("checkout.messages.address", { address }),
-                        "",
-                        t("checkout.messages.productsHeader"),
-                        ...productsSummary,
-                ];
-
-                if (productsSummary.length === 0) {
-                        messageLines.push(t("checkout.messages.noProducts"));
+                if (coupon && isCouponApplied && coupon.code) {
+                        requestPayload.couponCode = coupon.code;
                 }
-
-                if (coupon && isCouponApplied) {
-                        const discountPercentage = formatNumberEn(coupon.discountPercentage);
-                        messageLines.push(
-                                "",
-                                t("checkout.messages.coupon", {
-                                        code: coupon.code,
-                                        discount: discountPercentage,
-                                })
-                        );
-                }
-
-                if (savings > 0) {
-                        messageLines.push("", t("checkout.messages.savings", { amount: formatMRU(savings) }));
-                }
-
-                messageLines.push("", t("checkout.messages.total", { amount: formatMRU(total) }));
-                messageLines.push("", t("checkout.messages.thanks"));
 
                 const DEFAULT_STORE_WHATSAPP_NUMBER = "22231117700";
                 const envStoreNumber = import.meta.env.VITE_STORE_WHATSAPP_NUMBER;
                 const storeNumber = envStoreNumber?.replace(/\D/g, "") || DEFAULT_STORE_WHATSAPP_NUMBER;
 
-                const whatsappURL = new URL("https://wa.me/" + storeNumber);
-                whatsappURL.searchParams.set("text", messageLines.join("\n"));
+                setIsSubmitting(true);
 
                 try {
-                        window.open(whatsappURL.toString(), "_blank");
+                        const response = await apiClient.post("/orders/whatsapp-checkout", requestPayload);
+
+                        const orderId = response?.orderId;
+                        const orderNumber = response?.orderNumber;
+                        const serverSubtotal = Number(response?.subtotal ?? subtotal);
+                        const serverTotal = Number(response?.total ?? total);
+
+                        if (!orderId || !orderNumber) {
+                                throw new Error("Missing order information from server");
+                        }
+
+                        const enrichedOrderDetails = {
+                                ...baseOrderDetails,
+                                orderId,
+                                orderNumber,
+                                summary: {
+                                        ...baseOrderDetails.summary,
+                                        subtotal: serverSubtotal,
+                                        total: serverTotal,
+                                },
+                        };
+
+                        sessionStorage.setItem("lastOrderDetails", JSON.stringify(enrichedOrderDetails));
+                        sessionStorage.setItem("lastWhatsAppOrderId", orderId);
+
+                        const appliedSavings = Math.max(serverSubtotal - serverTotal, 0);
+
+                        const messageLines = [
+                                t("checkout.messages.newOrder", { name: baseOrderDetails.customerName }),
+                                t("checkout.messages.orderNumber", { number: formatNumberEn(orderNumber) }),
+                                t("checkout.messages.customerWhatsApp", { number: sanitizedPhone }),
+                                t("checkout.messages.address", { address: baseOrderDetails.address }),
+                                "",
+                                t("checkout.messages.productsHeader"),
+                                ...productsSummary,
+                        ];
+
+                        if (productsSummary.length === 0) {
+                                messageLines.push(t("checkout.messages.noProducts"));
+                        }
+
+                        if (coupon && isCouponApplied) {
+                                const discountPercentage = formatNumberEn(coupon.discountPercentage);
+                                messageLines.push(
+                                        "",
+                                        t("checkout.messages.coupon", {
+                                                code: coupon.code,
+                                                discount: discountPercentage,
+                                        })
+                                );
+                        }
+
+                        if (appliedSavings > 0) {
+                                messageLines.push(
+                                        "",
+                                        t("checkout.messages.savings", { amount: formatMRU(appliedSavings) })
+                                );
+                        }
+
+                        messageLines.push("", t("checkout.messages.total", { amount: formatMRU(serverTotal) }));
+                        messageLines.push("", t("checkout.messages.thanks"));
+
+                        const whatsappURL = new URL("https://wa.me/" + storeNumber);
+                        whatsappURL.searchParams.set("text", messageLines.join("\n"));
+
+                        toast.success(t("checkout.messages.orderCreated"));
+
+                        const whatsappWindow = window.open(whatsappURL.toString(), "_blank");
+
+                        if (!whatsappWindow) {
+                                toast.error(t("common.messages.whatsAppOpenFailed"));
+                        }
+
                         sessionStorage.setItem("whatsappOrderSent", "true");
-                        toast.success(t("checkout.messages.orderSent"));
                         await clearCart();
                         navigate("/purchase-success", {
-                                state: { orderType: "whatsapp", orderDetails: orderDetailsPayload },
+                                state: { orderType: "whatsapp", orderDetails: enrichedOrderDetails },
                         });
                 } catch (error) {
-                        console.error("Unable to automatically open WhatsApp order", error);
-                        toast.error(t("common.messages.whatsAppOpenFailed"));
+                        console.error("Unable to process WhatsApp order", error);
+                        const errorMessage =
+                                error.response?.data?.message || t("checkout.messages.orderCreationFailed");
+                        toast.error(errorMessage);
+                } finally {
+                        setIsSubmitting(false);
                 }
         };
 
@@ -233,12 +294,12 @@ const CheckoutPage = () => {
 
                                                 <motion.button
                                                         type='submit'
-                                                        disabled={!isFormValid}
-                                                        className='w-full rounded-lg bg-payzone-gold px-5 py-3 text-base font-semibold text-payzone-navy transition duration-300 hover:bg-[#b8873d] focus:outline-none focus:ring-4 focus:ring-payzone-indigo/40 disabled:opacity-50'
+                                                        disabled={!isFormValid || isSubmitting}
+                                                        className='w-full rounded-lg bg-payzone-gold px-5 py-3 text-base font-semibold text-payzone-navy transition duration-300 hover:bg-[#b8873d] focus:outline-none focus:ring-4 focus:ring-payzone-indigo/40 disabled:cursor-not-allowed disabled:opacity-50'
                                                         whileHover={{ scale: 1.02 }}
                                                         whileTap={{ scale: 0.97 }}
                                                 >
-                                                        {t("checkout.sendButton")}
+                                                        {isSubmitting ? t("common.status.processing") : t("checkout.sendButton")}
                                                 </motion.button>
                                         </form>
                                 </motion.section>
