@@ -1,4 +1,4 @@
-import { BarChart, PlusCircle, ShoppingBasket, FolderTree } from "lucide-react";
+import { BarChart, PlusCircle, ShoppingBasket, FolderTree, TicketPercent } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import useTranslation from "../hooks/useTranslation";
@@ -7,6 +7,7 @@ import AnalyticsTab from "../components/AnalyticsTab";
 import CreateProductForm from "../components/CreateProductForm";
 import ProductsList from "../components/ProductsList";
 import CategoryManager from "../components/CategoryManager";
+import AdminCoupons from "../components/AdminCoupons";
 import { useProductStore } from "../stores/useProductStore";
 
 const AdminPage = () => {
@@ -24,6 +25,7 @@ const AdminPage = () => {
                         { id: "products", label: t("admin.tabs.products"), icon: ShoppingBasket },
                         { id: "categories", label: t("admin.tabs.categories"), icon: FolderTree },
                         { id: "analytics", label: t("admin.tabs.analytics"), icon: BarChart },
+                        { id: "coupons", label: t("admin.tabs.coupons"), icon: TicketPercent },
                 ],
                 [t]
         );
@@ -60,6 +62,7 @@ const AdminPage = () => {
                                 {activeTab === "products" && <ProductsList onEdit={() => setActiveTab("create")} />}
                                 {activeTab === "categories" && <CategoryManager />}
                                 {activeTab === "analytics" && <AnalyticsTab />}
+                                {activeTab === "coupons" && <AdminCoupons />}
                         </div>
                 </div>
         );
