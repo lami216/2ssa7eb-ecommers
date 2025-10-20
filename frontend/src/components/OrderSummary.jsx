@@ -6,12 +6,13 @@ import { formatMRU } from "../lib/formatMRU";
 import { formatNumberEn } from "../lib/formatNumberEn";
 
 const OrderSummary = () => {
-        const { cart, total } = useCartStore();
+        const { cart, total, discountedSubtotal, coupon, isCouponApplied } = useCartStore();
         const navigate = useNavigate();
         const { t } = useTranslation();
 
         const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
         const isDisabled = totalQuantity === 0;
+        const couponSavings = isCouponApplied && coupon ? Math.max(0, discountedSubtotal - total) : 0;
 
         const handleCheckout = () => {
                 if (isDisabled) return;
@@ -37,6 +38,18 @@ const OrderSummary = () => {
                                                 {formatNumberEn(totalQuantity)}
                                         </span>
                                 </div>
+                                <div className='flex items-center justify-between border-t border-white/12 pt-3'>
+                                        <span>{t("cart.summary.discountedSubtotal")}</span>
+                                        <span className='text-[clamp(1.05rem,2.6vw,1.2rem)] font-semibold text-white'>
+                                                {formatMRU(discountedSubtotal)}
+                                        </span>
+                                </div>
+                                {couponSavings > 0 && (
+                                        <div className='flex items-center justify-between border-t border-white/12 pt-3 text-sm text-emerald-300'>
+                                                <span>{t("cart.summary.couponSavings", { code: coupon.code })}</span>
+                                                <span>-{formatMRU(couponSavings)}</span>
+                                        </div>
+                                )}
                                 <div className='flex items-center justify-between border-t border-white/12 pt-3 text-[clamp(1.1rem,2.8vw,1.3rem)] font-semibold'>
                                         <span className='text-payzone-gold'>{t("cart.summary.grandTotal")}</span>
                                         <span className='text-white'>{formatMRU(total)}</span>

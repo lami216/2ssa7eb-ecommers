@@ -142,6 +142,49 @@ export const listCoupons = async (req, res) => {
         }
 };
 
+export const getActiveCoupon = async (req, res) => {
+        try {
+                const coupon = await Coupon.findOne({
+                        isActive: true,
+                        expiresAt: { $gt: new Date() },
+                })
+                        .sort({ createdAt: -1, _id: -1 })
+                        .lean();
+
+                return res.json({ coupon: coupon || null });
+        } catch (error) {
+                console.log("Error in getActiveCoupon controller", error.message);
+                return res.status(500).json({ message: "Server error" });
+        }
+};
+
+export const validateCoupon = async (req, res) => {
+        try {
+                const code = normalizeCode(req.body.code);
+
+                if (!code) {
+                        return res.status(400).json({ message: "Coupon code is required" });
+                }
+
+                if (!isValidCode(code)) {
+                        return res
+                                .status(400)
+                                .json({ message: "Coupon code must contain uppercase letters and numbers only" });
+                }
+
+                const coupon = await Coupon.findOne({ code }).lean();
+
+                if (!coupon || !coupon.isActive || coupon.expiresAt <= new Date()) {
+                        return res.status(404).json({ message: "Coupon is invalid or has expired" });
+                }
+
+                return res.json({ coupon });
+        } catch (error) {
+                console.log("Error in validateCoupon controller", error.message);
+                return res.status(500).json({ message: "Server error" });
+        }
+};
+
 export const updateCoupon = async (req, res) => {
         try {
                 const { id } = req.params;

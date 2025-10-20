@@ -8,18 +8,32 @@ import { useUserStore } from "../stores/useUserStore";
 const GiftCouponCard = () => {
         const [userInputCode, setUserInputCode] = useState("");
         const user = useUserStore((state) => state.user);
-        const { coupon, isCouponApplied, applyCoupon, getMyCoupon, removeCoupon } = useCartStore();
+        const { coupon, availableCoupon, isCouponApplied, applyCoupon, getMyCoupon, removeCoupon } =
+                useCartStore();
         const { t } = useTranslation();
 
         useEffect(() => {
-                if (!user) return;
+                if (!user) {
+                        setUserInputCode("");
+                        return;
+                }
 
                 getMyCoupon();
         }, [getMyCoupon, user]);
 
         useEffect(() => {
-                if (coupon) setUserInputCode(coupon.code);
-        }, [coupon]);
+                if (isCouponApplied && coupon) {
+                        setUserInputCode(coupon.code);
+                        return;
+                }
+
+                if (availableCoupon) {
+                        setUserInputCode(availableCoupon.code);
+                        return;
+                }
+
+                setUserInputCode("");
+        }, [availableCoupon, coupon, isCouponApplied]);
 
         const handleApplyCoupon = () => {
                 if (!userInputCode) return;
@@ -32,9 +46,8 @@ const GiftCouponCard = () => {
                 applyCoupon(userInputCode);
         };
 
-        const handleRemoveCoupon = async () => {
-                await removeCoupon();
-                setUserInputCode("");
+        const handleRemoveCoupon = () => {
+                removeCoupon();
         };
 
         return (
@@ -95,15 +108,15 @@ const GiftCouponCard = () => {
                                 </div>
                         )}
 
-                        {coupon && (
+                        {availableCoupon && !isCouponApplied && (
                                 <div className='mt-4 rounded-lg border border-payzone-indigo/20 bg-white/5 p-4'>
                                         <h3 className='text-lg font-medium text-payzone-gold'>
                                                 {t("cart.coupon.availableTitle")}
                                         </h3>
                                         <p className='mt-2 text-sm text-white/70'>
                                                 {t("cart.coupon.discount", {
-                                                        code: coupon.code,
-                                                        discount: coupon.discountPercentage,
+                                                        code: availableCoupon.code,
+                                                        discount: availableCoupon.discountPercentage,
                                                 })}
                                         </p>
                                 </div>
