@@ -34,10 +34,22 @@ const toISOStringFromInput = (value) => {
 
 const buildInitialFormState = () => ({
         code: "",
+        bulkCodes: "",
         discountPercentage: "",
         expiresAt: "",
         isActive: true,
 });
+
+const extractBulkCodes = (value) => {
+        if (typeof value !== "string") {
+                return [];
+        }
+
+        return value
+                .split(/[\s,;]+/)
+                .map((segment) => segment.replace(/[^A-Z0-9]/gi, "").toUpperCase())
+                .filter(Boolean);
+};
 
 const AdminCoupons = () => {
         const {
@@ -62,6 +74,7 @@ const AdminCoupons = () => {
         const [formValues, setFormValues] = useState(buildInitialFormState);
         const [formErrors, setFormErrors] = useState({});
         const [editingCoupon, setEditingCoupon] = useState(null);
+        const [isBulkMode, setIsBulkMode] = useState(false);
 
         const totalPages = useMemo(() => Math.max(1, Math.ceil(total / (limit || 1))), [total, limit]);
 
@@ -81,6 +94,7 @@ const AdminCoupons = () => {
                 setFormValues(buildInitialFormState());
                 setFormErrors({});
                 setEditingCoupon(null);
+                setIsBulkMode(false);
         };
 
         const openCreateForm = () => {
@@ -92,11 +106,13 @@ const AdminCoupons = () => {
                 setEditingCoupon(coupon);
                 setFormValues({
                         code: coupon.code || "",
+                        bulkCodes: "",
                         discountPercentage: String(coupon.discountPercentage ?? ""),
                         expiresAt: toInputDateTimeValue(coupon.expiresAt),
                         isActive: Boolean(coupon.isActive),
                 });
                 setFormErrors({});
+                setIsBulkMode(false);
                 setIsFormOpen(true);
         };
 
@@ -119,6 +135,12 @@ const AdminCoupons = () => {
                                 const cleaned = value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
                                 return { ...previous, code: cleaned };
                         }
+                        if (field === "bulkCodes") {
+                                return {
+                                        ...previous,
+                                        bulkCodes: value.toUpperCase().replace(/[^A-Z0-9,\s;]/g, ""),
+                                };
+                        }
                         if (field === "discountPercentage") {
                                 return { ...previous, discountPercentage: value.replace(/[^0-9]/g, "") };
                         }
@@ -126,14 +148,42 @@ const AdminCoupons = () => {
                 });
         };
 
+        const handleBulkToggle = () => {
+                if (editingCoupon) {
+                        return;
+                }
+
+                setIsBulkMode((previous) => !previous);
+                setFormErrors({});
+        };
+
         const validateForm = () => {
                 const errors = {};
-                const { code, discountPercentage, expiresAt } = formValues;
-                const normalizedCode = code.trim().toUpperCase();
-                if (!normalizedCode) {
-                        errors.code = t("admin.coupons.validation.codeRequired");
-                } else if (!/^[A-Z0-9]+$/.test(normalizedCode)) {
-                        errors.code = t("admin.coupons.validation.codeFormat");
+                const { code, bulkCodes, discountPercentage, expiresAt } = formValues;
+
+                if (isBulkMode) {
+                        const parsedCodes = extractBulkCodes(bulkCodes);
+
+                        if (!parsedCodes.length) {
+                                errors.bulkCodes = t("admin.coupons.validation.bulkRequired");
+                        } else {
+                                const hasInvalidCode = parsedCodes.some((value) => !/^[A-Z0-9]+$/.test(value));
+                                const hasDuplicates = new Set(parsedCodes).size !== parsedCodes.length;
+
+                                if (hasInvalidCode) {
+                                        errors.bulkCodes = t("admin.coupons.validation.bulkFormat");
+                                } else if (hasDuplicates) {
+                                        errors.bulkCodes = t("admin.coupons.validation.bulkDuplicate");
+                                }
+                        }
+                } else {
+                        const normalizedCode = code.trim().toUpperCase();
+
+                        if (!normalizedCode) {
+                                errors.code = t("admin.coupons.validation.codeRequired");
+                        } else if (!/^[A-Z0-9]+$/.test(normalizedCode)) {
+                                errors.code = t("admin.coupons.validation.codeFormat");
+                        }
                 }
 
                 if (discountPercentage === "") {
@@ -165,11 +215,16 @@ const AdminCoupons = () => {
                 }
 
                 const payload = {
-                        code: formValues.code,
                         discountPercentage: Number(formValues.discountPercentage),
                         expiresAt: toISOStringFromInput(formValues.expiresAt),
                         isActive: Boolean(formValues.isActive),
                 };
+
+                if (isBulkMode) {
+                        payload.codes = Array.from(new Set(extractBulkCodes(formValues.bulkCodes)));
+                } else {
+                        payload.code = formValues.code;
+                }
 
                 try {
                         if (editingCoupon) {
@@ -408,19 +463,60 @@ const AdminCoupons = () => {
                                                 </div>
                                                 <form onSubmit={handleSubmit} className='space-y-4'>
                                                         <div>
-                                                                <label className='mb-1 block text-sm font-medium text-white'>
-                                                                        {t("admin.coupons.form.code")}
-                                                                </label>
-                                                                <input
-                                                                        type='text'
-                                                                        value={formValues.code}
-                                                                        onChange={(event) => handleFieldChange("code", event.target.value)}
-                                                                        className='w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white focus:border-payzone-gold focus:outline-none'
-                                                                        maxLength={32}
-                                                                        required
-                                                                />
-                                                                {formErrors.code && (
-                                                                        <p className='mt-1 text-xs text-rose-400'>{formErrors.code}</p>
+                                                                <div className='mb-1 flex items-center justify-between gap-3'>
+                                                                        <label className='block text-sm font-medium text-white'>
+                                                                                {isBulkMode
+                                                                                        ? t("admin.coupons.form.bulkCodes")
+                                                                                        : t("admin.coupons.form.code")}
+                                                                        </label>
+                                                                        <button
+                                                                                type='button'
+                                                                                onClick={handleBulkToggle}
+                                                                                className='rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/20 disabled:opacity-60'
+                                                                                disabled={Boolean(editingCoupon) || mutationLoading}
+                                                                        >
+                                                                                {isBulkMode
+                                                                                        ? t("admin.coupons.form.bulkModeSingle")
+                                                                                        : t("admin.coupons.form.bulkModeMultiple")}
+                                                                        </button>
+                                                                </div>
+                                                                {isBulkMode ? (
+                                                                        <>
+                                                                                <textarea
+                                                                                        rows={4}
+                                                                                        value={formValues.bulkCodes}
+                                                                                        onChange={(event) =>
+                                                                                                handleFieldChange("bulkCodes", event.target.value)
+                                                                                        }
+                                                                                        className='w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white focus:border-payzone-gold focus:outline-none'
+                                                                                />
+                                                                                <p className='mt-1 text-xs text-white/60'>
+                                                                                        {t("admin.coupons.form.bulkHint")}
+                                                                                </p>
+                                                                                {formErrors.bulkCodes && (
+                                                                                        <p className='mt-1 text-xs text-rose-400'>
+                                                                                                {formErrors.bulkCodes}
+                                                                                        </p>
+                                                                                )}
+                                                                        </>
+                                                                ) : (
+                                                                        <>
+                                                                                <input
+                                                                                        type='text'
+                                                                                        value={formValues.code}
+                                                                                        onChange={(event) =>
+                                                                                                handleFieldChange("code", event.target.value)
+                                                                                        }
+                                                                                        className='w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white focus:border-payzone-gold focus:outline-none'
+                                                                                        maxLength={32}
+                                                                                        required
+                                                                                />
+                                                                                {formErrors.code && (
+                                                                                        <p className='mt-1 text-xs text-rose-400'>
+                                                                                                {formErrors.code}
+                                                                                        </p>
+                                                                                )}
+                                                                        </>
                                                                 )}
                                                         </div>
                                                         <div>
