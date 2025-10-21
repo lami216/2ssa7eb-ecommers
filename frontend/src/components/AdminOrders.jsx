@@ -5,6 +5,7 @@ import useTranslation from "../hooks/useTranslation";
 import apiClient from "../lib/apiClient";
 import { formatMRU } from "../lib/formatMRU";
 import { formatNumberEn } from "../lib/formatNumberEn";
+import { translate } from "../lib/locale";
 
 const STATUS_OPTIONS = ["paid_whatsapp", "paid", "processing", "shipped", "delivered"];
 
@@ -21,11 +22,12 @@ const AdminOrders = () => {
                         setOrders(Array.isArray(data?.orders) ? data.orders : []);
                 } catch (error) {
                         console.error("Failed to load orders", error);
-                        toast.error(error.response?.data?.message || t("admin.orders.messages.fetchError"));
+                        const fallbackMessage = translate("admin.orders.messages.fetchError");
+                        toast.error(error.response?.data?.message || fallbackMessage);
                 } finally {
                         setLoading(false);
                 }
-        }, [t]);
+        }, []);
 
         useEffect(() => {
                 fetchOrders();

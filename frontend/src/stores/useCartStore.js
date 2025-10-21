@@ -51,11 +51,11 @@ const getAuthenticatedUser = () => useUserStore.getState().user;
 export const useCartStore = create((set, get) => ({
         cart: loadCartFromStorage(),
         coupon: null,
-        availableCoupon: null,
+        isCouponApplied: false,
+        totalDiscountAmount: 0,
         total: 0,
         subtotal: 0,
         discountedSubtotal: 0,
-        isCouponApplied: false,
 
         initializeCart: () => {
                 const localCart = loadCartFromStorage();
@@ -63,27 +63,17 @@ export const useCartStore = create((set, get) => ({
                 get().calculateTotals();
         },
 
-        getMyCoupon: async () => {
-                const user = getAuthenticatedUser();
-
-                if (!user) {
-                        set({ availableCoupon: null });
-                        return;
-                }
-
-                try {
-                        const data = await apiClient.get("/coupons/active");
-                        set((state) => ({
-                                availableCoupon: data?.coupon ?? null,
-                                coupon: state.isCouponApplied ? state.coupon : null,
-                        }));
-                } catch (error) {
-                        console.error("Error fetching coupon:", error);
-                        set({ availableCoupon: null });
-                }
-        },
         applyCoupon: async (code) => {
                 const user = getAuthenticatedUser();
+                const normalizedCode =
+                        typeof code === "string"
+                                ? code.replace(/\s+/g, "").toUpperCase()
+                                : "";
+
+                if (!normalizedCode) {
+                        toast.error(translate("toast.applyCouponError"));
+                        return;
+                }
 
                 if (!user) {
                         toast.error(translate("common.messages.loginRequiredForCoupon"));
@@ -91,13 +81,22 @@ export const useCartStore = create((set, get) => ({
                 }
 
                 try {
-                        const data = await apiClient.post("/coupons/validate", { code });
+                        const data = await apiClient.post("/coupons/validate", { code: normalizedCode });
                         const coupon = data?.coupon ?? null;
+
                         if (!coupon) {
                                 toast.error(translate("toast.applyCouponError"));
                                 return;
                         }
-                        set({ coupon, availableCoupon: coupon, isCouponApplied: true });
+
+                        set({
+                                coupon: {
+                                        code: coupon.code,
+                                        discountPercentage: Number(coupon.discountPercentage) || 0,
+                                },
+                                isCouponApplied: true,
+                        });
+
                         get().calculateTotals();
                         toast.success(translate("common.messages.couponAppliedSuccess"));
                 } catch (error) {
@@ -106,9 +105,9 @@ export const useCartStore = create((set, get) => ({
         },
         removeCoupon: () => {
                 set({ coupon: null, isCouponApplied: false });
+
                 get().calculateTotals();
                 toast.success(translate("common.messages.couponRemoved"));
-                get().getMyCoupon();
         },
 
         getCartItems: async () => {
@@ -141,6 +140,7 @@ export const useCartStore = create((set, get) => ({
                 set({
                         cart: [],
                         coupon: null,
+                        totalDiscountAmount: 0,
                         total: 0,
                         subtotal: 0,
                         discountedSubtotal: 0,
@@ -246,7 +246,7 @@ export const useCartStore = create((set, get) => ({
                 }
         },
         calculateTotals: () => {
-                const { cart, coupon, isCouponApplied } = get();
+                const { cart, coupon } = get();
 
                 let originalSubtotal = 0;
                 let discountedSubtotal = 0;
@@ -259,11 +259,34 @@ export const useCartStore = create((set, get) => ({
                 });
 
                 let total = discountedSubtotal;
+                let totalDiscountAmount = 0;
+                let enrichedCoupon = null;
 
-                if (coupon && isCouponApplied && coupon.discountPercentage) {
-                        total = discountedSubtotal - discountedSubtotal * (coupon.discountPercentage / 100);
+                if (coupon && coupon.code) {
+                        const percentage = Number(coupon.discountPercentage) || 0;
+
+                        if (percentage > 0 && discountedSubtotal > 0) {
+                                totalDiscountAmount = Number(
+                                        ((discountedSubtotal * percentage) / 100).toFixed(2)
+                                );
+                                total = Number(
+                                        Math.max(0, discountedSubtotal - totalDiscountAmount).toFixed(2)
+                                );
+                        }
+
+                        enrichedCoupon = {
+                                ...coupon,
+                                discountAmount: totalDiscountAmount,
+                        };
                 }
 
-                set({ subtotal: originalSubtotal, discountedSubtotal, total });
+                set((state) => ({
+                        subtotal: originalSubtotal,
+                        discountedSubtotal,
+                        total,
+                        totalDiscountAmount,
+                        coupon: enrichedCoupon,
+                        isCouponApplied: Boolean(enrichedCoupon) && state.isCouponApplied,
+                }));
         },
 }));

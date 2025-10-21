@@ -6,13 +6,19 @@ import { formatMRU } from "../lib/formatMRU";
 import { formatNumberEn } from "../lib/formatNumberEn";
 
 const OrderSummary = () => {
-        const { cart, total, discountedSubtotal, coupon, isCouponApplied } = useCartStore();
+        const { cart, total, discountedSubtotal, coupon, totalDiscountAmount, isCouponApplied } =
+                useCartStore();
         const navigate = useNavigate();
         const { t } = useTranslation();
 
         const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
         const isDisabled = totalQuantity === 0;
-        const couponSavings = isCouponApplied && coupon ? Math.max(0, discountedSubtotal - total) : 0;
+        const couponSavings = Math.max(
+                Number.isFinite(totalDiscountAmount) ? totalDiscountAmount : 0,
+                discountedSubtotal - total,
+                0
+        );
+        const hasCouponSavings = Boolean(coupon?.code) && couponSavings > 0 && isCouponApplied;
 
         const handleCheckout = () => {
                 if (isDisabled) return;
@@ -44,9 +50,9 @@ const OrderSummary = () => {
                                                 {formatMRU(discountedSubtotal)}
                                         </span>
                                 </div>
-                                {couponSavings > 0 && (
+                                {hasCouponSavings && (
                                         <div className='flex items-center justify-between border-t border-white/12 pt-3 text-sm text-emerald-300'>
-                                                <span>{t("cart.summary.couponSavings", { code: coupon.code })}</span>
+                                                <span>{t("cart.summary.couponSavings")}</span>
                                                 <span>-{formatMRU(couponSavings)}</span>
                                         </div>
                                 )}
