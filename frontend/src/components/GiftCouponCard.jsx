@@ -8,8 +8,7 @@ import { useUserStore } from "../stores/useUserStore";
 const GiftCouponCard = () => {
         const [userInputCode, setUserInputCode] = useState("");
         const user = useUserStore((state) => state.user);
-        const { coupon, availableCoupon, isCouponApplied, applyCoupon, getMyCoupon, removeCoupon } =
-                useCartStore();
+        const { coupon, isCouponApplied, applyCoupon, removeCoupon } = useCartStore();
         const { t } = useTranslation();
 
         useEffect(() => {
@@ -18,22 +17,13 @@ const GiftCouponCard = () => {
                         return;
                 }
 
-                getMyCoupon();
-        }, [getMyCoupon, user]);
-
-        useEffect(() => {
-                if (isCouponApplied && coupon) {
+                if (coupon?.code) {
                         setUserInputCode(coupon.code);
                         return;
                 }
 
-                if (availableCoupon) {
-                        setUserInputCode(availableCoupon.code);
-                        return;
-                }
-
                 setUserInputCode("");
-        }, [availableCoupon, coupon, isCouponApplied]);
+        }, [coupon, user]);
 
         const handleApplyCoupon = () => {
                 if (!userInputCode) return;
@@ -44,6 +34,7 @@ const GiftCouponCard = () => {
                 }
 
                 applyCoupon(userInputCode);
+                setUserInputCode("");
         };
 
         const handleRemoveCoupon = () => {
@@ -83,7 +74,7 @@ const GiftCouponCard = () => {
                                         {t("cart.coupon.apply")}
                                 </motion.button>
                         </div>
-                        {isCouponApplied && coupon && (
+                        {isCouponApplied && coupon?.code && (
                                 <div className='mt-4 rounded-lg border border-payzone-indigo/40 bg-payzone-navy/40 p-4'>
                                         <h3 className='text-lg font-medium text-payzone-gold'>
                                                 {t("cart.coupon.appliedTitle")}
@@ -105,20 +96,6 @@ const GiftCouponCard = () => {
                                         >
                                                 {t("cart.coupon.remove")}
                                         </motion.button>
-                                </div>
-                        )}
-
-                        {availableCoupon && !isCouponApplied && (
-                                <div className='mt-4 rounded-lg border border-payzone-indigo/20 bg-white/5 p-4'>
-                                        <h3 className='text-lg font-medium text-payzone-gold'>
-                                                {t("cart.coupon.availableTitle")}
-                                        </h3>
-                                        <p className='mt-2 text-sm text-white/70'>
-                                                {t("cart.coupon.discount", {
-                                                        code: availableCoupon.code,
-                                                        discount: availableCoupon.discountPercentage,
-                                                })}
-                                        </p>
                                 </div>
                         )}
                 </motion.div>

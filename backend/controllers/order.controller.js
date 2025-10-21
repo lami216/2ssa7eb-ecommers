@@ -16,7 +16,6 @@ const ORDER_STATUS_OPTIONS = [
 
 const normalizeString = (value) => (typeof value === "string" ? value.trim() : "");
 const normalizePhone = (value) => (typeof value === "string" ? value.replace(/\D/g, "") : "");
-
 const computeUnitPrice = (product) => {
         const price = Number(product.price) || 0;
         if (!product.isDiscounted) {
@@ -37,6 +36,7 @@ const mapOrderResponse = (order) => ({
         ...order,
         subtotal: Number(order.subtotal || 0),
         total: Number(order.total || 0),
+        totalDiscountAmount: Number(order.totalDiscountAmount || 0),
 });
 
 const appendLogEntry = (order, entry) => {
@@ -52,7 +52,17 @@ export const createWhatsAppOrder = async (req, res) => {
                 const customerName = normalizeString(req.body?.customerName);
                 const phone = normalizePhone(req.body?.phone);
                 const address = normalizeString(req.body?.address);
-                const couponCodeInput = normalizeString(req.body?.couponCode || req.body?.coupon?.code);
+                let couponCodeInput = "";
+
+                if (Array.isArray(req.body?.couponCodes) && req.body.couponCodes.length > 0) {
+                        couponCodeInput = normalizeString(req.body.couponCodes[0]);
+                } else {
+                        couponCodeInput = normalizeString(
+                                req.body?.couponCode || req.body?.coupon?.code
+                        );
+                }
+
+                const normalizedCouponCode = couponCodeInput.replace(/\s+/g, "").toUpperCase();
 
                 if (!items.length) {
                         return res.status(400).json({ message: "Order must contain at least one item" });
@@ -134,12 +144,13 @@ export const createWhatsAppOrder = async (req, res) => {
 
                 subtotal = Number(subtotal.toFixed(2));
 
-                let appliedCoupon = null;
                 let total = subtotal;
+                let totalDiscountAmount = 0;
+                let appliedCoupon = null;
 
-                if (couponCodeInput) {
+                if (normalizedCouponCode) {
                         const coupon = await Coupon.findOne({
-                                code: couponCodeInput.toUpperCase(),
+                                code: normalizedCouponCode,
                                 isActive: true,
                                 expiresAt: { $gt: new Date() },
                         }).lean();
@@ -148,16 +159,21 @@ export const createWhatsAppOrder = async (req, res) => {
                                 return res.status(400).json({ message: "Coupon is invalid or expired" });
                         }
 
-                        const discountAmount = Number(((subtotal * coupon.discountPercentage) / 100).toFixed(2));
-                        total = Number(Math.max(0, subtotal - discountAmount).toFixed(2));
+                        const percentage = Number(coupon.discountPercentage) || 0;
 
-                        appliedCoupon = {
-                                code: coupon.code,
-                                discountPercentage: coupon.discountPercentage,
-                                discountAmount,
-                        };
-                } else {
-                        total = subtotal;
+                        if (percentage > 0) {
+                                totalDiscountAmount = Number(
+                                        ((subtotal * percentage) / 100).toFixed(2)
+                                );
+                                total = Number(
+                                        Math.max(0, subtotal - totalDiscountAmount).toFixed(2)
+                                );
+                                appliedCoupon = {
+                                        code: coupon.code,
+                                        discountPercentage: percentage,
+                                        discountAmount: totalDiscountAmount,
+                                };
+                        }
                 }
 
                 const order = await Order.create({
@@ -165,6 +181,7 @@ export const createWhatsAppOrder = async (req, res) => {
                         subtotal,
                         total,
                         coupon: appliedCoupon,
+                        totalDiscountAmount,
                         customerName,
                         phone,
                         address,
@@ -190,6 +207,8 @@ export const createWhatsAppOrder = async (req, res) => {
                         orderNumber: order.orderNumber,
                         subtotal: order.subtotal,
                         total: order.total,
+                        coupon: order.coupon,
+                        totalDiscountAmount: order.totalDiscountAmount,
                 });
         } catch (error) {
                 console.log("Error in createWhatsAppOrder", error);

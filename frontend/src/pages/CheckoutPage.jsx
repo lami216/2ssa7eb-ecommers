@@ -10,7 +10,8 @@ import { getProductPricing } from "../lib/getProductPricing";
 import apiClient from "../lib/apiClient";
 
 const CheckoutPage = () => {
-        const { cart, total, subtotal, coupon, isCouponApplied, clearCart } = useCartStore();
+        const { cart, total, subtotal, coupon, totalDiscountAmount, clearCart, isCouponApplied } =
+                useCartStore();
         const navigate = useNavigate();
         const [customerName, setCustomerName] = useState("");
         const [whatsAppNumber, setWhatsAppNumber] = useState("");
@@ -71,7 +72,7 @@ const CheckoutPage = () => {
                 [cart]
         );
 
-        const savings = Math.max(subtotal - total, 0);
+        const savings = Math.max(Number(totalDiscountAmount) || 0, subtotal - total, 0);
 
         const handleSubmit = async (event) => {
                 event.preventDefault();
@@ -136,7 +137,7 @@ const CheckoutPage = () => {
                         address: baseOrderDetails.address,
                 };
 
-                if (coupon && isCouponApplied && coupon.code) {
+                if (coupon?.code && isCouponApplied) {
                         requestPayload.couponCode = coupon.code;
                 }
 
@@ -153,6 +154,10 @@ const CheckoutPage = () => {
                         const orderNumber = response?.orderNumber;
                         const serverSubtotal = Number(response?.subtotal ?? subtotal);
                         const serverTotal = Number(response?.total ?? total);
+                        const serverTotalDiscount = Number(
+                                response?.totalDiscountAmount ?? Math.max(serverSubtotal - serverTotal, 0)
+                        );
+                        const serverCoupon = response?.coupon ?? (isCouponApplied ? coupon : null);
 
                         if (!orderId || !orderNumber) {
                                 throw new Error("Missing order information from server");
@@ -166,13 +171,15 @@ const CheckoutPage = () => {
                                         ...baseOrderDetails.summary,
                                         subtotal: serverSubtotal,
                                         total: serverTotal,
+                                        coupon: serverCoupon,
+                                        totalDiscountAmount: Math.max(serverTotalDiscount, 0),
                                 },
                         };
 
                         sessionStorage.setItem("lastOrderDetails", JSON.stringify(enrichedOrderDetails));
                         sessionStorage.setItem("lastWhatsAppOrderId", orderId);
 
-                        const appliedSavings = Math.max(serverSubtotal - serverTotal, 0);
+                        const appliedSavings = Math.max(serverTotalDiscount, serverSubtotal - serverTotal, 0);
 
                         const messageLines = [
                                 t("checkout.messages.newOrder", { name: baseOrderDetails.customerName }),
@@ -188,15 +195,12 @@ const CheckoutPage = () => {
                                 messageLines.push(t("checkout.messages.noProducts"));
                         }
 
-                        if (coupon && isCouponApplied) {
-                                const discountPercentage = formatNumberEn(coupon.discountPercentage);
-                                messageLines.push(
-                                        "",
-                                        t("checkout.messages.coupon", {
-                                                code: coupon.code,
-                                                discount: discountPercentage,
-                                        })
+                        if (serverCoupon?.code) {
+                                const discountPercentage = formatNumberEn(
+                                        Number(serverCoupon.discountPercentage) || 0
                                 );
+                                messageLines.push("", t("checkout.messages.couponHeader"));
+                                messageLines.push(`- ${serverCoupon.code} (${discountPercentage}%)`);
                         }
 
                         if (appliedSavings > 0) {
