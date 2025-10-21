@@ -6,6 +6,7 @@ import apiClient from "../lib/apiClient";
 import { formatMRU } from "../lib/formatMRU";
 import { formatNumberEn } from "../lib/formatNumberEn";
 import { translate } from "../lib/locale";
+import { useUserStore } from "../stores/useUserStore";
 
 const STATUS_OPTIONS = ["paid_whatsapp", "paid", "processing", "shipped", "delivered"];
 
@@ -14,6 +15,10 @@ const AdminOrders = () => {
         const [loading, setLoading] = useState(true);
         const [updatingOrderId, setUpdatingOrderId] = useState(null);
         const { t } = useTranslation();
+        const { user, checkingAuth } = useUserStore((state) => ({
+                user: state.user,
+                checkingAuth: state.checkingAuth,
+        }));
 
         const fetchOrders = useCallback(async () => {
                 setLoading(true);
@@ -30,8 +35,17 @@ const AdminOrders = () => {
         }, []);
 
         useEffect(() => {
-                fetchOrders();
-        }, [fetchOrders]);
+                if (checkingAuth) {
+                        return;
+                }
+
+                if (user?.role === "admin") {
+                        fetchOrders();
+                } else {
+                        setOrders([]);
+                        setLoading(false);
+                }
+        }, [checkingAuth, user?.role, fetchOrders]);
 
         const statusOptions = useMemo(
                 () =>

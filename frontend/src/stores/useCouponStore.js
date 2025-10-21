@@ -126,28 +126,54 @@ export const useCouponStore = create((set, get) => ({
         createCoupon: async (payload) => {
                 set({ mutationLoading: true });
                 try {
-                        const coupon = await apiClient.post(`/coupons`, payload);
-                        set((state) => {
-                                const doesMatch = matchesSearch(coupon, state.search);
-                                let coupons = state.coupons;
+                        const response = await apiClient.post(`/coupons`, payload);
+                        const createdCoupons = Array.isArray(response?.coupons)
+                                ? response.coupons
+                                : response
+                                ? [response]
+                                : [];
 
-                                if (doesMatch) {
+                        set((state) => {
+                                if (!createdCoupons.length) {
+                                        return { mutationLoading: false };
+                                }
+
+                                const matchingCoupons = createdCoupons.filter((coupon) =>
+                                        matchesSearch(coupon, state.search)
+                                );
+
+                                let coupons = state.coupons;
+                                let total = state.total;
+
+                                if (matchingCoupons.length) {
+                                        total += matchingCoupons.length;
+
                                         if (state.page === 1) {
-                                                coupons = sortCoupons([coupon, ...state.coupons], state.sortBy, state.sortOrder).slice(
-                                                        0,
-                                                        state.limit
-                                                );
+                                                coupons = sortCoupons(
+                                                        [...matchingCoupons, ...state.coupons],
+                                                        state.sortBy,
+                                                        state.sortOrder
+                                                ).slice(0, state.limit);
                                         }
                                 }
 
                                 return {
                                         coupons,
-                                        total: doesMatch ? state.total + 1 : state.total,
+                                        total,
                                         mutationLoading: false,
                                 };
                         });
-                        toast.success(translate("common.messages.couponCreated"));
-                        return coupon;
+
+                        const createdCount = createdCoupons.length;
+                        if (createdCount > 1) {
+                                toast.success(
+                                        translate("common.messages.couponsCreated", { count: createdCount })
+                                );
+                        } else if (createdCount === 1) {
+                                toast.success(translate("common.messages.couponCreated"));
+                        }
+
+                        return createdCoupons;
                 } catch (error) {
                         set({ mutationLoading: false });
                         toast.error(error.response?.data?.message || translate("toast.couponCreateError"));

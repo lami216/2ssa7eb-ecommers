@@ -10,7 +10,7 @@ import {
 
 const router = express.Router();
 
-router.get("/active", protectRoute, getActiveCoupon);
+router.get("/active", protectRoute, adminRoute, getActiveCoupon);
 router.post("/validate", protectRoute, validateCoupon);
 
 router.post("/", protectRoute, adminRoute, createCoupon);

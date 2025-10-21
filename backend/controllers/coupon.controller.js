@@ -49,21 +49,31 @@ const buildFilter = (search) => {
         return { code: { $regex: search.replace(/\s+/g, ""), $options: "i" } };
 };
 
+const collectCodes = (rawCodes) => {
+        if (Array.isArray(rawCodes)) {
+                return rawCodes;
+        }
+
+        if (typeof rawCodes === "string" && rawCodes.trim()) {
+                return [rawCodes];
+        }
+
+        return [];
+};
+
 export const createCoupon = async (req, res) => {
         try {
-                const code = normalizeCode(req.body.code);
                 const discount = parseDiscount(req.body.discountPercentage);
                 const expiresAt = parseExpiresAt(req.body.expiresAt);
                 const isActive = typeof req.body.isActive === "boolean" ? req.body.isActive : true;
 
-                if (!code) {
-                        return res.status(400).json({ message: "Coupon code is required" });
-                }
+                const submittedCodes = collectCodes(req.body.codes);
+                const normalizedCodes = (submittedCodes.length ? submittedCodes : [req.body.code])
+                        .map((value) => normalizeCode(value))
+                        .filter(Boolean);
 
-                if (!isValidCode(code)) {
-                        return res
-                                .status(400)
-                                .json({ message: "Coupon code must contain uppercase letters and numbers only" });
+                if (!normalizedCodes.length) {
+                        return res.status(400).json({ message: "Coupon code is required" });
                 }
 
                 if (!Number.isFinite(discount) || discount < 1 || discount > 90) {
@@ -80,13 +90,44 @@ export const createCoupon = async (req, res) => {
                         return res.status(400).json({ message: "Expiry must be in the future" });
                 }
 
-                const existingCoupon = await Coupon.findOne({ code });
-                if (existingCoupon) {
-                        return res.status(409).json({ message: "Coupon code already exists" });
+                const uniqueCodes = [...new Set(normalizedCodes)];
+
+                if (uniqueCodes.some((code) => !isValidCode(code))) {
+                        return res
+                                .status(400)
+                                .json({ message: "Coupon code must contain uppercase letters and numbers only" });
+                }
+
+                if (uniqueCodes.length !== normalizedCodes.length) {
+                        return res.status(400).json({ message: "Duplicate coupon codes provided" });
+                }
+
+                const existingCoupons = await Coupon.find({ code: { $in: uniqueCodes } }, { code: 1 }).lean();
+
+                if (existingCoupons.length > 0) {
+                        const existingCodes = existingCoupons.map((coupon) => coupon.code).join(", ");
+                        return res.status(409).json({
+                                message:
+                                        uniqueCodes.length === 1
+                                                ? "Coupon code already exists"
+                                                : `Coupon codes already exist: ${existingCodes}`,
+                        });
+                }
+
+                if (uniqueCodes.length > 1) {
+                        const couponsToCreate = uniqueCodes.map((code) => ({
+                                code,
+                                discountPercentage: discount,
+                                expiresAt,
+                                isActive,
+                        }));
+
+                        const createdCoupons = await Coupon.insertMany(couponsToCreate);
+                        return res.status(201).json({ coupons: createdCoupons });
                 }
 
                 const coupon = await Coupon.create({
-                        code,
+                        code: uniqueCodes[0],
                         discountPercentage: discount,
                         expiresAt,
                         isActive,

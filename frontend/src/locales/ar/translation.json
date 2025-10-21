@@ -58,6 +58,7 @@
                         "productAddedToCart": "تمت إضافة المنتج إلى السلة",
                         "couponAppliedSuccess": "تم تطبيق الكوبون بنجاح",
                         "couponCreated": "تم إنشاء الكوبون بنجاح",
+                        "couponsCreated": "تم إنشاء {{count}} كوبونات بنجاح",
                         "couponUpdated": "تم تحديث الكوبون بنجاح"
                 }
         },
@@ -159,6 +160,10 @@
                                 "editTitle": "تعديل الكوبون {{code}}",
                                 "editSubtitle": "يمكنك تحديث الحقول أو تغيير حالة الكوبون.",
                                 "code": "رمز الكوبون",
+                                "bulkCodes": "مجموعة الرموز",
+                                "bulkModeMultiple": "إدخال عدة رموز",
+                                "bulkModeSingle": "إدخال رمز واحد",
+                                "bulkHint": "اكتب كل رمز في سطر مستقل أو افصل الرموز بفواصل.",
                                 "discountPercentage": "نسبة الخصم (%)",
                                 "expiresAt": "تاريخ الانتهاء",
                                 "isActive": "حالة الكوبون",
@@ -168,6 +173,9 @@
                         "validation": {
                                 "codeRequired": "رمز الكوبون مطلوب",
                                 "codeFormat": "يجب أن يتكون رمز الكوبون من أحرف كبيرة أو أرقام بدون مسافات",
+                                "bulkRequired": "يرجى إدخال رمز واحد على الأقل",
+                                "bulkDuplicate": "هناك رموز مكررة في القائمة",
+                                "bulkFormat": "يجب أن تحتوي جميع الرموز على أحرف كبيرة أو أرقام فقط",
                                 "discountRequired": "يرجى إدخال نسبة الخصم",
                                 "discountRange": "نسبة الخصم يجب أن تكون بين 1% و90%",
                                 "expiresRequired": "يرجى تحديد تاريخ الانتهاء",
