@@ -4,26 +4,17 @@ import { toast } from "react-hot-toast";
 import useTranslation from "../hooks/useTranslation";
 import { useCartStore } from "../stores/useCartStore";
 import { useUserStore } from "../stores/useUserStore";
+import { formatNumberEn } from "../lib/formatNumberEn";
 
 const GiftCouponCard = () => {
         const [userInputCode, setUserInputCode] = useState("");
         const user = useUserStore((state) => state.user);
-        const { coupon, isCouponApplied, applyCoupon, removeCoupon } = useCartStore();
+        const { appliedCoupons, isCouponApplied, applyCoupon, removeCoupon } = useCartStore();
         const { t } = useTranslation();
 
         useEffect(() => {
-                if (!user) {
-                        setUserInputCode("");
-                        return;
-                }
-
-                if (coupon?.code) {
-                        setUserInputCode(coupon.code);
-                        return;
-                }
-
                 setUserInputCode("");
-        }, [coupon, user]);
+        }, [user]);
 
         const handleApplyCoupon = () => {
                 if (!userInputCode) return;
@@ -37,9 +28,11 @@ const GiftCouponCard = () => {
                 setUserInputCode("");
         };
 
-        const handleRemoveCoupon = () => {
-                removeCoupon();
+        const handleRemoveCoupon = (code) => {
+                removeCoupon(code);
         };
+
+        const hasAppliedCoupons = isCouponApplied && Array.isArray(appliedCoupons) && appliedCoupons.length > 0;
 
         return (
                 <motion.div
@@ -74,28 +67,49 @@ const GiftCouponCard = () => {
                                         {t("cart.coupon.apply")}
                                 </motion.button>
                         </div>
-                        {isCouponApplied && coupon?.code && (
+                        {hasAppliedCoupons && (
                                 <div className='mt-4 rounded-lg border border-payzone-indigo/40 bg-payzone-navy/40 p-4'>
                                         <h3 className='text-lg font-medium text-payzone-gold'>
                                                 {t("cart.coupon.appliedTitle")}
                                         </h3>
 
-                                        <p className='mt-2 text-sm text-white/70'>
-                                                {t("cart.coupon.discount", {
-                                                        code: coupon.code,
-                                                        discount: coupon.discountPercentage,
-                                                })}
-                                        </p>
+                                        <ul className='mt-3 space-y-3 text-sm text-white/70'>
+                                                {appliedCoupons.map((coupon) => {
+                                                        const discount = formatNumberEn(
+                                                                Number(coupon.discountPercentage) || 0
+                                                        );
 
-                                        <motion.button
-                                                type='button'
-                                                className='mt-3 flex w-full items-center justify-center rounded-lg bg-payzone-indigo px-5 py-2.5 text-sm font-medium text-white transition-colors duration-300 hover:bg-[#3b3ad6] focus:outline-none focus:ring-4 focus:ring-payzone-indigo/40'
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                                onClick={handleRemoveCoupon}
-                                        >
-                                                {t("cart.coupon.remove")}
-                                        </motion.button>
+                                                        return (
+                                                                <li
+                                                                        key={coupon.code}
+                                                                        className='flex items-center justify-between gap-3 rounded-md border border-payzone-indigo/30 bg-payzone-navy/30 px-3 py-2'
+                                                                >
+                                                                        <span>{t("cart.coupon.discount", { code: coupon.code, discount })}</span>
+                                                                        <motion.button
+                                                                                type='button'
+                                                                                className='rounded-md bg-payzone-indigo px-3 py-1 text-xs font-medium text-white transition-colors duration-300 hover:bg-[#3b3ad6] focus:outline-none focus:ring-2 focus:ring-payzone-indigo/40'
+                                                                                whileHover={{ scale: 1.05 }}
+                                                                                whileTap={{ scale: 0.95 }}
+                                                                                onClick={() => handleRemoveCoupon(coupon.code)}
+                                                                        >
+                                                                                {t("cart.coupon.remove")}
+                                                                        </motion.button>
+                                                                </li>
+                                                        );
+                                                })}
+                                        </ul>
+
+                                        {appliedCoupons.length > 1 && (
+                                                <motion.button
+                                                        type='button'
+                                                        className='mt-4 flex w-full items-center justify-center rounded-lg border border-payzone-indigo/40 bg-transparent px-5 py-2.5 text-sm font-medium text-white transition-colors duration-300 hover:bg-payzone-indigo/40 focus:outline-none focus:ring-4 focus:ring-payzone-indigo/40'
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => handleRemoveCoupon()}
+                                                >
+                                                        {t("cart.coupon.removeAll")}
+                                                </motion.button>
+                                        )}
                                 </div>
                         )}
                 </motion.div>

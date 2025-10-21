@@ -50,7 +50,7 @@ const getAuthenticatedUser = () => useUserStore.getState().user;
 
 export const useCartStore = create((set, get) => ({
         cart: loadCartFromStorage(),
-        coupon: null,
+        appliedCoupons: [],
         isCouponApplied: false,
         totalDiscountAmount: 0,
         total: 0,
@@ -89,13 +89,25 @@ export const useCartStore = create((set, get) => ({
                                 return;
                         }
 
-                        set({
-                                coupon: {
-                                        code: coupon.code,
-                                        discountPercentage: Number(coupon.discountPercentage) || 0,
-                                },
+                        const existingCoupons = Array.isArray(get().appliedCoupons)
+                                ? get().appliedCoupons
+                                : [];
+
+                        if (existingCoupons.some((entry) => entry.code === coupon.code)) {
+                                toast.error(translate("toast.couponAlreadyApplied"));
+                                return;
+                        }
+
+                        set((state) => ({
+                                appliedCoupons: [
+                                        ...state.appliedCoupons,
+                                        {
+                                                code: coupon.code,
+                                                discountPercentage: Number(coupon.discountPercentage) || 0,
+                                        },
+                                ],
                                 isCouponApplied: true,
-                        });
+                        }));
 
                         get().calculateTotals();
                         toast.success(translate("common.messages.couponAppliedSuccess"));
@@ -103,8 +115,27 @@ export const useCartStore = create((set, get) => ({
                         toast.error(error.response?.data?.message || translate("toast.applyCouponError"));
                 }
         },
-        removeCoupon: () => {
-                set({ coupon: null, isCouponApplied: false });
+        removeCoupon: (code) => {
+                const currentCoupons = Array.isArray(get().appliedCoupons)
+                        ? get().appliedCoupons
+                        : [];
+
+                if (currentCoupons.length === 0) {
+                        return;
+                }
+
+                const updatedCoupons = code
+                        ? currentCoupons.filter((coupon) => coupon.code !== code)
+                        : [];
+
+                if (code && updatedCoupons.length === currentCoupons.length) {
+                        return;
+                }
+
+                set({
+                        appliedCoupons: updatedCoupons,
+                        isCouponApplied: updatedCoupons.length > 0,
+                });
 
                 get().calculateTotals();
                 toast.success(translate("common.messages.couponRemoved"));
@@ -139,7 +170,7 @@ export const useCartStore = create((set, get) => ({
                 persistCartToStorage([]);
                 set({
                         cart: [],
-                        coupon: null,
+                        appliedCoupons: [],
                         totalDiscountAmount: 0,
                         total: 0,
                         subtotal: 0,
@@ -246,7 +277,7 @@ export const useCartStore = create((set, get) => ({
                 }
         },
         calculateTotals: () => {
-                const { cart, coupon } = get();
+                const { cart, appliedCoupons } = get();
 
                 let originalSubtotal = 0;
                 let discountedSubtotal = 0;
@@ -258,35 +289,86 @@ export const useCartStore = create((set, get) => ({
                         discountedSubtotal += discountedPrice * quantity;
                 });
 
+                originalSubtotal = Number(originalSubtotal.toFixed(2));
+                discountedSubtotal = Number(discountedSubtotal.toFixed(2));
+
                 let total = discountedSubtotal;
                 let totalDiscountAmount = 0;
-                let enrichedCoupon = null;
+                const validCoupons = Array.isArray(appliedCoupons)
+                        ? appliedCoupons.filter((coupon) => Boolean(coupon?.code))
+                        : [];
+                let enrichedCoupons = [];
 
-                if (coupon && coupon.code) {
-                        const percentage = Number(coupon.discountPercentage) || 0;
+                if (validCoupons.length > 0 && discountedSubtotal > 0) {
+                        const totalPercentage = validCoupons.reduce(
+                                (sum, coupon) =>
+                                        sum + Math.max(0, Number(coupon.discountPercentage) || 0),
+                                0
+                        );
+                        const cappedPercentage = Math.min(totalPercentage, 100);
 
-                        if (percentage > 0 && discountedSubtotal > 0) {
+                        if (cappedPercentage > 0) {
                                 totalDiscountAmount = Number(
-                                        ((discountedSubtotal * percentage) / 100).toFixed(2)
+                                        ((discountedSubtotal * cappedPercentage) / 100).toFixed(2)
                                 );
+
+                                const baseTotalDiscount = totalPercentage > 0 ? totalDiscountAmount : 0;
+                                let allocated = 0;
+
+                                enrichedCoupons = validCoupons.map((coupon, index) => {
+                                        const percentage = Math.max(
+                                                0,
+                                                Number(coupon.discountPercentage) || 0
+                                        );
+
+                                        if (percentage <= 0 || baseTotalDiscount <= 0) {
+                                                return { ...coupon, discountAmount: 0 };
+                                        }
+
+                                        const share = percentage / totalPercentage;
+                                        let discountAmount = Number(
+                                                (baseTotalDiscount * share).toFixed(2)
+                                        );
+
+                                        if (index === validCoupons.length - 1) {
+                                                discountAmount = Number(
+                                                        (totalDiscountAmount - allocated).toFixed(2)
+                                                );
+                                        } else {
+                                                allocated = Number((allocated + discountAmount).toFixed(2));
+                                        }
+
+                                        return {
+                                                ...coupon,
+                                                discountAmount: Math.max(0, discountAmount),
+                                        };
+                                });
+
                                 total = Number(
                                         Math.max(0, discountedSubtotal - totalDiscountAmount).toFixed(2)
                                 );
+                        } else {
+                                enrichedCoupons = validCoupons.map((coupon) => ({
+                                        ...coupon,
+                                        discountAmount: 0,
+                                }));
                         }
-
-                        enrichedCoupon = {
+                } else if (validCoupons.length > 0) {
+                        enrichedCoupons = validCoupons.map((coupon) => ({
                                 ...coupon,
-                                discountAmount: totalDiscountAmount,
-                        };
+                                discountAmount: 0,
+                        }));
                 }
 
-                set((state) => ({
+                totalDiscountAmount = Number(totalDiscountAmount.toFixed(2));
+
+                set({
                         subtotal: originalSubtotal,
                         discountedSubtotal,
                         total,
                         totalDiscountAmount,
-                        coupon: enrichedCoupon,
-                        isCouponApplied: Boolean(enrichedCoupon) && state.isCouponApplied,
-                }));
+                        appliedCoupons: enrichedCoupons,
+                        isCouponApplied: enrichedCoupons.length > 0,
+                });
         },
 }));

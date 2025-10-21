@@ -62,6 +62,15 @@ const OrderLogSchema = new mongoose.Schema(
         { _id: false }
 );
 
+const AppliedCouponSchema = new mongoose.Schema(
+        {
+                code: { type: String, trim: true },
+                discountPercentage: { type: Number, min: 0 },
+                discountAmount: { type: Number, min: 0 },
+        },
+        { _id: false }
+);
+
 const orderSchema = new mongoose.Schema(
         {
                 items: {
@@ -84,10 +93,9 @@ const orderSchema = new mongoose.Schema(
                         required: true,
                         min: 0,
                 },
-                coupon: {
-                        code: { type: String },
-                        discountPercentage: { type: Number },
-                        discountAmount: { type: Number, min: 0 },
+                coupons: {
+                        type: [AppliedCouponSchema],
+                        default: [],
                 },
                 totalDiscountAmount: {
                         type: Number,
