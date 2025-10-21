@@ -124,6 +124,7 @@ const CheckoutPage = () => {
                                 subtotal,
                                 total,
                                 totalQuantity,
+                                coupon: coupon?.code && isCouponApplied ? { ...coupon } : null,
                         },
                 };
 
@@ -200,7 +201,12 @@ const CheckoutPage = () => {
                                         Number(serverCoupon.discountPercentage) || 0
                                 );
                                 messageLines.push("", t("checkout.messages.couponHeader"));
-                                messageLines.push(`- ${serverCoupon.code} (${discountPercentage}%)`);
+                                messageLines.push(
+                                        t("checkout.messages.coupon", {
+                                                code: serverCoupon.code,
+                                                discount: discountPercentage,
+                                        })
+                                );
                         }
 
                         if (appliedSavings > 0) {

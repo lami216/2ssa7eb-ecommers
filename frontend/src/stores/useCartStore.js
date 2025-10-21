@@ -104,6 +104,10 @@ export const useCartStore = create((set, get) => ({
                 }
         },
         removeCoupon: () => {
+                if (!get().coupon?.code) {
+                        return;
+                }
+
                 set({ coupon: null, isCouponApplied: false });
 
                 get().calculateTotals();
@@ -258,6 +262,9 @@ export const useCartStore = create((set, get) => ({
                         discountedSubtotal += discountedPrice * quantity;
                 });
 
+                originalSubtotal = Number(originalSubtotal.toFixed(2));
+                discountedSubtotal = Number(discountedSubtotal.toFixed(2));
+
                 let total = discountedSubtotal;
                 let totalDiscountAmount = 0;
                 let enrichedCoupon = null;
@@ -267,7 +274,7 @@ export const useCartStore = create((set, get) => ({
 
                         if (percentage > 0 && discountedSubtotal > 0) {
                                 totalDiscountAmount = Number(
-                                        ((discountedSubtotal * percentage) / 100).toFixed(2)
+                                        ((discountedSubtotal * Math.min(percentage, 100)) / 100).toFixed(2)
                                 );
                                 total = Number(
                                         Math.max(0, discountedSubtotal - totalDiscountAmount).toFixed(2)
@@ -280,13 +287,13 @@ export const useCartStore = create((set, get) => ({
                         };
                 }
 
-                set((state) => ({
+                set({
                         subtotal: originalSubtotal,
                         discountedSubtotal,
                         total,
                         totalDiscountAmount,
                         coupon: enrichedCoupon,
-                        isCouponApplied: Boolean(enrichedCoupon) && state.isCouponApplied,
-                }));
+                        isCouponApplied: Boolean(enrichedCoupon),
+                });
         },
 }));
