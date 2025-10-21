@@ -32,22 +32,29 @@ const computeUnitPrice = (product) => {
         return Number(discounted.toFixed(2));
 };
 
+const normalizeCoupon = (coupon) => {
+        if (!coupon || !coupon.code) {
+                return null;
+        }
+
+        return {
+                code: coupon.code,
+                discountPercentage: Number(coupon.discountPercentage) || 0,
+                discountAmount: Number(coupon.discountAmount) || 0,
+        };
+};
+
 const mapOrderResponse = (order) => {
-        const coupons = Array.isArray(order.coupons)
-                ? order.coupons.map((coupon) => ({
-                          code: coupon.code,
-                          discountPercentage: Number(coupon.discountPercentage) || 0,
-                          discountAmount: Number(coupon.discountAmount) || 0,
-                  }))
-                : [];
+        const couponFromLegacyArray = Array.isArray(order.coupons) ? order.coupons[0] : null;
+        const coupon = normalizeCoupon(order.coupon || couponFromLegacyArray);
 
         return {
                 ...order,
                 subtotal: Number(order.subtotal || 0),
                 total: Number(order.total || 0),
                 totalDiscountAmount: Number(order.totalDiscountAmount || 0),
-                coupons,
-                coupon: coupons[0] || null,
+                coupon,
+                coupons: coupon ? [coupon] : [],
         };
 };
 
@@ -82,14 +89,11 @@ export const createWhatsAppOrder = async (req, res) => {
                         }
                 }
 
-                const normalizedCouponCodes = [
-                        ...new Set(
-                                couponCodeInputs
-                                        .map((value) => normalizeString(value))
-                                        .filter(Boolean)
-                                        .map((value) => value.replace(/\s+/g, "").toUpperCase())
-                        ),
-                ];
+                const normalizedCouponCodes = couponCodeInputs
+                        .map((value) => normalizeString(value))
+                        .filter(Boolean)
+                        .map((value) => value.replace(/\s+/g, "").toUpperCase());
+                const primaryCouponCode = normalizedCouponCodes[0] || "";
 
                 if (!items.length) {
                         return res.status(400).json({ message: "Order must contain at least one item" });
@@ -173,90 +177,42 @@ export const createWhatsAppOrder = async (req, res) => {
 
                 let total = subtotal;
                 let totalDiscountAmount = 0;
-                let appliedCoupons = [];
+                let appliedCoupon = null;
 
-                if (normalizedCouponCodes.length > 0) {
-                        const coupons = await Coupon.find({
-                                code: { $in: normalizedCouponCodes },
+                if (primaryCouponCode) {
+                        const coupon = await Coupon.findOne({
+                                code: primaryCouponCode,
                                 isActive: true,
                                 expiresAt: { $gt: new Date() },
                         }).lean();
 
-                        const foundCodes = new Set(coupons.map((coupon) => coupon.code));
-                        const missingCodes = normalizedCouponCodes.filter(
-                                (code) => !foundCodes.has(code)
-                        );
-
-                        if (missingCodes.length > 0) {
+                        if (!coupon) {
                                 return res
                                         .status(400)
                                         .json({ message: "One or more coupons are invalid or expired" });
                         }
 
-                        const orderedCoupons = normalizedCouponCodes
-                                .map((code) => coupons.find((coupon) => coupon.code === code))
-                                .filter(Boolean);
+                        const discountPercentage = Number(coupon.discountPercentage) || 0;
 
-                        const baseCoupons = orderedCoupons.map((coupon) => ({
-                                code: coupon.code,
-                                discountPercentage: Number(coupon.discountPercentage) || 0,
-                        }));
-
-                        const totalPercentage = baseCoupons.reduce(
-                                (sum, coupon) => sum + Math.max(0, coupon.discountPercentage || 0),
-                                0
-                        );
-
-                        const cappedPercentage = Math.min(totalPercentage, 100);
-
-                        if (cappedPercentage > 0 && subtotal > 0) {
+                        if (discountPercentage > 0 && subtotal > 0) {
                                 totalDiscountAmount = Number(
-                                        ((subtotal * cappedPercentage) / 100).toFixed(2)
+                                        ((subtotal * Math.min(discountPercentage, 100)) / 100).toFixed(2)
                                 );
-
-                                const baseTotalDiscount = totalPercentage > 0 ? totalDiscountAmount : 0;
-                                let allocated = 0;
-
-                                appliedCoupons = baseCoupons.map((coupon, index) => {
-                                        if (coupon.discountPercentage <= 0 || baseTotalDiscount <= 0) {
-                                                return { ...coupon, discountAmount: 0 };
-                                        }
-
-                                        const share = coupon.discountPercentage / totalPercentage;
-                                        let discountAmount = Number(
-                                                (baseTotalDiscount * share).toFixed(2)
-                                        );
-
-                                        if (index === baseCoupons.length - 1) {
-                                                discountAmount = Number(
-                                                        (totalDiscountAmount - allocated).toFixed(2)
-                                                );
-                                        } else {
-                                                allocated = Number((allocated + discountAmount).toFixed(2));
-                                        }
-
-                                        return {
-                                                ...coupon,
-                                                discountAmount: Math.max(0, discountAmount),
-                                        };
-                                });
-
-                                total = Number(
-                                        Math.max(0, subtotal - totalDiscountAmount).toFixed(2)
-                                );
-                        } else {
-                                appliedCoupons = baseCoupons.map((coupon) => ({
-                                        ...coupon,
-                                        discountAmount: 0,
-                                }));
+                                total = Number(Math.max(0, subtotal - totalDiscountAmount).toFixed(2));
                         }
+
+                        appliedCoupon = {
+                                code: coupon.code,
+                                discountPercentage,
+                                discountAmount: totalDiscountAmount,
+                        };
                 }
 
                 const order = await Order.create({
                         items: itemsWithDetails,
                         subtotal,
                         total,
-                        coupons: appliedCoupons,
+                        coupon: appliedCoupon,
                         totalDiscountAmount,
                         customerName,
                         phone,
@@ -285,7 +241,6 @@ export const createWhatsAppOrder = async (req, res) => {
                         orderNumber: order.orderNumber,
                         subtotal: orderForResponse.subtotal,
                         total: orderForResponse.total,
-                        coupons: orderForResponse.coupons,
                         coupon: orderForResponse.coupon,
                         totalDiscountAmount: orderForResponse.totalDiscountAmount,
                 });

@@ -10,7 +10,7 @@ import { getProductPricing } from "../lib/getProductPricing";
 import apiClient from "../lib/apiClient";
 
 const CheckoutPage = () => {
-        const { cart, total, subtotal, appliedCoupons, totalDiscountAmount, clearCart, isCouponApplied } =
+        const { cart, total, subtotal, coupon, totalDiscountAmount, clearCart, isCouponApplied } =
                 useCartStore();
         const navigate = useNavigate();
         const [customerName, setCustomerName] = useState("");
@@ -101,10 +101,6 @@ const CheckoutPage = () => {
                 const sanitizedPhone = normalizedWhatsAppNumber;
                 const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-                const couponsSnapshot = Array.isArray(appliedCoupons)
-                        ? appliedCoupons.map((coupon) => ({ ...coupon }))
-                        : [];
-
                 const baseOrderDetails = {
                         customerName: customerName.trim(),
                         phone: sanitizedPhone,
@@ -128,7 +124,7 @@ const CheckoutPage = () => {
                                 subtotal,
                                 total,
                                 totalQuantity,
-                                coupons: couponsSnapshot,
+                                coupon: coupon?.code && isCouponApplied ? { ...coupon } : null,
                         },
                 };
 
@@ -142,8 +138,8 @@ const CheckoutPage = () => {
                         address: baseOrderDetails.address,
                 };
 
-                if (isCouponApplied && Array.isArray(appliedCoupons) && appliedCoupons.length > 0) {
-                        requestPayload.couponCodes = appliedCoupons.map((coupon) => coupon.code);
+                if (coupon?.code && isCouponApplied) {
+                        requestPayload.couponCode = coupon.code;
                 }
 
                 const DEFAULT_STORE_WHATSAPP_NUMBER = "22231117700";
@@ -162,11 +158,7 @@ const CheckoutPage = () => {
                         const serverTotalDiscount = Number(
                                 response?.totalDiscountAmount ?? Math.max(serverSubtotal - serverTotal, 0)
                         );
-                        const serverCoupons = Array.isArray(response?.coupons)
-                                ? response.coupons
-                                : isCouponApplied && Array.isArray(appliedCoupons)
-                                        ? appliedCoupons
-                                        : [];
+                        const serverCoupon = response?.coupon ?? (isCouponApplied ? coupon : null);
 
                         if (!orderId || !orderNumber) {
                                 throw new Error("Missing order information from server");
@@ -180,8 +172,7 @@ const CheckoutPage = () => {
                                         ...baseOrderDetails.summary,
                                         subtotal: serverSubtotal,
                                         total: serverTotal,
-                                        coupons: serverCoupons,
-                                        coupon: serverCoupons[0] || null,
+                                        coupon: serverCoupon,
                                         totalDiscountAmount: Math.max(serverTotalDiscount, 0),
                                 },
                         };
@@ -205,19 +196,17 @@ const CheckoutPage = () => {
                                 messageLines.push(t("checkout.messages.noProducts"));
                         }
 
-                        if (serverCoupons.length > 0) {
+                        if (serverCoupon?.code) {
+                                const discountPercentage = formatNumberEn(
+                                        Number(serverCoupon.discountPercentage) || 0
+                                );
                                 messageLines.push("", t("checkout.messages.couponHeader"));
-                                serverCoupons.forEach((coupon) => {
-                                        const discountPercentage = formatNumberEn(
-                                                Number(coupon.discountPercentage) || 0
-                                        );
-                                        messageLines.push(
-                                                t("checkout.messages.coupon", {
-                                                        code: coupon.code,
-                                                        discount: discountPercentage,
-                                                })
-                                        );
-                                });
+                                messageLines.push(
+                                        t("checkout.messages.coupon", {
+                                                code: serverCoupon.code,
+                                                discount: discountPercentage,
+                                        })
+                                );
                         }
 
                         if (appliedSavings > 0) {

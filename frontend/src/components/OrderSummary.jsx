@@ -6,7 +6,7 @@ import { formatMRU } from "../lib/formatMRU";
 import { formatNumberEn } from "../lib/formatNumberEn";
 
 const OrderSummary = () => {
-        const { cart, total, discountedSubtotal, totalDiscountAmount, isCouponApplied } =
+        const { cart, total, discountedSubtotal, coupon, totalDiscountAmount, isCouponApplied } =
                 useCartStore();
         const navigate = useNavigate();
         const { t } = useTranslation();
@@ -18,7 +18,7 @@ const OrderSummary = () => {
                 discountedSubtotal - total,
                 0
         );
-        const hasCouponSavings = isCouponApplied && couponSavings > 0;
+        const hasCouponSavings = Boolean(coupon?.code) && couponSavings > 0 && isCouponApplied;
 
         const handleCheckout = () => {
                 if (isDisabled) return;
