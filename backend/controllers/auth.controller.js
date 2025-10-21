@@ -1,4 +1,4 @@
-import { redis } from "../lib/redis.js";
+import { redisClient } from "../lib/redisClient.js";
 import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 
@@ -14,8 +14,26 @@ const generateTokens = (userId) => {
 	return { accessToken, refreshToken };
 };
 
+const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
+
 const storeRefreshToken = async (userId, refreshToken) => {
-	await redis.set(`refresh_token:${userId}`, refreshToken, "EX", 7 * 24 * 60 * 60); // 7days
+        if (!redisClient.isReady()) {
+                if (redisClient.isEnabled()) {
+                        console.log(
+                                `[Redis] Cache not ready. Skipping refresh token store for user ${userId}.`
+                        );
+                }
+                return;
+        }
+
+        try {
+                await redisClient.setEx(`refresh_token:${userId}`, REFRESH_TOKEN_TTL, refreshToken);
+                console.log(`[Redis] Stored refresh token for user ${userId}.`);
+        } catch (error) {
+                console.log(
+                        `[Redis] Failed to store refresh token for user ${userId}: ${error.message}`
+                );
+        }
 };
 
 const setCookies = (res, accessToken, refreshToken) => {
@@ -89,10 +107,28 @@ export const login = async (req, res) => {
 export const logout = async (req, res) => {
 	try {
 		const refreshToken = req.cookies.refreshToken;
-		if (refreshToken) {
-			const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-			await redis.del(`refresh_token:${decoded.userId}`);
-		}
+                if (refreshToken) {
+                        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+                        if (!redisClient.isReady()) {
+                                if (redisClient.isEnabled()) {
+                                        console.log(
+                                                `[Redis] Cache not ready. Skipping refresh token removal for user ${decoded.userId}.`
+                                        );
+                                }
+                        } else {
+                                try {
+                                        await redisClient.del(`refresh_token:${decoded.userId}`);
+                                        console.log(
+                                                `[Redis] Cleared refresh token cache for user ${decoded.userId}.`
+                                        );
+                                } catch (error) {
+                                        console.log(
+                                                `[Redis] Failed to clear refresh token for user ${decoded.userId}: ${error.message}`
+                                        );
+                                }
+                        }
+                }
 
 		res.clearCookie("accessToken");
 		res.clearCookie("refreshToken");
@@ -113,11 +149,29 @@ export const refreshToken = async (req, res) => {
 		}
 
 		const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-		const storedToken = await redis.get(`refresh_token:${decoded.userId}`);
+                let storedToken = null;
+                let cacheVerified = false;
 
-		if (storedToken !== refreshToken) {
-			return res.status(401).json({ message: "Invalid refresh token" });
-		}
+                if (!redisClient.isReady()) {
+                        if (redisClient.isEnabled()) {
+                                console.log(
+                                        `[Redis] Cache not ready. Skipping refresh token validation for user ${decoded.userId}.`
+                                );
+                        }
+                } else {
+                        try {
+                                storedToken = await redisClient.get(`refresh_token:${decoded.userId}`);
+                                cacheVerified = true;
+                        } catch (error) {
+                                console.log(
+                                        `[Redis] Failed to read refresh token for user ${decoded.userId}: ${error.message}`
+                                );
+                        }
+                }
+
+                if (cacheVerified && storedToken !== refreshToken) {
+                        return res.status(401).json({ message: "Invalid refresh token" });
+                }
 
 		const accessToken = jwt.sign({ userId: decoded.userId }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
 

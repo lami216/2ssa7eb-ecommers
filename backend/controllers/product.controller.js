@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { redis } from "../lib/redis.js";
+import { redisClient } from "../lib/redisClient.js";
 import cloudinary from "../lib/cloudinary.js";
 import Product from "../models/product.model.js";
 
@@ -77,6 +77,70 @@ const serializeProduct = (product) => {
         return finalizeProductPayload(serialized);
 };
 
+const CACHE_TTL_SECONDS = 600;
+const FEATURED_CACHE_KEY = "featured_products";
+
+const normalizeKeySegment = (value) =>
+        value
+                ?.toString()
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, "_") || "";
+
+const getProductCacheKey = (id) => (id ? `product_${id}` : null);
+const getCategoryCacheKey = (categoryName) => {
+        const normalized = normalizeKeySegment(categoryName);
+        return normalized ? `category_${normalized}` : null;
+};
+
+const safeJsonParse = (payload, fallback = null) => {
+        if (!payload) return fallback;
+
+        try {
+                return JSON.parse(payload);
+        } catch (error) {
+                console.log(`[Redis] Failed to parse cached payload: ${error.message}`);
+                return fallback;
+        }
+};
+
+const shouldUseCache = () => redisClient.isReady();
+
+const logCacheSkip = (action, keys = []) => {
+        if (!redisClient.isEnabled()) {
+                return;
+        }
+
+        const suffix = keys.length ? ` (${keys.join(", ")})` : "";
+        console.log(`[Redis] Cache not ready. Skipping ${action}${suffix}.`);
+};
+
+const clearCacheKeys = async (keys = []) => {
+        const uniqueKeys = Array.from(new Set(keys.filter(Boolean)));
+
+        if (!uniqueKeys.length) {
+                return;
+        }
+
+        if (!shouldUseCache()) {
+                logCacheSkip(`cache invalidation for keys`, uniqueKeys);
+                return;
+        }
+
+        for (const key of uniqueKeys) {
+                try {
+                        const removed = await redisClient.del(key);
+                        if (removed) {
+                                console.log(`[Redis] Cleared cache key ${key}.`);
+                        } else {
+                                console.log(`[Redis] Cache key ${key} not found during invalidation.`);
+                        }
+                } catch (error) {
+                        console.log(`[Redis] Failed to clear cache key ${key}: ${error.message}`);
+                }
+        }
+};
+
 export const getAllProducts = async (req, res) => {
         try {
                 const products = await Product.find({}).lean({ virtuals: true });
@@ -89,13 +153,30 @@ export const getAllProducts = async (req, res) => {
 
 export const getFeaturedProducts = async (req, res) => {
         try {
-                let featuredProducts = await redis.get("featured_products");
-                if (featuredProducts) {
-                        const parsed = JSON.parse(featuredProducts);
-                        return res.json(parsed.map(finalizeProductPayload));
+                if (shouldUseCache()) {
+                        try {
+                                const cached = await redisClient.get(FEATURED_CACHE_KEY);
+
+                                if (cached) {
+                                        const parsed = safeJsonParse(cached, null);
+
+                                        if (parsed) {
+                                                console.log(`[Redis] Cache hit for ${FEATURED_CACHE_KEY}.`);
+                                                return res.json(parsed);
+                                        }
+                                } else {
+                                        console.log(`[Redis] Cache miss for ${FEATURED_CACHE_KEY}.`);
+                                }
+                        } catch (cacheError) {
+                                console.log(
+                                        `[Redis] Cache read failed for ${FEATURED_CACHE_KEY}: ${cacheError.message}`
+                                );
+                        }
+                } else {
+                        logCacheSkip("read", [FEATURED_CACHE_KEY]);
                 }
 
-                featuredProducts = await Product.find({ isFeatured: true }).lean({ virtuals: true });
+                const featuredProducts = await Product.find({ isFeatured: true }).lean({ virtuals: true });
 
                 if (!featuredProducts || !featuredProducts.length) {
                         return res.status(404).json({ message: "No featured products found" });
@@ -103,7 +184,22 @@ export const getFeaturedProducts = async (req, res) => {
 
                 const finalized = featuredProducts.map(finalizeProductPayload);
 
-                await redis.set("featured_products", JSON.stringify(finalized));
+                if (shouldUseCache()) {
+                        try {
+                                await redisClient.setEx(
+                                        FEATURED_CACHE_KEY,
+                                        CACHE_TTL_SECONDS,
+                                        JSON.stringify(finalized)
+                                );
+                                console.log(`[Redis] Cache refreshed for ${FEATURED_CACHE_KEY}.`);
+                        } catch (cacheError) {
+                                console.log(
+                                        `[Redis] Cache write failed for ${FEATURED_CACHE_KEY}: ${cacheError.message}`
+                                );
+                        }
+                } else {
+                        logCacheSkip("write", [FEATURED_CACHE_KEY]);
+                }
 
                 res.json(finalized);
         } catch (error) {
@@ -206,6 +302,16 @@ export const createProduct = async (req, res) => {
                         discountPercentage: discountSettings.discountPercentage,
                 });
 
+                await clearCacheKeys([
+                        FEATURED_CACHE_KEY,
+                        getCategoryCacheKey(category.trim()),
+                        getProductCacheKey(product._id),
+                ]);
+
+                if (product.isFeatured) {
+                        await updateFeaturedProductsCache();
+                }
+
                 res.status(201).json(serializeProduct(product));
         } catch (error) {
                 console.log("Error in createProduct controller", error.message);
@@ -233,6 +339,9 @@ export const updateProduct = async (req, res) => {
                 if (!product) {
                         return res.status(404).json({ message: "Product not found" });
                 }
+
+                const previousCategory = product.category;
+                const wasFeatured = product.isFeatured;
 
                 const trimmedName = typeof name === "string" ? name.trim() : product.name;
                 const trimmedDescription =
@@ -387,7 +496,14 @@ export const updateProduct = async (req, res) => {
 
                 const updatedProduct = await product.save();
 
-                if (updatedProduct.isFeatured) {
+                await clearCacheKeys([
+                        FEATURED_CACHE_KEY,
+                        getCategoryCacheKey(previousCategory),
+                        getCategoryCacheKey(updatedProduct.category),
+                        getProductCacheKey(updatedProduct._id),
+                ]);
+
+                if (wasFeatured || updatedProduct.isFeatured) {
                         await updateFeaturedProductsCache();
                 }
 
@@ -425,6 +541,12 @@ export const deleteProduct = async (req, res) => {
 
                 await Product.findByIdAndDelete(req.params.id);
 
+                await clearCacheKeys([
+                        FEATURED_CACHE_KEY,
+                        getCategoryCacheKey(product.category),
+                        getProductCacheKey(product._id),
+                ]);
+
                 if (product.isFeatured) {
                         await updateFeaturedProductsCache();
                 }
@@ -438,13 +560,55 @@ export const deleteProduct = async (req, res) => {
 
 export const getProductById = async (req, res) => {
         try {
-                const product = await Product.findById(req.params.id);
+                const { id } = req.params;
+                const cacheKey = getProductCacheKey(id);
+                const canUseCache = Boolean(cacheKey) && shouldUseCache();
+
+                if (canUseCache) {
+                        try {
+                                const cached = await redisClient.get(cacheKey);
+
+                                if (cached) {
+                                        const parsed = safeJsonParse(cached, null);
+
+                                        if (parsed) {
+                                                console.log(`[Redis] Cache hit for ${cacheKey}.`);
+                                                return res.json(parsed);
+                                        }
+                                } else {
+                                        console.log(`[Redis] Cache miss for ${cacheKey}.`);
+                                }
+                        } catch (cacheError) {
+                                console.log(`[Redis] Cache read failed for ${cacheKey}: ${cacheError.message}`);
+                        }
+                } else if (cacheKey) {
+                        logCacheSkip("read", [cacheKey]);
+                }
+
+                const product = await Product.findById(id);
 
                 if (!product) {
                         return res.status(404).json({ message: "Product not found" });
                 }
 
-                res.json(serializeProduct(product));
+                const serializedProduct = serializeProduct(product);
+
+                if (canUseCache) {
+                        try {
+                                await redisClient.setEx(
+                                        cacheKey,
+                                        CACHE_TTL_SECONDS,
+                                        JSON.stringify(serializedProduct)
+                                );
+                                console.log(`[Redis] Cache refreshed for ${cacheKey}.`);
+                        } catch (cacheError) {
+                                console.log(`[Redis] Cache write failed for ${cacheKey}: ${cacheError.message}`);
+                        }
+                } else if (cacheKey) {
+                        logCacheSkip("write", [cacheKey]);
+                }
+
+                res.json(serializedProduct);
         } catch (error) {
                 console.log("Error in getProductById controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
@@ -522,8 +686,51 @@ export const getRecommendedProducts = async (req, res) => {
 export const getProductsByCategory = async (req, res) => {
         const { category } = req.params;
         try {
-                const products = await Product.find({ category }).lean({ virtuals: true });
-                res.json({ products: products.map(finalizeProductPayload) });
+                const normalizedCategory =
+                        typeof category === "string" ? category.trim() : category;
+                const cacheKey = getCategoryCacheKey(normalizedCategory || category);
+                const canUseCache = Boolean(cacheKey) && shouldUseCache();
+
+                if (canUseCache) {
+                        try {
+                                const cached = await redisClient.get(cacheKey);
+
+                                if (cached) {
+                                        const parsed = safeJsonParse(cached, null);
+
+                                        if (parsed) {
+                                                console.log(`[Redis] Cache hit for ${cacheKey}.`);
+                                                return res.json(parsed);
+                                        }
+                                } else {
+                                        console.log(`[Redis] Cache miss for ${cacheKey}.`);
+                                }
+                        } catch (cacheError) {
+                                console.log(`[Redis] Cache read failed for ${cacheKey}: ${cacheError.message}`);
+                        }
+                } else if (cacheKey) {
+                        logCacheSkip("read", [cacheKey]);
+                }
+
+                const products = await Product.find({ category: normalizedCategory }).lean({ virtuals: true });
+                const payload = { products: products.map(finalizeProductPayload) };
+
+                if (canUseCache) {
+                        try {
+                                await redisClient.setEx(
+                                        cacheKey,
+                                        CACHE_TTL_SECONDS,
+                                        JSON.stringify(payload)
+                                );
+                                console.log(`[Redis] Cache refreshed for ${cacheKey}.`);
+                        } catch (cacheError) {
+                                console.log(`[Redis] Cache write failed for ${cacheKey}: ${cacheError.message}`);
+                        }
+                } else if (cacheKey) {
+                        logCacheSkip("write", [cacheKey]);
+                }
+
+                res.json(payload);
         } catch (error) {
                 console.log("Error in getProductsByCategory controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
@@ -536,6 +743,11 @@ export const toggleFeaturedProduct = async (req, res) => {
                 if (product) {
                         product.isFeatured = !product.isFeatured;
                         const updatedProduct = await product.save();
+                        await clearCacheKeys([
+                                FEATURED_CACHE_KEY,
+                                getCategoryCacheKey(updatedProduct.category),
+                                getProductCacheKey(updatedProduct._id),
+                        ]);
                         await updateFeaturedProductsCache();
                         res.json(serializeProduct(updatedProduct));
                 } else {
@@ -548,13 +760,22 @@ export const toggleFeaturedProduct = async (req, res) => {
 };
 
 async function updateFeaturedProductsCache() {
+        if (!shouldUseCache()) {
+                logCacheSkip("refresh", [FEATURED_CACHE_KEY]);
+                return;
+        }
+
         try {
                 const featuredProducts = await Product.find({ isFeatured: true }).lean({ virtuals: true });
-                await redis.set(
-                        "featured_products",
-                        JSON.stringify(featuredProducts.map(finalizeProductPayload))
+                const payload = featuredProducts.map(finalizeProductPayload);
+
+                await redisClient.setEx(
+                        FEATURED_CACHE_KEY,
+                        CACHE_TTL_SECONDS,
+                        JSON.stringify(payload)
                 );
+                console.log(`[Redis] Cache refreshed for ${FEATURED_CACHE_KEY}.`);
         } catch (error) {
-                console.log("error in update cache function", error.message);
+                console.log(`[Redis] Failed to refresh ${FEATURED_CACHE_KEY}: ${error.message}`);
         }
 }
