@@ -461,30 +461,26 @@ const CreateProductForm = () => {
                                 <div className='rounded-lg border border-payzone-indigo/40 bg-payzone-navy/50 p-4'>
                                         <div className='flex items-start justify-between gap-4'>
                                                 <div>
-                                                        <p className='text-sm font-medium text-white/80'>
+                                                        <label
+                                                                htmlFor='discountToggleSwitch'
+                                                                className='text-sm font-medium text-white/80'
+                                                        >
                                                                 {t("admin.createProduct.fields.discountToggle")}
-                                                        </p>
+                                                        </label>
                                                         <p className='mt-1 text-xs text-white/60'>
                                                                 {t("admin.createProduct.fields.discountHint")}
                                                         </p>
                                                 </div>
-                                                <button
-                                                        type='button'
-                                                        role='switch'
-                                                        aria-checked={formState.isDiscounted}
-                                                        onClick={handleToggleDiscount}
-                                                        className={`relative inline-flex h-7 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-payzone-gold ${
-                                                                formState.isDiscounted
-                                                                        ? "bg-emerald-500"
-                                                                        : "bg-white/30"
-                                                        }`}
-                                                >
-                                                        <span
-                                                                className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition duration-200 ${
-                                                                        formState.isDiscounted ? "translate-x-1" : "translate-x-7"
-                                                                }`}
+                                                <label className='discount-switch'>
+                                                        <input
+                                                                id='discountToggleSwitch'
+                                                                type='checkbox'
+                                                                className='discount-switch__checkbox'
+                                                                checked={formState.isDiscounted}
+                                                                onChange={handleToggleDiscount}
                                                         />
-                                                </button>
+                                                        <span className='discount-switch__slider' />
+                                                </label>
                                         </div>
 
                                         {formState.isDiscounted && (

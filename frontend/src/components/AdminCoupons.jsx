@@ -233,7 +233,7 @@ const AdminCoupons = () => {
                                 await createCoupon(payload);
                         }
                         closeForm();
-                } catch (error) {
+                } catch {
                         // Errors handled by store toasts
                 }
         };
@@ -241,7 +241,7 @@ const AdminCoupons = () => {
         const handleToggleActive = async (coupon) => {
                 try {
                         await updateCoupon(coupon._id, { isActive: !coupon.isActive });
-                } catch (error) {
+                } catch {
                         // Error handled by store toast
                 }
         };
