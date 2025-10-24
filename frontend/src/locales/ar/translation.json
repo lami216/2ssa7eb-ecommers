@@ -77,6 +77,17 @@
                 "subtitle": "تابع أحدث الاتجاهات في الخدمات الرقمية مع تجربة بايزون السلسة",
                 "featuredTitle": "مميزة"
         },
+        "search": {
+                "placeholder": "ابحث عن منتج...",
+                "action": "بحث",
+                "categories": "الفئات",
+                "clear": "مسح البحث",
+                "resultsTitle": "نتائج البحث",
+                "noResults": "لا توجد منتجات مطابقة لـ \"{{query}}\"",
+                "genericError": "حدث خطأ أثناء البحث عن المنتجات.",
+                "categoriesTitle": "الفئات المتاحة",
+                "categoriesEmpty": "لا توجد فئات متاحة حالياً."
+        },
         "categories": {
                 "explore": "استكشف {{category}}",
                 "discover": "اكتشف {{category}}",

@@ -77,6 +77,20 @@ const serializeProduct = (product) => {
         return finalizeProductPayload(serialized);
 };
 
+const escapeRegex = (value) => {
+        return value.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+};
+
+const buildSearchRegex = (value) => {
+        if (typeof value !== "string") return null;
+
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+
+        const normalized = trimmed.replace(/\s+/g, " ");
+        return new RegExp(escapeRegex(normalized), "i");
+};
+
 export const getAllProducts = async (req, res) => {
         try {
                 const products = await Product.find({}).lean({ virtuals: true });
@@ -108,6 +122,28 @@ export const getFeaturedProducts = async (req, res) => {
                 res.json(finalized);
         } catch (error) {
                 console.log("Error in getFeaturedProducts controller", error.message);
+                res.status(500).json({ message: "Server error", error: error.message });
+        }
+};
+
+export const searchProducts = async (req, res) => {
+        try {
+                const query = typeof req.query.query === "string" ? req.query.query : "";
+                const regex = buildSearchRegex(query);
+
+                if (!regex) {
+                        return res.json({ products: [] });
+                }
+
+                const products = await Product.find({
+                        $or: [{ name: regex }, { description: regex }],
+                })
+                        .limit(10)
+                        .lean({ virtuals: true });
+
+                res.json({ products: products.map(finalizeProductPayload) });
+        } catch (error) {
+                console.log("Error in searchProducts controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
         }
 };
