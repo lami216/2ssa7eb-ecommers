@@ -4,6 +4,7 @@ import CategoryItem from "../components/CategoryItem";
 import { useProductStore } from "../stores/useProductStore";
 import FeaturedProducts from "../components/FeaturedProducts";
 import { useCategoryStore } from "../stores/useCategoryStore";
+import SearchBar from "../components/SearchBar";
 
 const HomePage = () => {
         const { fetchFeaturedProducts, products, loading: productsLoading } = useProductStore();
@@ -30,6 +31,8 @@ const HomePage = () => {
                                 <p className='mb-12 text-center text-lg text-white/70'>
                                         {t("home.subtitle")}
                                 </p>
+
+                                <SearchBar />
 
                                 <div className='grid grid-cols-2 gap-4 lg:grid-cols-3'>
                                         {categories.length === 0 && !categoriesLoading && (
