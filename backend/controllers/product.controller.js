@@ -112,6 +112,55 @@ export const getFeaturedProducts = async (req, res) => {
         }
 };
 
+const escapeRegex = (value = "") => {
+        return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
+const buildSearchRegex = (rawQuery) => {
+        const sanitized = typeof rawQuery === "string" ? rawQuery.trim() : "";
+
+        if (!sanitized) {
+                return null;
+        }
+
+        const normalizedTokens = sanitized
+                .split(/\s+/)
+                .map((token) => escapeRegex(token))
+                .filter(Boolean);
+
+        if (!normalizedTokens.length) {
+                return null;
+        }
+
+        const pattern = normalizedTokens.join(".*");
+        return new RegExp(pattern, "i");
+};
+
+export const searchProducts = async (req, res) => {
+        try {
+                const query = typeof req.query.q === "string" ? req.query.q.trim() : "";
+
+                if (!query) {
+                        return res.json({ products: [] });
+                }
+
+                const searchRegex = buildSearchRegex(query);
+
+                if (!searchRegex) {
+                        return res.json({ products: [] });
+                }
+
+                const products = await Product.find({ name: searchRegex })
+                        .limit(20)
+                        .lean({ virtuals: true });
+
+                res.json({ products: products.map(finalizeProductPayload) });
+        } catch (error) {
+                console.log("Error in searchProducts controller", error.message);
+                res.status(500).json({ message: "Server error", error: error.message });
+        }
+};
+
 export const createProduct = async (req, res) => {
         try {
                 const { name, description, price, category, images, isDiscounted, discountPercentage } = req.body;

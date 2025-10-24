@@ -1,0 +1,95 @@
+.search-bar-wrapper {
+        @apply relative mx-auto mt-10 mb-12 w-full max-w-3xl px-4 md:mt-12;
+}
+
+.search-bar-surface {
+        @apply flex w-full items-stretch overflow-hidden rounded-2xl border border-payzone-indigo/40 bg-[#0b1a32]/90 shadow-2xl backdrop-blur-xl transition-shadow duration-300;
+}
+
+.search-bar-surface:focus-within {
+        @apply shadow-[0_0_35px_rgba(210,156,74,0.35)];
+}
+
+.search-category-button {
+        background: linear-gradient(135deg, rgba(75, 74, 207, 0.35), rgba(210, 156, 74, 0.25));
+        @apply flex items-center gap-2 border-r border-white/10 px-4 py-3 text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-payzone-gold transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-payzone-gold/70;
+}
+
+.search-category-button:hover,
+.search-category-button:focus-visible {
+        background: linear-gradient(135deg, rgba(75, 74, 207, 0.55), rgba(210, 156, 74, 0.4));
+        @apply text-white;
+}
+
+.search-input-wrapper {
+        @apply relative flex-1;
+}
+
+.search-input-icon {
+        @apply pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-payzone-gold;
+}
+
+.search-input {
+        @apply w-full bg-transparent py-3 pl-11 pr-4 text-base text-white placeholder-white/60 focus:outline-none;
+}
+
+.search-submit-button {
+        @apply flex items-center justify-center bg-gradient-to-r from-payzone-indigo via-payzone-indigo/80 to-payzone-gold px-5 py-3 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-white transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-payzone-gold/70 disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+.search-submit-button:hover:not(:disabled) {
+        @apply brightness-110;
+}
+
+.search-button-icon {
+        @apply h-5 w-5 text-white;
+}
+
+.search-dropdown {
+        @apply absolute left-4 right-4 z-40 mt-3 overflow-hidden rounded-2xl border border-payzone-indigo/40 bg-[#09152a]/95 shadow-2xl backdrop-blur-xl;
+}
+
+.search-dropdown-header {
+        @apply flex items-center justify-between border-b border-white/10 px-5 py-3 text-sm font-semibold text-payzone-gold;
+}
+
+.search-dropdown-list {
+        @apply max-h-80 overflow-y-auto;
+}
+
+.search-option {
+        @apply flex w-full items-center justify-between gap-4 px-5 py-3 text-left text-sm text-white transition-colors duration-150 hover:bg-payzone-indigo/40 focus:outline-none;
+}
+
+.search-option-active {
+        @apply bg-payzone-indigo/50;
+}
+
+.search-option-title {
+        @apply block text-base font-semibold text-white;
+}
+
+.search-option-subtitle {
+        @apply mt-1 block text-xs text-payzone-gold/70;
+}
+
+.search-option-price {
+        @apply flex flex-col items-end text-sm font-semibold text-payzone-gold;
+}
+
+.search-option-old-price {
+        @apply text-xs text-white/50 line-through;
+}
+
+.search-option-current-price {
+        @apply text-base font-bold text-payzone-gold;
+}
+
+.search-loading-state,
+.search-empty-state {
+        @apply flex items-center gap-3 px-5 py-4 text-sm text-white/70;
+}
+
+.search-loading-state {
+        @apply text-payzone-gold;
+}
