@@ -86,7 +86,8 @@
                 "noResults": "لا توجد منتجات مطابقة لـ \"{{query}}\"",
                 "genericError": "حدث خطأ أثناء البحث عن المنتجات.",
                 "categoriesTitle": "الفئات المتاحة",
-                "categoriesEmpty": "لا توجد فئات متاحة حالياً."
+                "categoriesEmpty": "لا توجد فئات متاحة حالياً.",
+                "clearCategory": "إزالة تصفية الفئة"
         },
         "categories": {
                 "explore": "استكشف {{category}}",
