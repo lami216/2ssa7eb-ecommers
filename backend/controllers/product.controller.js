@@ -77,7 +77,7 @@ const serializeProduct = (product) => {
         return finalizeProductPayload(serialized);
 };
 
-const regexSpecialChars = /[.*+?^${}()|\[\]\]/g;
+const regexSpecialChars = /[.*+?^${}()|[\]\]/g;
 
 const escapeRegexValue = (value) => {
         return value.replace(regexSpecialChars, "\\$&");
