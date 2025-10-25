@@ -8,6 +8,7 @@ export const useSearchStore = create((set, get) => ({
         query: "",
         category: null,
         results: [],
+        totalCount: 0,
         loading: false,
         error: null,
         lastFetchedQuery: "",
@@ -21,6 +22,7 @@ export const useSearchStore = create((set, get) => ({
                 }
                 set({
                         results: [],
+                        totalCount: 0,
                         loading: false,
                         error: null,
                         lastFetchedQuery: "",
@@ -40,6 +42,7 @@ export const useSearchStore = create((set, get) => ({
                 if (!trimmedQuery && !normalizedCategory) {
                         set({
                                 results: [],
+                                totalCount: 0,
                                 loading: false,
                                 error: null,
                                 lastFetchedQuery: "",
@@ -58,25 +61,28 @@ export const useSearchStore = create((set, get) => ({
                 set({ loading: true, error: null });
 
                 try {
-                        const params = new URLSearchParams();
+                        const queryParts = [];
                         if (trimmedQuery) {
-                                params.set("q", trimmedQuery);
+                                queryParts.push(`q=${encodeURIComponent(trimmedQuery)}`);
                         }
                         if (normalizedCategory) {
-                                params.set("category", normalizedCategory);
+                                queryParts.push(`category=${encodeURIComponent(normalizedCategory)}`);
                         }
 
-                        const endpoint = `/products/search${params.toString() ? `?${params.toString()}` : ""}`;
+                        const queryString = queryParts.join("&");
+                        const endpoint = `/products/search${queryString ? `?${queryString}` : ""}`;
                         const data = await apiClient.get(endpoint, { signal: controller.signal });
 
                         if (controller.signal.aborted) {
                                 return [];
                         }
 
-                        const products = Array.isArray(data?.products) ? data.products : [];
+                        const items = Array.isArray(data?.items) ? data.items : [];
+                        const totalCount = typeof data?.count === "number" ? data.count : items.length;
 
                         set({
-                                results: products,
+                                results: items,
+                                totalCount,
                                 loading: false,
                                 error: null,
                                 lastFetchedQuery: trimmedQuery,
@@ -84,7 +90,7 @@ export const useSearchStore = create((set, get) => ({
                         });
 
                         activeController = null;
-                        return products;
+                        return items;
                 } catch (error) {
                         if (controller.signal.aborted) {
                                 return [];
