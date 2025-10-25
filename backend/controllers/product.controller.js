@@ -77,18 +77,10 @@ const serializeProduct = (product) => {
         return finalizeProductPayload(serialized);
 };
 
-const escapeRegex = (value) => {
-        return value.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
-};
+const regexSpecialChars = /[.*+?^${}()|\[\]\]/g;
 
-const buildSearchRegex = (value) => {
-        if (typeof value !== "string") return null;
-
-        const trimmed = value.trim();
-        if (!trimmed) return null;
-
-        const normalized = trimmed.replace(/\s+/g, " ");
-        return new RegExp(escapeRegex(normalized), "i");
+const escapeRegexValue = (value) => {
+        return value.replace(regexSpecialChars, "\\$&");
 };
 
 export const getAllProducts = async (req, res) => {
@@ -128,20 +120,62 @@ export const getFeaturedProducts = async (req, res) => {
 
 export const searchProducts = async (req, res) => {
         try {
-                const query = typeof req.query.query === "string" ? req.query.query : "";
-                const regex = buildSearchRegex(query);
+                const limit = 24;
+                const q = String(req.query.q || "").trim();
+                const rawCategory = typeof req.query.category === "string" ? req.query.category.trim() : "";
 
-                if (!regex) {
-                        return res.json({ products: [] });
+                const filters = [];
+
+                if (q) {
+                        const escaped = escapeRegexValue(q);
+                        const rx = new RegExp(escaped.replace(/\s+/g, "\\s"), "i");
+                        filters.push({ name: { $regex: rx } });
                 }
 
-                const products = await Product.find({
-                        $or: [{ name: regex }, { description: regex }],
-                })
-                        .limit(10)
-                        .lean({ virtuals: true });
+                if (rawCategory) {
+                        const categoryConditions = [{ categorySlug: rawCategory }, { category: rawCategory }];
 
-                res.json({ products: products.map(finalizeProductPayload) });
+                        if (mongoose.Types.ObjectId.isValid(rawCategory)) {
+                                categoryConditions.push({ categoryId: new mongoose.Types.ObjectId(rawCategory) });
+                        }
+
+                        filters.push({ $or: categoryConditions });
+                }
+
+                let query = {};
+                if (filters.length === 1) {
+                        query = filters[0];
+                } else if (filters.length > 1) {
+                        query = { $and: filters };
+                }
+
+                const projection = {
+                        name: 1,
+                        price: 1,
+                        image: 1,
+                        slug: 1,
+                        images: 1,
+                        discountedPrice: 1,
+                        isDiscounted: 1,
+                        discountPercentage: 1,
+                        category: 1,
+                };
+
+                const sort = { popularity: -1, createdAt: -1 };
+
+                const [items, count] = await Promise.all([
+                        Product.find(query)
+                                .sort(sort)
+                                .limit(limit)
+                                .select(projection)
+                                .collation({ locale: "ar", strength: 1 })
+                                .lean({ virtuals: true }),
+                        Product.countDocuments(query).collation({ locale: "ar", strength: 1 }),
+                ]);
+
+                const normalizedItems = items.map(finalizeProductPayload);
+
+                res.json({ items: normalizedItems, count });
         } catch (error) {
                 console.log("Error in searchProducts controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
@@ -231,16 +265,24 @@ export const createProduct = async (req, res) => {
                         throw uploadError;
                 }
 
-                const product = await Product.create({
+                const normalizedCategory = category.trim();
+                const productPayload = {
                         name: trimmedName,
                         description: trimmedDescription,
                         price: numericPrice,
                         image: uploadedImages[0]?.url,
                         images: uploadedImages,
-                        category: category.trim(),
+                        category: normalizedCategory,
+                        categorySlug: normalizedCategory,
                         isDiscounted: discountSettings.isDiscounted,
                         discountPercentage: discountSettings.discountPercentage,
-                });
+                };
+
+                if (mongoose.Types.ObjectId.isValid(normalizedCategory)) {
+                        productPayload.categoryId = new mongoose.Types.ObjectId(normalizedCategory);
+                }
+
+                const product = await Product.create(productPayload);
 
                 res.status(201).json(serializeProduct(product));
         } catch (error) {
@@ -416,6 +458,10 @@ export const updateProduct = async (req, res) => {
                 product.description = trimmedDescription;
                 product.price = numericPrice;
                 product.category = nextCategory;
+                product.categorySlug = nextCategory;
+                product.categoryId = mongoose.Types.ObjectId.isValid(nextCategory)
+                        ? new mongoose.Types.ObjectId(nextCategory)
+                        : null;
                 product.images = finalImages;
                 product.image = finalImages[0]?.url || product.image;
                 product.isDiscounted = discountSettings.isDiscounted;

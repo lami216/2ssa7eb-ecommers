@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Grid3x3, Loader2, Search as SearchIcon, X } from "lucide-react";
 
 import useTranslation from "../hooks/useTranslation";
@@ -39,12 +39,35 @@ const SearchBar = ({ variant = "global", categorySlug = null }) => {
         const { categories, fetchCategories, loading: categoriesLoading } = useCategoryStore();
         const { t } = useTranslation();
         const navigate = useNavigate();
+        const location = useLocation();
+        const [, setSearchParams] = useSearchParams();
         const wrapperRef = useRef(null);
         const inputRef = useRef(null);
         const debounceTimeoutRef = useRef(null);
         const fetchedCategoriesRef = useRef(false);
 
         const supportsOverlay = variant === "global";
+        const isSearchRoute = useMemo(() => location.pathname.startsWith("/search"), [location.pathname]);
+
+        const buildQueryString = useCallback((term, categoryValue) => {
+                const entries = [];
+                if (term) {
+                        entries.push(`q=${encodeURIComponent(term)}`);
+                }
+                if (categoryValue) {
+                        entries.push(`category=${encodeURIComponent(categoryValue)}`);
+                }
+                return entries.join("&");
+        }, []);
+
+        const applySearchParams = useCallback(
+                (queryString, { replace = true } = {}) => {
+                        if (variant === "search" || variant === "category" || isSearchRoute) {
+                                setSearchParams(queryString || "", { replace });
+                        }
+                },
+                [isSearchRoute, setSearchParams, variant]
+        );
 
         useEffect(() => {
                 if (variant === "category") {
@@ -105,6 +128,7 @@ const SearchBar = ({ variant = "global", categorySlug = null }) => {
                         if (!trimmedValue && !hasCategory) {
                                 clearResults();
                                 setShowResults(false);
+                                applySearchParams("", { replace });
                                 if (shouldNavigate) {
                                         navigate(
                                                 { pathname: "/search", search: "" },
@@ -114,19 +138,15 @@ const SearchBar = ({ variant = "global", categorySlug = null }) => {
                                 return;
                         }
 
-                        if (shouldNavigate) {
-                                const params = new URLSearchParams();
-                                if (trimmedValue) {
-                                        params.set("q", trimmedValue);
-                                }
-                                if (hasCategory) {
-                                        params.set("category", selectedCategory);
-                                }
+                        const queryString = buildQueryString(trimmedValue, hasCategory ? selectedCategory : null);
 
+                        applySearchParams(queryString, { replace });
+
+                        if (shouldNavigate) {
                                 navigate(
                                         {
                                                 pathname: "/search",
-                                                search: params.toString() ? `?${params.toString()}` : "",
+                                                search: queryString ? `?${queryString}` : "",
                                         },
                                         { replace }
                                 );
@@ -138,7 +158,16 @@ const SearchBar = ({ variant = "global", categorySlug = null }) => {
                                 setShowResults(true);
                         }
                 },
-                [clearResults, navigate, searchProducts, selectedCategory, supportsOverlay, variant]
+                [
+                        applySearchParams,
+                        buildQueryString,
+                        clearResults,
+                        navigate,
+                        searchProducts,
+                        selectedCategory,
+                        supportsOverlay,
+                        variant,
+                ]
         );
 
         useEffect(() => {
@@ -258,6 +287,7 @@ const SearchBar = ({ variant = "global", categorySlug = null }) => {
                 setQuery("");
                 clearResults();
                 setShowResults(false);
+                applySearchParams("", { replace: true });
                 if (variant === "search") {
                         navigate(
                                 { pathname: "/search", search: "" },
@@ -428,22 +458,19 @@ const SearchBar = ({ variant = "global", categorySlug = null }) => {
 
                                         {categories.length > 0 && (
                                                 <ul className='flex max-h-80 flex-col gap-2 overflow-y-auto pr-1'>
-                                                        {categories.map((category) => (
-                                                                <li key={category._id}>
-                                                                        <button
-                                                                                type='button'
-                                                                                onClick={() => handleSelectCategory(category)}
-                                                                                className='flex w-full items-center justify-between gap-3 rounded-2xl border border-transparent bg-white/5 p-4 text-sm font-semibold text-payzone-white transition hover:border-payzone-gold/50 hover:bg-white/10'
-                                                                        >
-                                                                                <span>{category.name}</span>
-                                                                                <span className='text-xs text-payzone-gold/80'>
-                                                                                        /category/{category.slug}
-                                                                                </span>
-                                                                        </button>
-                                                                </li>
-                                                        ))}
-                                                </ul>
-                                        )}
+                                        {categories.map((category) => (
+                                                <li key={category._id}>
+                                                        <button
+                                                                type='button'
+                                                                onClick={() => handleSelectCategory(category)}
+                                                                className='flex w-full items-center justify-between gap-3 rounded-2xl border border-transparent bg-white/5 p-4 text-sm font-semibold text-payzone-white transition hover:border-payzone-gold/50 hover:bg-white/10'
+                                                        >
+                                                                <span>{category.name}</span>
+                                                        </button>
+                                                </li>
+                                        ))}
+                                </ul>
+                        )}
                                 </div>
                         )}
                 </div>

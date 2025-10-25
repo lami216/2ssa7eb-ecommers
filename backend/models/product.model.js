@@ -44,6 +44,19 @@ const productSchema = new mongoose.Schema(
                         type: String,
                         required: true,
                 },
+                categorySlug: {
+                        type: String,
+                        default: null,
+                },
+                categoryId: {
+                        type: mongoose.Schema.Types.ObjectId,
+                        ref: "Category",
+                        default: null,
+                },
+                slug: {
+                        type: String,
+                        default: null,
+                },
                 isFeatured: {
                         type: Boolean,
                         default: false,
@@ -65,6 +78,9 @@ const productSchema = new mongoose.Schema(
                 toObject: { virtuals: true },
         }
 );
+
+productSchema.index({ name: 1 }, { collation: { locale: "ar", strength: 1 } });
+productSchema.index({ categorySlug: 1 });
 
 productSchema.virtual("discountedPrice").get(function getDiscountedPrice() {
         const price = Number(this.price) || 0;

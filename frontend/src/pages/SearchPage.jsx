@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { Loader2 } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 import SearchBar from "../components/SearchBar";
 import ProductCard from "../components/ProductCard";
@@ -8,7 +8,7 @@ import useTranslation from "../hooks/useTranslation";
 import { useSearchStore } from "../stores/useSearchStore";
 
 const SearchPage = () => {
-        const location = useLocation();
+        const [searchParams] = useSearchParams();
         const { t } = useTranslation();
         const { query, setQuery, results, loading, error, category, setCategory } = useSearchStore(
                 (state) => ({
@@ -23,13 +23,12 @@ const SearchPage = () => {
         );
 
         useEffect(() => {
-                const params = new URLSearchParams(location.search);
-                const nextQuery = params.get("q") ?? "";
-                const nextCategory = params.get("category");
+                const nextQuery = searchParams.get("q") ?? "";
+                const nextCategory = searchParams.get("category");
 
                 setQuery(nextQuery);
                 setCategory(nextCategory || null);
-        }, [location.search, setQuery, setCategory]);
+        }, [searchParams, setQuery, setCategory]);
 
         const hasSearched = useMemo(() => {
                 return Boolean(query.trim() || category);

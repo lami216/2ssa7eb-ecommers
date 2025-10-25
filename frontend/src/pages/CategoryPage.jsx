@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useProductStore } from "../stores/useProductStore";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import useTranslation from "../hooks/useTranslation";
 import ProductCard from "../components/ProductCard";
@@ -19,13 +19,18 @@ const CategoryPage = () => {
                 loading: searchLoading,
                 error: searchError,
                 category: activeSearchCategory,
+                setQuery,
+                setCategory,
         } = useSearchStore((state) => ({
                 query: state.query,
                 results: state.results,
                 loading: state.loading,
                 error: state.error,
                 category: state.category,
+                setQuery: state.setQuery,
+                setCategory: state.setCategory,
         }));
+        const [searchParams] = useSearchParams();
 
         useEffect(() => {
                 fetchProductsByCategory(category);
@@ -36,6 +41,18 @@ const CategoryPage = () => {
                         fetchCategories();
                 }
         }, [categories.length, fetchCategories]);
+
+        useEffect(() => {
+                const nextQuery = searchParams.get("q") ?? "";
+                const nextCategory = searchParams.get("category");
+
+                setQuery(nextQuery);
+                if (nextCategory) {
+                        setCategory(nextCategory);
+                } else {
+                        setCategory(category);
+                }
+        }, [searchParams, setQuery, setCategory, category]);
 
         const categoryName = useMemo(() => {
                 const match = categories.find((item) => item.slug === category);
