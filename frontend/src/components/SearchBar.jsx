@@ -1,31 +1,56 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Grid3x3, Loader2, Search as SearchIcon, X } from "lucide-react";
 
 import useTranslation from "../hooks/useTranslation";
-import apiClient from "../lib/apiClient";
 import { formatMRU } from "../lib/formatMRU";
 import { getProductPricing } from "../lib/getProductPricing";
 import { useCategoryStore } from "../stores/useCategoryStore";
+import { useSearchStore } from "../stores/useSearchStore";
 
-const SearchBar = () => {
-        const [query, setQuery] = useState("");
-        const [results, setResults] = useState([]);
-        const [searching, setSearching] = useState(false);
+const SearchBar = ({ variant = "global", categorySlug = null }) => {
         const [showResults, setShowResults] = useState(false);
         const [showCategories, setShowCategories] = useState(false);
-        const [error, setError] = useState("");
+
+        const {
+                query,
+                setQuery,
+                results,
+                loading: searching,
+                error,
+                searchProducts,
+                clearResults,
+                category: selectedCategory,
+                setCategory,
+                cancelOngoing,
+        } = useSearchStore((state) => ({
+                query: state.query,
+                setQuery: state.setQuery,
+                results: state.results,
+                loading: state.loading,
+                error: state.error,
+                searchProducts: state.searchProducts,
+                clearResults: state.clearResults,
+                category: state.category,
+                setCategory: state.setCategory,
+                cancelOngoing: state.cancelOngoing,
+        }));
 
         const { categories, fetchCategories, loading: categoriesLoading } = useCategoryStore();
         const { t } = useTranslation();
         const navigate = useNavigate();
         const wrapperRef = useRef(null);
+        const inputRef = useRef(null);
+        const debounceTimeoutRef = useRef(null);
+        const fetchedCategoriesRef = useRef(false);
+
+        const supportsOverlay = variant === "global";
 
         useEffect(() => {
-                if (!categories.length) {
-                        fetchCategories();
+                if (variant === "category") {
+                        setCategory(categorySlug || null);
                 }
-        }, [categories.length, fetchCategories]);
+        }, [variant, categorySlug, setCategory]);
 
         useEffect(() => {
                 const handleOutsideClick = (event) => {
@@ -43,84 +68,185 @@ const SearchBar = () => {
         }, []);
 
         useEffect(() => {
-                const trimmed = query.trim();
-                setError("");
-
-                if (!trimmed) {
-                        setResults([]);
-                        setShowResults(false);
-                        setSearching(false);
-                        return undefined;
-                }
-
-                let isActive = true;
-                setResults([]);
-                setSearching(true);
-                setShowResults(true);
-
-                const timeoutId = setTimeout(async () => {
-                        try {
-                                const data = await apiClient.get(
-                                        `/products/search?query=${encodeURIComponent(trimmed)}`
-                                );
-                                if (!isActive) return;
-
-                                const products = Array.isArray(data?.products) ? data.products : [];
-                                setResults(products);
-                                setShowResults(true);
-                        } catch (requestError) {
-                                if (!isActive) return;
-                                const message =
-                                        requestError?.response?.data?.message || t("search.genericError");
-                                setError(message);
-                                setResults([]);
-                                setShowResults(true);
-                        } finally {
-                                if (isActive) {
-                                        setSearching(false);
-                                }
+                const handleKeyDown = (event) => {
+                        if (event.key === "Escape") {
+                                setShowResults(false);
+                                setShowCategories(false);
                         }
-                }, 250);
+                };
+
+                document.addEventListener("keydown", handleKeyDown);
 
                 return () => {
-                        isActive = false;
-                        clearTimeout(timeoutId);
+                        document.removeEventListener("keydown", handleKeyDown);
                 };
-        }, [query, t]);
+        }, []);
 
-        const handleSubmit = (event) => {
-                event.preventDefault();
+        useEffect(() => {
+                return () => {
+                        cancelOngoing();
+                        if (debounceTimeoutRef.current) {
+                                clearTimeout(debounceTimeoutRef.current);
+                                debounceTimeoutRef.current = null;
+                        }
+                };
+        }, [cancelOngoing]);
 
-                if (!query.trim()) {
+        const handleSearch = useCallback(
+                async ({
+                        searchValue,
+                        shouldNavigate = variant !== "category",
+                        replace = variant !== "global",
+                } = {}) => {
+                        const valueFromField = searchValue ?? inputRef.current?.value ?? "";
+                        const trimmedValue = valueFromField.trim();
+                        const hasCategory = Boolean(selectedCategory);
+
+                        if (!trimmedValue && !hasCategory) {
+                                clearResults();
+                                setShowResults(false);
+                                if (shouldNavigate) {
+                                        navigate(
+                                                { pathname: "/search", search: "" },
+                                                { replace: true }
+                                        );
+                                }
+                                return;
+                        }
+
+                        if (shouldNavigate) {
+                                const params = new URLSearchParams();
+                                if (trimmedValue) {
+                                        params.set("q", trimmedValue);
+                                }
+                                if (hasCategory) {
+                                        params.set("category", selectedCategory);
+                                }
+
+                                navigate(
+                                        {
+                                                pathname: "/search",
+                                                search: params.toString() ? `?${params.toString()}` : "",
+                                        },
+                                        { replace }
+                                );
+                        }
+
+                        await searchProducts({ query: trimmedValue, category: selectedCategory });
+
+                        if (supportsOverlay) {
+                                setShowResults(true);
+                        }
+                },
+                [clearResults, navigate, searchProducts, selectedCategory, supportsOverlay, variant]
+        );
+
+        useEffect(() => {
+                const trimmed = query.trim();
+                const shouldSearch = Boolean(trimmed) || (selectedCategory && variant === "search");
+
+                if (debounceTimeoutRef.current) {
+                        clearTimeout(debounceTimeoutRef.current);
+                        debounceTimeoutRef.current = null;
+                }
+
+                if (!shouldSearch) {
+                        clearResults();
                         setShowResults(false);
                         return;
                 }
 
-                if (results.length > 0) {
-                        handleSelectProduct(results[0]);
-                } else {
+                if (supportsOverlay) {
                         setShowResults(true);
                 }
+
+                debounceTimeoutRef.current = setTimeout(() => {
+                        handleSearch({
+                                searchValue: trimmed,
+                                shouldNavigate: variant !== "category",
+                                replace: true,
+                        });
+                }, 300);
+
+                return () => {
+                        if (debounceTimeoutRef.current) {
+                                clearTimeout(debounceTimeoutRef.current);
+                                debounceTimeoutRef.current = null;
+                        }
+                };
+        }, [
+                query,
+                selectedCategory,
+                variant,
+                supportsOverlay,
+                handleSearch,
+                clearResults,
+        ]);
+
+        const handleSubmit = (event) => {
+                event.preventDefault();
+
+                if (debounceTimeoutRef.current) {
+                        clearTimeout(debounceTimeoutRef.current);
+                        debounceTimeoutRef.current = null;
+                }
+
+                handleSearch({
+                        searchValue: inputRef.current?.value ?? query,
+                        shouldNavigate: variant !== "category",
+                        replace: variant !== "global",
+                });
         };
 
         const handleSelectProduct = (product) => {
                 navigate(`/products/${product._id}`);
                 setQuery("");
-                setResults([]);
+                clearResults();
                 setShowResults(false);
         };
 
         const handleSelectCategory = (category) => {
-                navigate(`/category/${category.slug}`);
+                const slug = category.slug;
+                setCategory(slug);
                 setShowCategories(false);
-                setShowResults(false);
-                setQuery("");
-                setResults([]);
+
+                const trimmed = (inputRef.current?.value ?? query).trim();
+
+                if (trimmed) {
+                        handleSearch({
+                                searchValue: trimmed,
+                                shouldNavigate: variant !== "category",
+                                replace: true,
+                        });
+                        return;
+                }
+
+                if (variant === "search") {
+                        handleSearch({
+                                searchValue: "",
+                                shouldNavigate: true,
+                                replace: true,
+                        });
+                        return;
+                }
+
+                navigate(`/category/${slug}`);
         };
 
         const handleToggleCategories = () => {
-                setShowCategories((previous) => !previous);
-                setShowResults(false);
+                setShowCategories((previous) => {
+                        const next = !previous;
+                        if (next && !fetchedCategoriesRef.current) {
+                                if (!categories.length && !categoriesLoading) {
+                                        fetchCategories();
+                                }
+                                fetchedCategoriesRef.current = true;
+                        }
+                        return next;
+                });
+                if (supportsOverlay) {
+                        setShowResults(false);
+                }
         };
 
         const handleChange = (event) => {
@@ -130,24 +256,39 @@ const SearchBar = () => {
 
         const handleClear = () => {
                 setQuery("");
-                setResults([]);
+                clearResults();
                 setShowResults(false);
-                setError("");
+                if (variant === "search") {
+                        navigate(
+                                { pathname: "/search", search: "" },
+                                { replace: true }
+                        );
+                }
         };
+
+        const activeCategoryName = useMemo(() => {
+                if (!selectedCategory) {
+                        return "";
+                }
+                const match = categories.find((item) => item.slug === selectedCategory);
+                return match?.name ?? "";
+        }, [categories, selectedCategory]);
 
         return (
                 <div ref={wrapperRef} className='mx-auto flex w-full max-w-4xl flex-col gap-3'>
                         <form
                                 onSubmit={handleSubmit}
-                                className='flex flex-col gap-3 rounded-3xl border border-white/10 bg-payzone-navy/80 p-4 shadow-xl backdrop-blur'
+                                className='flex flex-col gap-3 rounded-3xl border border-white/10 bg-payzone-navy p-4 shadow-xl'
                         >
                                 <div className='flex flex-col gap-3 sm:flex-row sm:items-center'>
                                         <div className='relative flex-1'>
                                                 <SearchIcon className='pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-payzone-gold/80' />
                                                 <input
                                                         type='search'
+                                                        name='searchInput'
                                                         value={query}
                                                         onChange={handleChange}
+                                                        ref={inputRef}
                                                         placeholder={t("search.placeholder")}
                                                         className='w-full rounded-2xl border border-transparent bg-payzone-navy/60 py-3 pr-12 pl-4 text-base text-payzone-white placeholder:text-payzone-white/60 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo/60'
                                                 />
@@ -166,9 +307,14 @@ const SearchBar = () => {
                                         <div className='flex flex-row items-center gap-2 self-end sm:self-auto'>
                                                 <button
                                                         type='submit'
-                                                        className='flex items-center gap-2 rounded-2xl bg-gradient-to-r from-payzone-gold to-payzone-indigo px-5 py-3 text-sm font-semibold text-payzone-white shadow-md transition hover:shadow-lg'
+                                                        className='flex items-center gap-2 rounded-2xl bg-gradient-to-r from-payzone-gold to-payzone-indigo px-5 py-3 text-sm font-semibold text-payzone-white shadow-md transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-80'
+                                                        disabled={searching}
                                                 >
-                                                        <SearchIcon className='h-5 w-5' />
+                                                        {searching ? (
+                                                                <Loader2 className='h-5 w-5 animate-spin' />
+                                                        ) : (
+                                                                <SearchIcon className='h-5 w-5' />
+                                                        )}
                                                         <span>{t("search.action")}</span>
                                                 </button>
                                                 <button
@@ -177,14 +323,18 @@ const SearchBar = () => {
                                                         className='flex items-center gap-2 rounded-2xl border border-payzone-indigo/40 bg-payzone-navy/70 px-5 py-3 text-sm font-semibold text-payzone-gold transition hover:border-payzone-gold/60 hover:text-payzone-white'
                                                 >
                                                         <Grid3x3 className='h-5 w-5' />
-                                                        <span>{t("search.categories")}</span>
+                                                        <span>
+                                                                {activeCategoryName
+                                                                        ? `${t("search.categories")} · ${activeCategoryName}`
+                                                                        : t("search.categories")}
+                                                        </span>
                                                 </button>
                                         </div>
                                 </div>
                         </form>
 
-                        {showResults && (
-                                <div className='rounded-3xl border border-white/10 bg-payzone-navy/95 p-4 shadow-2xl backdrop-blur'>
+                        {supportsOverlay && showResults && (
+                                <div className='rounded-3xl border border-white/10 bg-payzone-navy p-4 shadow-2xl'>
                                         <div className='mb-3 flex items-center justify-between text-sm font-semibold text-payzone-gold'>
                                                 <span>{t("search.resultsTitle")}</span>
                                                 {searching && <Loader2 className='h-4 w-4 animate-spin text-payzone-indigo' />}
@@ -196,7 +346,7 @@ const SearchBar = () => {
                                                 </div>
                                         )}
 
-                                        {!searching && !error && results.length === 0 && (
+                                        {!searching && !error && results.length === 0 && query.trim() && (
                                                 <div className='rounded-2xl border border-white/5 bg-white/5 p-4 text-sm text-payzone-white/70'>
                                                         {t("search.noResults", { query })}
                                                 </div>
@@ -262,7 +412,7 @@ const SearchBar = () => {
                         )}
 
                         {showCategories && (
-                                <div className='rounded-3xl border border-white/10 bg-payzone-navy/95 p-4 shadow-2xl backdrop-blur'>
+                                <div className='rounded-3xl border border-white/10 bg-payzone-navy p-4 shadow-2xl'>
                                         <div className='mb-3 flex items-center justify-between text-sm font-semibold text-payzone-gold'>
                                                 <span>{t("search.categoriesTitle")}</span>
                                                 {categoriesLoading && (
