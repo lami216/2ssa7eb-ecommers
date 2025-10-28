@@ -62,6 +62,25 @@ const OrderLogSchema = new mongoose.Schema(
         { _id: false }
 );
 
+const OrderCounterSchema = new mongoose.Schema(
+        {
+                _id: {
+                        type: String,
+                        required: true,
+                },
+                seq: {
+                        type: Number,
+                        required: true,
+                },
+        },
+        {
+                collection: "order_counters",
+        }
+);
+
+const OrderCounter =
+        mongoose.models.OrderCounter || mongoose.model("OrderCounter", OrderCounterSchema);
+
 const orderSchema = new mongoose.Schema(
         {
                 items: {
@@ -173,6 +192,7 @@ orderSchema.index({ createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 
 const BASE_ORDER_NUMBER = 10001;
+const ORDER_NUMBER_COUNTER_ID = "orderNumber";
 
 orderSchema.pre("save", async function assignOrderNumber(next) {
         if (!this.isNew || this.orderNumber) {
@@ -180,17 +200,39 @@ orderSchema.pre("save", async function assignOrderNumber(next) {
         }
 
         try {
-                const lastOrder = await this.constructor
-                        .findOne({ orderNumber: { $exists: true } })
-                        .sort({ orderNumber: -1 })
-                        .select({ orderNumber: 1 })
-                        .lean();
+                let counter = await OrderCounter.findOneAndUpdate(
+                        { _id: ORDER_NUMBER_COUNTER_ID },
+                        { $inc: { seq: 1 } },
+                        { new: true }
+                );
 
-                if (lastOrder?.orderNumber && Number.isFinite(lastOrder.orderNumber)) {
-                        this.orderNumber = lastOrder.orderNumber + 1;
-                } else {
-                        this.orderNumber = BASE_ORDER_NUMBER;
+                if (!counter) {
+                        const lastOrder = await this.constructor
+                                .findOne({ orderNumber: { $exists: true } })
+                                .sort({ orderNumber: -1 })
+                                .select({ orderNumber: 1 })
+                                .lean();
+
+                        const startingValue = Math.max(
+                                BASE_ORDER_NUMBER - 1,
+                                Number(lastOrder?.orderNumber) || 0
+                        );
+
+                        counter = await OrderCounter.findOneAndUpdate(
+                                { _id: ORDER_NUMBER_COUNTER_ID },
+                                {
+                                        $setOnInsert: { seq: startingValue },
+                                        $inc: { seq: 1 },
+                                },
+                                { new: true, upsert: true }
+                        );
                 }
+
+                if (!counter || typeof counter.seq !== "number") {
+                        throw new Error("Failed to generate order number");
+                }
+
+                this.orderNumber = counter.seq;
 
                 return next();
         } catch (error) {
@@ -198,6 +240,6 @@ orderSchema.pre("save", async function assignOrderNumber(next) {
         }
 });
 
-const Order = mongoose.model("Order", orderSchema);
+const Order = mongoose.models.Order || mongoose.model("Order", orderSchema);
 
 export default Order;
