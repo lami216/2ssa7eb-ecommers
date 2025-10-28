@@ -217,13 +217,11 @@ orderSchema.pre("save", async function assignOrderNumber(next) {
                                 BASE_ORDER_NUMBER - 1,
                                 Number(lastOrder?.orderNumber) || 0
                         );
+                        const nextValue = startingValue + 1;
 
                         counter = await OrderCounter.findOneAndUpdate(
                                 { _id: ORDER_NUMBER_COUNTER_ID },
-                                {
-                                        $setOnInsert: { seq: startingValue },
-                                        $inc: { seq: 1 },
-                                },
+                                { $set: { seq: nextValue } },
                                 { new: true, upsert: true }
                         );
                 }
