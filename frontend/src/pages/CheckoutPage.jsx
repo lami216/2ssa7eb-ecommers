@@ -39,7 +39,7 @@ const CheckoutPage = () => {
         }, [navigate]);
 
         const normalizedWhatsAppNumber = whatsAppNumber.replace(/\D/g, "");
-        const isWhatsAppValid = /^\d{8}$/.test(normalizedWhatsAppNumber);
+        const isWhatsAppValid = /^\d{8,15}$/.test(normalizedWhatsAppNumber);
         const isFormValid = customerName.trim() !== "" && address.trim() !== "" && cart.length > 0 && isWhatsAppValid;
 
         const handleWhatsAppChange = (event) => {
@@ -53,7 +53,7 @@ const CheckoutPage = () => {
                         return;
                 }
 
-                if (!/^\d{8}$/.test(digitsOnly)) {
+                if (!/^\d{8,15}$/.test(digitsOnly)) {
                         setWhatsAppError(t("common.messages.whatsAppInvalid"));
                 } else {
                         setWhatsAppError("");
@@ -86,7 +86,7 @@ const CheckoutPage = () => {
                         return;
                 }
 
-                if (!/^\d{8}$/.test(normalizedWhatsAppNumber)) {
+                if (!/^\d{8,15}$/.test(normalizedWhatsAppNumber)) {
                         setWhatsAppError(t("common.messages.whatsAppInvalid"));
                         toast.error(t("common.messages.whatsAppInvalid"));
                         return;
@@ -142,9 +142,7 @@ const CheckoutPage = () => {
                         requestPayload.couponCode = coupon.code;
                 }
 
-                const DEFAULT_STORE_WHATSAPP_NUMBER = "22231117700";
-                const envStoreNumber = import.meta.env.VITE_STORE_WHATSAPP_NUMBER;
-                const storeNumber = envStoreNumber?.replace(/\D/g, "") || DEFAULT_STORE_WHATSAPP_NUMBER;
+                const STORE_WHATSAPP_NUMBER = "22231117700";
 
                 setIsSubmitting(true);
 
@@ -219,7 +217,7 @@ const CheckoutPage = () => {
                         messageLines.push("", t("checkout.messages.total", { amount: formatMRU(serverTotal) }));
                         messageLines.push("", t("checkout.messages.thanks"));
 
-                        const whatsappURL = new URL("https://wa.me/" + storeNumber);
+                        const whatsappURL = new URL("https://wa.me/" + STORE_WHATSAPP_NUMBER);
                         whatsappURL.searchParams.set("text", messageLines.join("\n"));
 
                         toast.success(t("checkout.messages.orderCreated"));
