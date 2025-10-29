@@ -20,11 +20,14 @@ dotenv.config({ path: "./backend/.env" });
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// في ESM هذا يُعيد المسار الحالي للعملية (غالبًا /var/www/shop1/backend)
 const __dirname = path.resolve();
 
-app.use(express.json({ limit: "10mb" })); // allows you to parse the body of the request
+app.use(express.json({ limit: "10mb" })); // parse JSON body
+app.use(express.urlencoded({ limit: "10mb", extended: true })); // parse URL-encoded (نماذج)
 app.use(cookieParser());
 
+/* ----------------- API Routes ----------------- */
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
@@ -35,15 +38,21 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/public-config", publicConfigRoutes);
 app.use("/api/orders", orderRoutes);
 
+/* ----------------- Production static -----------------
+   كان يتم بناء المسار كـ "/var/www/shop1/backend/frontend/dist"
+   والصحيح من داخل backend: "../frontend/dist"
+------------------------------------------------------- */
 if (process.env.NODE_ENV === "production") {
-	app.use(express.static(path.join(__dirname, "/frontend/dist")));
+  const distPath = path.join(__dirname, "../frontend/dist");
 
-	app.get("*", (req, res) => {
-		res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"));
-	});
+  app.use(express.static(distPath));
+
+  app.get("*", (req, res) => {
+    res.sendFile(path.resolve(distPath, "index.html"));
+  });
 }
 
 app.listen(PORT, () => {
-	console.log("Server is running on http://localhost:" + PORT);
-	connectDB();
+  console.log("Server is running on http://localhost:" + PORT);
+  connectDB();
 });
