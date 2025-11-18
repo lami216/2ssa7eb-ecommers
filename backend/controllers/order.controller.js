@@ -16,6 +16,7 @@ const ORDER_STATUS_OPTIONS = [
 
 const normalizeString = (value) => (typeof value === "string" ? value.trim() : "");
 const normalizePhone = (value) => (typeof value === "string" ? value.replace(/\D/g, "") : "");
+const sanitizeSearchTerm = (value) => value.replace(/[^\p{L}\p{N}\s-]/gu, "").trim();
 const computeUnitPrice = (product) => {
         const price = Number(product.price) || 0;
         if (!product.isDiscounted) {
@@ -264,11 +265,12 @@ export const listOrders = async (req, res) => {
                 }
 
                 if (search) {
-                        const normalizedSearch = search.trim();
+                        const normalizedSearch = sanitizeSearchTerm(search);
                         if (normalizedSearch) {
+                                const escapedSearch = normalizedSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
                                 const orFilters = [
-                                        { customerName: { $regex: normalizedSearch, $options: "i" } },
-                                        { phone: { $regex: normalizedSearch.replace(/\s+/g, ""), $options: "i" } },
+                                        { customerName: { $regex: escapedSearch, $options: "i" } },
+                                        { phone: { $regex: escapedSearch.replace(/\s+/g, ""), $options: "i" } },
                                 ];
 
                                 const parsedNumber = Number(normalizedSearch);
