@@ -606,7 +606,16 @@ export const getRecommendedProducts = async (req, res) => {
 export const getProductsByCategory = async (req, res) => {
         const { category } = req.params;
         try {
-                const products = await Product.find({ category }).lean({ virtuals: true });
+                const categoryValue =
+                        typeof category === "string" ? decodeURIComponent(category).trim() : "";
+
+                const isValidCategory = /^[\p{L}\p{N}\s_.-]+$/u.test(categoryValue);
+
+                if (!categoryValue || !isValidCategory) {
+                        return res.status(400).json({ message: "Invalid category" });
+                }
+
+                const products = await Product.find({ category: categoryValue }).lean({ virtuals: true });
                 res.json({ products: products.map(finalizeProductPayload) });
         } catch (error) {
                 console.log("Error in getProductsByCategory controller", error.message);
