@@ -83,27 +83,31 @@ export const getCategories = async (req, res) => {
 
 export const createCategory = async (req, res) => {
         try {
-                const { name, description = "", image } = req.body;
+                const payload = req?.body && typeof req.body === "object" ? req.body : {};
+                const rawName = payload.name;
+                const rawDescription = payload.description;
+                const rawImage = payload.image;
 
-                const trimmedName = typeof name === "string" ? name.trim() : "";
-                const trimmedDescription =
-                        typeof description === "string" ? description.trim() : "";
-
-                if (!trimmedName) {
+                if (typeof rawName !== "string" || !rawName.trim()) {
                         return res.status(400).json({ message: "Name is required" });
                 }
 
-                if (description !== undefined && typeof description !== "string") {
+                if (rawDescription !== undefined && typeof rawDescription !== "string") {
                         return res.status(400).json({ message: "Invalid category description" });
                 }
 
-                if (!image) {
+                if (typeof rawImage !== "string") {
                         return res.status(400).json({ message: "Category image is required" });
                 }
 
+                const trimmedName = rawName.trim();
+                const trimmedDescription =
+                        typeof rawDescription === "string" ? rawDescription.trim() : "";
+                const imageContent = rawImage.toString();
+
                 let uploadResult;
                 try {
-                        uploadResult = await uploadCategoryImage(image);
+                        uploadResult = await uploadCategoryImage(imageContent);
                 } catch (uploadError) {
                         if (uploadError.message === "INVALID_IMAGE_FORMAT") {
                                 return res.status(400).json({ message: "Invalid category image format" });
@@ -118,8 +122,8 @@ export const createCategory = async (req, res) => {
                 const slug = await generateUniqueSlug(trimmedName);
 
                 const categoryData = {
-                        name: String(trimmedName),
-                        description: String(trimmedDescription),
+                        name: trimmedName.toString(),
+                        description: trimmedDescription.toString(),
                         slug: slug.toString(),
                         imageUrl:
                                 typeof uploadResult.secure_url === "string"
