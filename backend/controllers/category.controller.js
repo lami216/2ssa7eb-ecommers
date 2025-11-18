@@ -117,15 +117,23 @@ export const createCategory = async (req, res) => {
 
                 const slug = await generateUniqueSlug(trimmedName);
 
-                const categoryPayload = {
+                const categoryData = {
                         name: trimmedName,
                         description: trimmedDescription,
-                        slug,
-                        imageUrl: uploadResult.secure_url,
-                        imagePublicId: uploadResult.public_id,
+                        slug: slug.toString(),
+                        imageUrl:
+                                typeof uploadResult.secure_url === "string"
+                                        ? uploadResult.secure_url
+                                        : String(uploadResult.secure_url),
+                        imagePublicId:
+                                typeof uploadResult.public_id === "string"
+                                        ? uploadResult.public_id
+                                        : uploadResult.public_id
+                                          ? String(uploadResult.public_id)
+                                          : null,
                 };
 
-                const category = await Category.create(categoryPayload);
+                const category = await Category.create(categoryData);
 
                 res.status(201).json(serializeCategory(category));
         } catch (error) {

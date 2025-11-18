@@ -122,24 +122,28 @@ export const createCoupon = async (req, res) => {
                         });
                 }
 
+                const sanitizedCouponFields = {
+                        discountPercentage: Number(discount),
+                        expiresAt: new Date(expiresAt.getTime()),
+                        isActive: Boolean(isActive),
+                };
+
                 if (uniqueCodes.length > 1) {
                         const couponsToCreate = uniqueCodes.map((code) => ({
-                                code,
-                                discountPercentage: discount,
-                                expiresAt,
-                                isActive,
+                                ...sanitizedCouponFields,
+                                code: String(code),
                         }));
 
                         const createdCoupons = await Coupon.insertMany(couponsToCreate);
                         return res.status(201).json({ coupons: createdCoupons });
                 }
 
-                const coupon = await Coupon.create({
-                        code: uniqueCodes[0],
-                        discountPercentage: discount,
-                        expiresAt,
-                        isActive,
-                });
+                const couponData = {
+                        ...sanitizedCouponFields,
+                        code: String(uniqueCodes[0]),
+                };
+
+                const coupon = await Coupon.create(couponData);
 
                 return res.status(201).json(coupon);
         } catch (error) {
