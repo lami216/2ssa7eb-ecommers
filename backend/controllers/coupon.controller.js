@@ -57,7 +57,7 @@ const buildFilter = (search) => {
 
 const collectCodes = (rawCodes) => {
         if (Array.isArray(rawCodes)) {
-                return rawCodes;
+                return rawCodes.filter((value) => typeof value === "string");
         }
 
         if (typeof rawCodes === "string" && rawCodes.trim()) {
@@ -74,7 +74,9 @@ export const createCoupon = async (req, res) => {
                 const isActive = typeof req.body.isActive === "boolean" ? req.body.isActive : true;
 
                 const submittedCodes = collectCodes(req.body.codes);
-                const normalizedCodes = (submittedCodes.length ? submittedCodes : [req.body.code])
+                const fallbackCode = typeof req.body.code === "string" ? req.body.code : "";
+
+                const normalizedCodes = (submittedCodes.length ? submittedCodes : [fallbackCode])
                         .map((value) => normalizeCode(value))
                         .filter(Boolean);
 

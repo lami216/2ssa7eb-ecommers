@@ -93,6 +93,10 @@ export const createCategory = async (req, res) => {
                         return res.status(400).json({ message: "Name is required" });
                 }
 
+                if (description !== undefined && typeof description !== "string") {
+                        return res.status(400).json({ message: "Invalid category description" });
+                }
+
                 if (!image) {
                         return res.status(400).json({ message: "Category image is required" });
                 }
@@ -113,13 +117,15 @@ export const createCategory = async (req, res) => {
 
                 const slug = await generateUniqueSlug(trimmedName);
 
-                const category = await Category.create({
+                const categoryPayload = {
                         name: trimmedName,
                         description: trimmedDescription,
                         slug,
                         imageUrl: uploadResult.secure_url,
                         imagePublicId: uploadResult.public_id,
-                });
+                };
+
+                const category = await Category.create(categoryPayload);
 
                 res.status(201).json(serializeCategory(category));
         } catch (error) {
