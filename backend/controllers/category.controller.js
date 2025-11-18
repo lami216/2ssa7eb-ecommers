@@ -118,8 +118,8 @@ export const createCategory = async (req, res) => {
                 const slug = await generateUniqueSlug(trimmedName);
 
                 const categoryData = {
-                        name: trimmedName,
-                        description: trimmedDescription,
+                        name: String(trimmedName),
+                        description: String(trimmedDescription),
                         slug: slug.toString(),
                         imageUrl:
                                 typeof uploadResult.secure_url === "string"
