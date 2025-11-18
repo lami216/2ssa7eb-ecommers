@@ -252,7 +252,10 @@ export const createWhatsAppOrder = async (req, res) => {
 
 export const listOrders = async (req, res) => {
         try {
-                        const { status, search } = req.query;
+                        const status =
+                                typeof req.query.status === "string" ? req.query.status.trim() : "";
+                        const search =
+                                typeof req.query.search === "string" ? req.query.search.trim() : "";
 
                 const filters = {};
 

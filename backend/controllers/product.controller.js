@@ -535,7 +535,9 @@ export const getProductById = async (req, res) => {
 
 export const getRecommendedProducts = async (req, res) => {
         try {
-                const { productId, category } = req.query;
+                const productId =
+                        typeof req.query.productId === "string" ? req.query.productId.trim() : "";
+                const category = typeof req.query.category === "string" ? req.query.category.trim() : "";
                 const sampleSize = 4;
                 const projectionStage = {
                         $project: {
