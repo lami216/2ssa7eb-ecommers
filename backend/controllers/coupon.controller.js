@@ -46,7 +46,13 @@ const buildFilter = (search) => {
                 return {};
         }
 
-        return { code: { $regex: search.replace(/\s+/g, ""), $options: "i" } };
+        const sanitized = search.replace(/[^A-Za-z0-9]/g, "").trim();
+
+        if (!sanitized) {
+                return {};
+        }
+
+        return { code: { $regex: sanitized, $options: "i" } };
 };
 
 const collectCodes = (rawCodes) => {
