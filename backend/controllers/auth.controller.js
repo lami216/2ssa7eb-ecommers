@@ -34,14 +34,18 @@ const setCookies = (res, accessToken, refreshToken) => {
 };
 
 export const signup = async (req, res) => {
-	const { email, password, name } = req.body;
-	try {
-		const userExists = await User.findOne({ email });
+        const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
+        const email =
+                typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
+        const password = typeof req.body.password === "string" ? req.body.password : "";
 
-		if (userExists) {
-			return res.status(400).json({ message: "User already exists" });
-		}
-		const user = await User.create({ name, email, password });
+        try {
+                const userExists = await User.findOne({ email });
+
+                if (userExists) {
+                        return res.status(400).json({ message: "User already exists" });
+                }
+                const user = await User.create({ name, email, password });
 
 		// authenticate
 		const { accessToken, refreshToken } = generateTokens(user._id);
@@ -62,9 +66,14 @@ export const signup = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-	try {
-		const { email, password } = req.body;
-		const user = await User.findOne({ email });
+        try {
+                const email =
+                        typeof req.body.email === "string"
+                                ? req.body.email.trim().toLowerCase()
+                                : "";
+                const password = typeof req.body.password === "string" ? req.body.password : "";
+
+                const user = await User.findOne({ email });
 
 		if (user && (await user.comparePassword(password))) {
 			const { accessToken, refreshToken } = generateTokens(user._id);
