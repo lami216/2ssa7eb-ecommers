@@ -38,7 +38,7 @@ const CheckoutPage = () => {
                 }
         }, [navigate]);
 
-        const normalizedWhatsAppNumber = whatsAppNumber.replace(/\D/g, "");
+        const normalizedWhatsAppNumber = whatsAppNumber.replaceAll(/\D/g, "");
         const isWhatsAppValid = /^\d{8,15}$/.test(normalizedWhatsAppNumber);
         const isFormValid = customerName.trim() !== "" && address.trim() !== "" && cart.length > 0 && isWhatsAppValid;
 
@@ -46,7 +46,7 @@ const CheckoutPage = () => {
                 const value = event.target.value;
                 setWhatsAppNumber(value);
 
-                const digitsOnly = value.replace(/\D/g, "");
+                const digitsOnly = value.replaceAll(/\D/g, "");
 
                 if (value.trim() === "") {
                         setWhatsAppError("");

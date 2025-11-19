@@ -13,7 +13,7 @@ const getNestedValue = (key) => {
 
 const formatTemplate = (template, options = {}) => {
         if (typeof template !== "string") return template;
-        return template.replace(/{{(.*?)}}/g, (_, token) => {
+        return template.replaceAll(/{{(.*?)}}/g, (_, token) => {
                 const cleanedToken = token.trim();
                 return Object.prototype.hasOwnProperty.call(options, cleanedToken)
                         ? options[cleanedToken]

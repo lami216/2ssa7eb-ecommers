@@ -15,8 +15,8 @@ const ORDER_STATUS_OPTIONS = new Set([
 ]);
 
 const normalizeString = (value) => (typeof value === "string" ? value.trim() : "");
-const normalizePhone = (value) => (typeof value === "string" ? value.replace(/\D/g, "") : "");
-const sanitizeSearchTerm = (value) => value.replace(/[^\p{L}\p{N}\s-]/gu, "").trim();
+const normalizePhone = (value) => (typeof value === "string" ? value.replaceAll(/\D/g, "") : "");
+const sanitizeSearchTerm = (value) => value.replaceAll(/[^\p{L}\p{N}\s-]/gu, "").trim();
 const createHttpError = (status, message) => {
         const error = new Error(message);
         error.status = status;
@@ -92,7 +92,7 @@ const extractWhatsAppPayload = (body = {}) => {
         const normalizedCouponCodes = couponInputs
                 .map((value) => normalizeString(value))
                 .filter(Boolean)
-                .map((value) => value.replace(/\s+/g, "").toUpperCase());
+                .map((value) => value.replaceAll(/\s+/g, "").toUpperCase());
         return {
                 items,
                 customerName: normalizeString(body.customerName),
@@ -276,10 +276,10 @@ const buildOrderListFilters = (status, search) => {
         if (search) {
                 const normalizedSearch = sanitizeSearchTerm(search);
                 if (normalizedSearch) {
-                        const escapedSearch = normalizedSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                        const escapedSearch = normalizedSearch.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&");
                         const orFilters = [
                                 { customerName: { $regex: escapedSearch, $options: "i" } },
-                                { phone: { $regex: normalizedSearch.replace(/\s+/g, ""), $options: "i" } },
+                                { phone: { $regex: normalizedSearch.replaceAll(/\s+/g, ""), $options: "i" } },
                         ];
                         const parsedNumber = Number(normalizedSearch);
                         if (Number.isFinite(parsedNumber)) {
