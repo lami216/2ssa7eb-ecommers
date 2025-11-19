@@ -284,12 +284,13 @@ export const validateCoupon = async (req, res) => {
                 }
 
                 const coupon = await Coupon.findOne({ code }).lean();
+                const isCouponActive = coupon?.isActive && coupon?.expiresAt > new Date();
 
-                if (!coupon?.isActive || coupon?.expiresAt <= new Date()) {
-                        return res.status(404).json({ message: "Coupon is invalid or has expired" });
+                if (isCouponActive) {
+                        return res.json({ coupon });
                 }
 
-                return res.json({ coupon });
+                return res.status(404).json({ message: "Coupon is invalid or has expired" });
         } catch (error) {
                 console.log("Error in validateCoupon controller", error.message);
                 return res.status(500).json({ message: "Server error" });
