@@ -568,67 +568,82 @@ export const getProductById = async (req, res) => {
         }
 };
 
+const recommendationProjectionStage = {
+        $project: {
+                _id: 1,
+                name: 1,
+                description: 1,
+                image: 1,
+                images: 1,
+                price: 1,
+                category: 1,
+                isFeatured: 1,
+                isDiscounted: 1,
+                discountPercentage: 1,
+        },
+};
+
+const normalizeRecommendationQuery = (query) => ({
+        productId: typeof query.productId === "string" ? query.productId.trim() : "",
+        category: typeof query.category === "string" ? query.category.trim() : "",
+});
+
+const buildExcludedIds = (productId) => {
+        if (productId && mongoose.Types.ObjectId.isValid(productId)) {
+                return [new mongoose.Types.ObjectId(productId)];
+        }
+        return [];
+};
+
+const resolveTargetCategory = async (category, productId) => {
+        if (category) return category;
+        if (!productId || !mongoose.Types.ObjectId.isValid(productId)) return null;
+
+        const product = await Product.findById(productId).select("category");
+        return product ? product.category : null;
+};
+
+const buildCategoryMatch = (targetCategory, excludedIds) => ({
+        category: targetCategory,
+        ...(excludedIds.length ? { _id: { $nin: excludedIds } } : {}),
+});
+
+const fetchCategoryRecommendations = (targetCategory, excludedIds, sampleSize) => {
+        if (!targetCategory) return Promise.resolve([]);
+
+        return Product.aggregate([
+                { $match: buildCategoryMatch(targetCategory, excludedIds) },
+                { $sample: { size: sampleSize } },
+                recommendationProjectionStage,
+        ]);
+};
+
+const fetchFallbackRecommendations = (excludedIds, sampleSize) => {
+        const fallbackMatch = excludedIds.length ? { _id: { $nin: excludedIds } } : null;
+        const pipeline = [
+                ...(fallbackMatch ? [{ $match: fallbackMatch }] : []),
+                { $sample: { size: sampleSize } },
+                recommendationProjectionStage,
+        ];
+
+        return Product.aggregate(pipeline);
+};
+
 export const getRecommendedProducts = async (req, res) => {
         try {
-                const productId =
-                        typeof req.query.productId === "string" ? req.query.productId.trim() : "";
-                const category = typeof req.query.category === "string" ? req.query.category.trim() : "";
+                const { productId, category } = normalizeRecommendationQuery(req.query);
                 const sampleSize = 4;
-                const projectionStage = {
-                        $project: {
-                                _id: 1,
-                                name: 1,
-                                description: 1,
-                                image: 1,
-                                images: 1,
-                                price: 1,
-                                category: 1,
-                                isFeatured: 1,
-                                isDiscounted: 1,
-                                discountPercentage: 1,
-                        },
-                };
+                const excludedIds = buildExcludedIds(productId);
+                const targetCategory = await resolveTargetCategory(category, productId);
 
-                let targetCategory = typeof category === "string" && category.trim() ? category.trim() : null;
-                const excludedIds = [];
-
-                if (productId && mongoose.Types.ObjectId.isValid(productId)) {
-                        excludedIds.push(new mongoose.Types.ObjectId(productId));
-
-                        if (!targetCategory) {
-                                const product = await Product.findById(productId).select("category");
-                                if (product) {
-                                        targetCategory = product.category;
-                                }
-                        }
-                }
-
-                let recommendations = [];
-
-                if (targetCategory) {
-                        const matchStage = {
-                                category: targetCategory,
-                                ...(excludedIds.length
-                                        ? { _id: { $nin: excludedIds } }
-                                        : {}),
-                        };
-
-                        recommendations = await Product.aggregate([
-                                { $match: matchStage },
-                                { $sample: { size: sampleSize } },
-                                projectionStage,
-                        ]);
-                }
+                let recommendations = await fetchCategoryRecommendations(
+                        targetCategory,
+                        excludedIds,
+                        sampleSize,
+                );
 
                 if (!recommendations.length) {
-                        const fallbackMatch = excludedIds.length ? { _id: { $nin: excludedIds } } : null;
-                        const pipeline = [
-                                ...(fallbackMatch ? [{ $match: fallbackMatch }] : []),
-                                { $sample: { size: sampleSize } },
-                                projectionStage,
-                        ];
-
-                        recommendations = await Product.aggregate(pipeline);
+                        recommendations = await fetchFallbackRecommendations(excludedIds, sampleSize);
                 }
 
                 res.json(recommendations.map(finalizeProductPayload));
