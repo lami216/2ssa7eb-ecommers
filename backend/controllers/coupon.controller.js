@@ -312,11 +312,11 @@ export const updateCoupon = async (req, res) => {
                         return res.status(404).json({ message: "Coupon not found" });
                 }
 
-                const nextCode = normalizeOptionalCode(req.body.code);
-                const nextDiscount = normalizeOptionalDiscount(req.body.discountPercentage);
-                const nextExpiry = normalizeOptionalExpiry(req.body.expiresAt);
-                const nextIsActive =
-                        req.body.isActive !== undefined ? Boolean(req.body.isActive) : undefined;
+const nextCode = normalizeOptionalCode(req.body.code);
+const nextDiscount = normalizeOptionalDiscount(req.body.discountPercentage);
+const nextExpiry = normalizeOptionalExpiry(req.body.expiresAt);
+const nextIsActive =
+req.body.isActive === undefined ? undefined : Boolean(req.body.isActive);
 
                 if (nextCode !== undefined && nextCode !== coupon.code) {
                         await ensureCodeUniqueness(nextCode, coupon._id);
