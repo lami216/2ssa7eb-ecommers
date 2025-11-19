@@ -88,7 +88,7 @@ const AdminOrders = () => {
                         return;
                 }
 
-                const reasonInput = window.prompt(t("admin.orders.prompts.cancelReason")) || "";
+                const reasonInput = globalThis.window?.prompt(t("admin.orders.prompts.cancelReason")) || "";
                 const reason = reasonInput.trim();
 
                 setUpdatingOrderId(order._id);

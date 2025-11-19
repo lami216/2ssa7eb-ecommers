@@ -85,10 +85,10 @@ const serializeProduct = (product) => {
         return finalizeProductPayload(serialized);
 };
 
-const regexSpecialChars = /[.*+?^${}()|[\\]\\]/g;
+const regexSpecialChars = /[.*+?^${}()|[\]\\]/g;
 
 const escapeRegexValue = (value) => {
-        return value.replaceAll(regexSpecialChars, "\\$&");
+        return value.replaceAll(regexSpecialChars, String.raw`\$&`);
 };
 
 const ensureNonEmptyTrimmed = (value, message) => {
@@ -338,7 +338,7 @@ export const searchProducts = async (req, res) => {
 
                 if (q) {
                         const escaped = escapeRegexValue(q);
-                        const pattern = escaped.replaceAll(/\s+/g, "\\s");
+                        const pattern = escaped.replaceAll(/\s+/g, String.raw`\s`);
                         filters.push({ name: { $regex: pattern, $options: "i" } });
                 }
 

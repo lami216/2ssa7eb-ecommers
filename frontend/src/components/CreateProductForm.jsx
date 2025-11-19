@@ -276,12 +276,14 @@ const CreateProductForm = () => {
         };
 
         const handleToggleDiscount = () => {
-                setFormState((previous) => ({
-                        ...previous,
-                        isDiscounted: !previous.isDiscounted,
-                        discountPercentage: !previous.isDiscounted ? previous.discountPercentage || "" : "",
-                }));
-        };
+                        setFormState((previous) => ({
+                                ...previous,
+                                isDiscounted: !previous.isDiscounted,
+                                discountPercentage: previous.isDiscounted
+                                        ? ""
+                                        : previous.discountPercentage || "",
+                        }));
+                };
 
         const handleDiscountPercentageChange = (event) => {
                 const { value } = event.target;
