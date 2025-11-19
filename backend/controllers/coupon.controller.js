@@ -219,8 +219,8 @@ export const createCoupon = async (req, res) => {
 
 export const listCoupons = async (req, res) => {
         try {
-                const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
-                const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 50);
+const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
+const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 10, 1), 50);
                 const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
                 const sortBy = typeof req.query.sortBy === "string" ? req.query.sortBy : "createdAt";
                 const sortOrder = typeof req.query.sortOrder === "string" ? req.query.sortOrder : "desc";
