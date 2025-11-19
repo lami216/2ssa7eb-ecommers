@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import PropTypes from "prop-types";
 import { Trash, Star, Edit3 } from "lucide-react";
 import useTranslation from "../hooks/useTranslation";
 import { useProductStore } from "../stores/useProductStore";
@@ -141,3 +142,7 @@ const ProductsList = ({ onEdit }) => {
         );
 };
 export default ProductsList;
+
+ProductsList.propTypes = {
+        onEdit: PropTypes.func,
+};

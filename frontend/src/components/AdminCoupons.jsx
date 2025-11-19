@@ -274,6 +274,103 @@ const AdminCoupons = () => {
                 }
         };
 
+        const renderTableRows = () => {
+                if (loading) {
+                        return (
+                                <tr>
+                                        <td colSpan={6} className='px-4 py-6 text-center text-white'>
+                                                <div className='flex items-center justify-center gap-2'>
+                                                        <Loader2 className='h-5 w-5 animate-spin text-payzone-gold' />
+                                                        {t("common.loading")}
+                                                </div>
+                                        </td>
+                                </tr>
+                        );
+                }
+
+                if (coupons.length === 0) {
+                        return (
+                                <tr>
+                                        <td colSpan={6} className='px-4 py-6 text-center text-white/70'>
+                                                {t("admin.coupons.empty")}
+                                        </td>
+                                </tr>
+                        );
+                }
+
+                return coupons.map((coupon) => (
+                        <tr key={coupon._id} className='hover:bg-white/5'>
+                                <td className='whitespace-nowrap px-4 py-3 font-semibold'>
+                                        {coupon.code}
+                                </td>
+                                <td className='whitespace-nowrap px-4 py-3'>
+                                        {Number(coupon.discountPercentage || 0).toLocaleString("en-US", {
+                                                maximumFractionDigits: 2,
+                                        })}
+                                        %
+                                </td>
+                                <td className='whitespace-nowrap px-4 py-3'>
+                                        {new Date(coupon.expiresAt).toLocaleString("en-US")}
+                                </td>
+                                <td className='px-4 py-3'>
+                                        <span
+                                                className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
+                                                        coupon.isActive
+                                                                ? "bg-emerald-500/10 text-emerald-200"
+                                                                : "bg-rose-500/10 text-rose-200"
+                                                }`}
+                                        >
+                                                {coupon.isActive ? (
+                                                        <>
+                                                                <CheckCircle className='h-4 w-4 text-emerald-400' />
+                                                                {t("admin.coupons.status.active")}
+                                                        </>
+                                                ) : (
+                                                        <>
+                                                                <Ban className='h-4 w-4 text-rose-400' />
+                                                                {t("admin.coupons.status.inactive")}
+                                                        </>
+                                                )}
+                                        </span>
+                                </td>
+                                <td className='whitespace-nowrap px-4 py-3'>
+                                        {new Date(coupon.createdAt).toLocaleString("en-US")}
+                                </td>
+                                <td className='px-4 py-3 text-right'>
+                                        <div className='flex items-center justify-end gap-2'>
+                                                <button
+                                                        type='button'
+                                                        onClick={() => openEditForm(coupon)}
+                                                        className='inline-flex items-center gap-1 rounded-md bg-payzone-gold/10 px-3 py-1 text-sm text-payzone-gold transition hover:bg-payzone-gold/20'
+                                                        disabled={mutationLoading}
+                                                >
+                                                        <Edit3 className='h-4 w-4' />
+                                                        {t("common.actions.edit")}
+                                                </button>
+                                                <button
+                                                        type='button'
+                                                        onClick={() => handleToggleActive(coupon)}
+                                                        className='inline-flex items-center gap-1 rounded-md bg-white/10 px-3 py-1 text-sm text-white transition hover:bg-white/20 disabled:opacity-60'
+                                                        disabled={mutationLoading}
+                                                >
+                                                        {coupon.isActive ? (
+                                                                <>
+                                                                        <Ban className='h-4 w-4 text-rose-400' />
+                                                                        {t("admin.coupons.actions.deactivate")}
+                                                                </>
+                                                        ) : (
+                                                                <>
+                                                                        <BadgeCheck className='h-4 w-4 text-emerald-400' />
+                                                                        {t("admin.coupons.actions.activate")}
+                                                                </>
+                                                        )}
+                                                </button>
+                                        </div>
+                                </td>
+                        </tr>
+                ));
+        };
+
         return (
                 <div className='rounded-xl bg-white/10 p-6 shadow-lg backdrop-blur'>
                         <div className='mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between'>
@@ -339,96 +436,8 @@ const AdminCoupons = () => {
                                                         <th className='px-4 py-3 text-right'>{t("admin.coupons.table.actions")}</th>
                                                 </tr>
                                         </thead>
-                                        <tbody className='divide-y divide-white/10'>
-                                                {loading ? (
-                                                        <tr>
-                                                                <td colSpan={6} className='px-4 py-6 text-center text-white'>
-                                                                        <div className='flex items-center justify-center gap-2'>
-                                                                                <Loader2 className='h-5 w-5 animate-spin text-payzone-gold' />
-                                                                                {t("common.loading")}
-                                                                        </div>
-                                                                </td>
-                                                        </tr>
-                                                ) : coupons.length === 0 ? (
-                                                        <tr>
-                                                                <td colSpan={6} className='px-4 py-6 text-center text-white/70'>
-                                                                        {t("admin.coupons.empty")}
-                                                                </td>
-                                                        </tr>
-                                                ) : (
-                                                        coupons.map((coupon) => (
-                                                                <tr key={coupon._id} className='hover:bg-white/5'>
-                                                                        <td className='whitespace-nowrap px-4 py-3 font-semibold'>
-                                                                                {coupon.code}
-                                                                        </td>
-                                                                        <td className='whitespace-nowrap px-4 py-3'>
-                                                                                {Number(coupon.discountPercentage || 0).toLocaleString("en-US", {
-                                                                                        maximumFractionDigits: 2,
-                                                                                })}
-                                                                                %
-                                                                        </td>
-                                                                        <td className='whitespace-nowrap px-4 py-3'>
-                                                                                {new Date(coupon.expiresAt).toLocaleString("en-US")}
-                                                                        </td>
-                                                                        <td className='px-4 py-3'>
-                                                                                <span
-                                                                                        className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
-                                                                                                coupon.isActive
-                                                                                                        ? "bg-emerald-500/10 text-emerald-200"
-                                                                                                        : "bg-rose-500/10 text-rose-200"
-                                                                                        }`}
-                                                                                >
-                                                                                        {coupon.isActive ? (
-                                                                                                <>
-                                                                                                        <CheckCircle className='h-4 w-4 text-emerald-400' />
-                                                                                                        {t("admin.coupons.status.active")}
-                                                                                                </>
-                                                                                        ) : (
-                                                                                                <>
-                                                                                                        <Ban className='h-4 w-4 text-rose-400' />
-                                                                                                        {t("admin.coupons.status.inactive")}
-                                                                                                </>
-                                                                                        )}
-                                                                                </span>
-                                                                        </td>
-                                                                        <td className='whitespace-nowrap px-4 py-3'>
-                                                                                {new Date(coupon.createdAt).toLocaleString("en-US")}
-                                                                        </td>
-                                                                        <td className='px-4 py-3 text-right'>
-                                                                                <div className='flex items-center justify-end gap-2'>
-                                                                                        <button
-                                                                                                type='button'
-                                                                                                onClick={() => openEditForm(coupon)}
-                                                                                                className='inline-flex items-center gap-1 rounded-md bg-payzone-gold/10 px-3 py-1 text-sm text-payzone-gold transition hover:bg-payzone-gold/20'
-                                                                                                disabled={mutationLoading}
-                                                                                        >
-                                                                                                <Edit3 className='h-4 w-4' />
-                                                                                                {t("common.actions.edit")}
-                                                                                        </button>
-                                                                                        <button
-                                                                                                type='button'
-                                                                                                onClick={() => handleToggleActive(coupon)}
-                                                                                                className='inline-flex items-center gap-1 rounded-md bg-white/10 px-3 py-1 text-sm text-white transition hover:bg-white/20 disabled:opacity-60'
-                                                                                                disabled={mutationLoading}
-                                                                                        >
-                                                                                                {coupon.isActive ? (
-                                                                                                        <>
-                                                                                                                <Ban className='h-4 w-4 text-rose-400' />
-                                                                                                                {t("admin.coupons.actions.deactivate")}
-                                                                                                        </>
-                                                                                                ) : (
-                                                                                                        <>
-                                                                                                                <BadgeCheck className='h-4 w-4 text-emerald-400' />
-                                                                                                                {t("admin.coupons.actions.activate")}
-                                                                                                        </>
-                                                                                                )}
-                                                                                        </button>
-                                                                                </div>
-                                                                        </td>
-                                                                </tr>
-                                                        ))
-                                                )}
-                                        </tbody>
+                                                                                <tbody className='divide-y divide-white/10'>{renderTableRows()}</tbody>
+
                                 </table>
                         </div>
 

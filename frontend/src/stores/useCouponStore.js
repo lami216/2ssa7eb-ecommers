@@ -127,11 +127,13 @@ export const useCouponStore = create((set, get) => ({
                 set({ mutationLoading: true });
                 try {
                         const response = await apiClient.post(`/coupons`, payload);
-                        const createdCoupons = Array.isArray(response?.coupons)
-                                ? response.coupons
-                                : response
-                                ? [response]
-                                : [];
+                        let createdCoupons = [];
+
+                        if (Array.isArray(response?.coupons)) {
+                                createdCoupons = response.coupons;
+                        } else if (response) {
+                                createdCoupons = [response];
+                        }
 
                         set((state) => {
                                 if (!createdCoupons.length) {

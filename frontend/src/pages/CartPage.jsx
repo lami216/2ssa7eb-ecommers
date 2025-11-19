@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import PropTypes from "prop-types";
 import { useCartStore } from "../stores/useCartStore";
 import { motion } from "framer-motion";
 import { ShoppingCart } from "lucide-react";
@@ -62,3 +63,7 @@ const EmptyCartUI = ({ t }) => (
                 </Link>
         </motion.div>
 );
+
+EmptyCartUI.propTypes = {
+        t: PropTypes.func.isRequired,
+};

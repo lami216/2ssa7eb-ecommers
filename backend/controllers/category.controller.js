@@ -118,17 +118,21 @@ const ensureUploadSuccess = (uploadResult) => {
                 throw createHttpError(500, "Failed to process category image");
         }
 
+        const secureUrl =
+                typeof uploadResult.secure_url === "string"
+                        ? uploadResult.secure_url
+                        : String(uploadResult.secure_url);
+        let publicId = null;
+
+        if (typeof uploadResult.public_id === "string") {
+                publicId = uploadResult.public_id;
+        } else if (uploadResult.public_id) {
+                publicId = String(uploadResult.public_id);
+        }
+
         return {
-                secureUrl:
-                        typeof uploadResult.secure_url === "string"
-                                ? uploadResult.secure_url
-                                : String(uploadResult.secure_url),
-                publicId:
-                        typeof uploadResult.public_id === "string"
-                                ? uploadResult.public_id
-                                : uploadResult.public_id
-                                  ? String(uploadResult.public_id)
-                                  : null,
+                secureUrl,
+                publicId,
         };
 };
 

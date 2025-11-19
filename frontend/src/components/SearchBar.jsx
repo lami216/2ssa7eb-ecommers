@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Grid3x3, Loader2, Search as SearchIcon, X } from "lucide-react";
 
@@ -544,3 +545,8 @@ const SearchBar = ({ variant = "global", categorySlug = null }) => {
 };
 
 export default SearchBar;
+
+SearchBar.propTypes = {
+        variant: PropTypes.string,
+        categorySlug: PropTypes.string,
+};

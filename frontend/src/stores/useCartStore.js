@@ -271,7 +271,7 @@ export const useCartStore = create((set, get) => ({
                 let totalDiscountAmount = 0;
                 let enrichedCoupon = null;
 
-                if (coupon && coupon.code) {
+                if (coupon?.code) {
                         const percentage = Number(coupon.discountPercentage) || 0;
 
                         if (percentage > 0 && discountedSubtotal > 0) {

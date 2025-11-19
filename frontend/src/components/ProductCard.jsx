@@ -1,4 +1,5 @@
 import { ShoppingCart } from "lucide-react";
+import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import useTranslation from "../hooks/useTranslation";
 import { useCartStore } from "../stores/useCartStore";
@@ -15,13 +16,17 @@ const ProductCard = ({ product }) => {
                 isDiscounted,
                 discountPercentage,
         };
-        const coverImage =
-                product.image ||
-                (Array.isArray(product.images) && product.images.length > 0
-                        ? typeof product.images[0] === "string"
-                                ? product.images[0]
-                                : product.images[0]?.url
-                        : "");
+        let coverImage = product.image;
+
+        if (!coverImage && Array.isArray(product.images) && product.images.length > 0) {
+                const [firstImage] = product.images;
+
+                if (typeof firstImage === "string") {
+                        coverImage = firstImage;
+                } else {
+                        coverImage = firstImage?.url || "";
+                }
+        }
 
         const handleAddToCart = () => {
                 addToCart(productForCart);
@@ -81,3 +86,24 @@ const ProductCard = ({ product }) => {
         );
 };
 export default ProductCard;
+
+ProductCard.propTypes = {
+        product: PropTypes.shape({
+                _id: PropTypes.string.isRequired,
+                id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+                name: PropTypes.string.isRequired,
+                image: PropTypes.string,
+                images: PropTypes.arrayOf(
+                        PropTypes.oneOfType([
+                                PropTypes.string,
+                                PropTypes.shape({
+                                        url: PropTypes.string,
+                                }),
+                        ])
+                ),
+                price: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+                discountedPrice: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+                isDiscounted: PropTypes.bool,
+                discountPercentage: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        }).isRequired,
+};

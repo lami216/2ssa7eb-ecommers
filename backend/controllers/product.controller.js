@@ -185,13 +185,17 @@ const collectExistingImageIds = (images) => {
                 return [];
         }
         return images
-                .map((image) =>
-                        typeof image === "string"
-                                ? image
-                                : typeof image?.public_id === "string"
-                                        ? image.public_id
-                                        : null
-                )
+                .map((image) => {
+                        if (typeof image === "string") {
+                                return image;
+                        }
+
+                        if (typeof image?.public_id === "string") {
+                                return image.public_id;
+                        }
+
+                        return null;
+                })
                 .filter(Boolean);
 };
 

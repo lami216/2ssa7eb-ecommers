@@ -1,6 +1,6 @@
 import Redis from "ioredis";
 import dotenv from "dotenv";
-import path from "path";
+import path from "node:path";
 
 dotenv.config({ path: path.resolve("./backend/.env") });
 
