@@ -309,36 +309,42 @@ export const createWhatsAppOrder = async (req, res) => {
                         normalizedItems,
                         products
                 );
-                const { total, totalDiscountAmount, appliedCoupon } = await calculateCouponTotals(
-                        payload.primaryCouponCode,
-                        subtotal
-                );
+const { total, totalDiscountAmount, appliedCoupon } = await calculateCouponTotals(
+payload.primaryCouponCode,
+subtotal
+);
 
-                const order = await Order.create({
-                        items: itemsWithDetails,
-                        subtotal,
-                        total,
-                        coupon: appliedCoupon,
-                        totalDiscountAmount,
-                        customerName: payload.customerName,
-                        phone: payload.phone,
-                        address: payload.address,
-                        paymentMethod: "whatsapp",
-                        status: "paid_whatsapp",
-                        paidAt: new Date(),
-                        optimisticPaid: true,
-                        reconciliationNeeded: true,
-                        createdFrom: "checkout_whatsapp",
-                        log: [
-                                {
-                                        action: "created",
-                                        statusAfter: "paid_whatsapp",
-                                        reason: "Order captured via WhatsApp checkout",
-                                        changedByName: "checkout_whatsapp",
-                                        timestamp: new Date(),
-                                },
-                        ],
-                });
+const safeCustomerName = normalizeString(payload.customerName);
+const safePhone = normalizePhone(payload.phone);
+const safeAddress = normalizeString(payload.address);
+
+const orderData = {
+items: itemsWithDetails,
+subtotal,
+total,
+coupon: appliedCoupon,
+totalDiscountAmount,
+customerName: safeCustomerName,
+phone: safePhone,
+address: safeAddress,
+paymentMethod: "whatsapp",
+status: "paid_whatsapp",
+paidAt: new Date(),
+optimisticPaid: true,
+reconciliationNeeded: true,
+createdFrom: "checkout_whatsapp",
+log: [
+{
+action: "created",
+statusAfter: "paid_whatsapp",
+reason: "Order captured via WhatsApp checkout",
+changedByName: "checkout_whatsapp",
+timestamp: new Date(),
+},
+],
+};
+
+const order = await Order.create(orderData);
 
                 const orderForResponse = mapOrderResponse(order.toObject());
 
