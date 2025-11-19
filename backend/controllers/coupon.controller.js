@@ -1,5 +1,11 @@
 import Coupon from "../models/coupon.model.js";
 
+const createHttpError = (status, message) => {
+        const error = new Error(message);
+        error.status = status;
+        return error;
+};
+
 const normalizeCode = (value) => {
         if (typeof value !== "string") {
                 return "";
@@ -67,89 +73,145 @@ const collectCodes = (rawCodes) => {
         return [];
 };
 
+const gatherNormalizedCodes = (body) => {
+        const submittedCodes = collectCodes(body?.codes);
+        const fallbackCode = typeof body?.code === "string" ? body.code : "";
+        const inputs = submittedCodes.length ? submittedCodes : [fallbackCode];
+        return inputs.map((value) => normalizeCode(value)).filter(Boolean);
+};
+
+const ensureDiscountWithinRange = (discount) => {
+        if (!Number.isFinite(discount) || discount < 1 || discount > 90) {
+                throw createHttpError(400, "Discount percentage must be between 1 and 90");
+        }
+        return discount;
+};
+
+const ensureFutureExpiry = (expiresAt) => {
+        if (!expiresAt || expiresAt <= new Date()) {
+                throw createHttpError(400, "Expiry must be in the future");
+        }
+        return expiresAt;
+};
+
+const ensureCodesProvided = (codes) => {
+        if (!codes.length) {
+                throw createHttpError(400, "Coupon code is required");
+        }
+};
+
+const ensureCodesAreValid = (codes) => {
+        if (codes.some((code) => !isValidCode(code))) {
+                throw createHttpError(
+                        400,
+                        "Coupon code must contain uppercase letters and numbers only"
+                );
+        }
+};
+
+const ensureNoDuplicates = (codes) => {
+        if (new Set(codes).size !== codes.length) {
+                throw createHttpError(400, "Duplicate coupon codes provided");
+        }
+};
+
+const ensureCodesAvailable = async (codes) => {
+        const existingCoupons = await Coupon.find({ code: { $in: codes } }, { code: 1 }).lean();
+        if (!existingCoupons.length) {
+                return;
+        }
+
+        const existingCodes = existingCoupons.map((coupon) => coupon.code).join(", ");
+        const message =
+                codes.length === 1
+                        ? "Coupon code already exists"
+                        : `Coupon codes already exist: ${existingCodes}`;
+
+        throw createHttpError(409, message);
+};
+
+const buildCouponPayload = ({ code, discount, expiresAt, isActive }) => ({
+        code: String(code),
+        discountPercentage: Number(discount),
+        expiresAt: new Date(expiresAt.getTime()),
+        isActive: Boolean(isActive),
+});
+
+const normalizeOptionalCode = (value) => {
+        if (value === undefined) {
+                return undefined;
+        }
+
+        const code = normalizeCode(value);
+        if (!code) {
+                throw createHttpError(400, "Coupon code is required");
+        }
+
+        if (!isValidCode(code)) {
+                throw createHttpError(
+                        400,
+                        "Coupon code must contain uppercase letters and numbers only"
+                );
+        }
+
+        return code;
+};
+
+const normalizeOptionalDiscount = (value) => {
+        if (value === undefined) {
+                return undefined;
+        }
+        const discount = parseDiscount(value);
+        return ensureDiscountWithinRange(discount);
+};
+
+const normalizeOptionalExpiry = (value) => {
+        if (value === undefined) {
+                return undefined;
+        }
+        const parsed = parseExpiresAt(value);
+        return ensureFutureExpiry(parsed);
+};
+
+const ensureCodeUniqueness = async (code, couponId) => {
+        const existingCoupon = await Coupon.findOne({ code, _id: { $ne: couponId } });
+        if (existingCoupon) {
+                throw createHttpError(409, "Coupon code already exists");
+        }
+};
+
 export const createCoupon = async (req, res) => {
         try {
-                const discount = parseDiscount(req.body.discountPercentage);
-                const expiresAt = parseExpiresAt(req.body.expiresAt);
+                const discount = ensureDiscountWithinRange(parseDiscount(req.body.discountPercentage));
+                const expiresAt = ensureFutureExpiry(parseExpiresAt(req.body.expiresAt));
                 const isActive = typeof req.body.isActive === "boolean" ? req.body.isActive : true;
 
-                const submittedCodes = collectCodes(req.body.codes);
-                const fallbackCode = typeof req.body.code === "string" ? req.body.code : "";
+                const normalizedCodes = gatherNormalizedCodes(req.body);
+                ensureCodesProvided(normalizedCodes);
+                ensureCodesAreValid(normalizedCodes);
+                ensureNoDuplicates(normalizedCodes);
 
-                const normalizedCodes = (submittedCodes.length ? submittedCodes : [fallbackCode])
-                        .map((value) => normalizeCode(value))
-                        .filter(Boolean);
+                await ensureCodesAvailable(normalizedCodes);
 
-                if (!normalizedCodes.length) {
-                        return res.status(400).json({ message: "Coupon code is required" });
-                }
+                const payloadBuilder = (code) =>
+                        buildCouponPayload({ code, discount, expiresAt, isActive });
 
-                if (!Number.isFinite(discount) || discount < 1 || discount > 90) {
-                        return res
-                                .status(400)
-                                .json({ message: "Discount percentage must be between 1 and 90" });
-                }
-
-                if (!expiresAt) {
-                        return res.status(400).json({ message: "Expiry must be in the future" });
-                }
-
-                if (expiresAt <= new Date()) {
-                        return res.status(400).json({ message: "Expiry must be in the future" });
-                }
-
-                const uniqueCodes = [...new Set(normalizedCodes)];
-
-                if (uniqueCodes.some((code) => !isValidCode(code))) {
-                        return res
-                                .status(400)
-                                .json({ message: "Coupon code must contain uppercase letters and numbers only" });
-                }
-
-                if (uniqueCodes.length !== normalizedCodes.length) {
-                        return res.status(400).json({ message: "Duplicate coupon codes provided" });
-                }
-
-                const existingCoupons = await Coupon.find({ code: { $in: uniqueCodes } }, { code: 1 }).lean();
-
-                if (existingCoupons.length > 0) {
-                        const existingCodes = existingCoupons.map((coupon) => coupon.code).join(", ");
-                        return res.status(409).json({
-                                message:
-                                        uniqueCodes.length === 1
-                                                ? "Coupon code already exists"
-                                                : `Coupon codes already exist: ${existingCodes}`,
-                        });
-                }
-
-                const buildCouponPayload = (code) => ({
-                        code: String(code),
-                        discountPercentage: Number(discount),
-                        expiresAt: new Date(expiresAt.getTime()),
-                        isActive: Boolean(isActive),
-                });
-
-                if (uniqueCodes.length > 1) {
-                        const couponsToCreate = uniqueCodes.map((code) => buildCouponPayload(code));
-
+                if (normalizedCodes.length > 1) {
+                        const couponsToCreate = normalizedCodes.map((code) => payloadBuilder(code));
                         const createdCoupons = await Coupon.insertMany(couponsToCreate);
                         return res.status(201).json({ coupons: createdCoupons });
                 }
 
-                const couponData = buildCouponPayload(uniqueCodes[0]);
-
-                const coupon = await Coupon.create(couponData);
+                const coupon = await Coupon.create(payloadBuilder(normalizedCodes[0]));
 
                 return res.status(201).json(coupon);
         } catch (error) {
-                if (error.message === "Expiry must be in the future") {
-                        return res.status(400).json({ message: "Expiry must be in the future" });
+                if (error.status) {
+                        return res.status(error.status).json({ message: error.message });
                 }
-
                 if (error.code === 11000) {
                         return res.status(409).json({ message: "Coupon code already exists" });
                 }
-
                 console.log("Error in createCoupon controller", error.message);
                 return res.status(500).json({ message: "Server error" });
         }
@@ -242,46 +304,27 @@ export const updateCoupon = async (req, res) => {
                         return res.status(404).json({ message: "Coupon not found" });
                 }
 
-                if (req.body.code !== undefined) {
-                        const code = normalizeCode(req.body.code);
-                        if (!code) {
-                                return res.status(400).json({ message: "Coupon code is required" });
-                        }
-                        if (!isValidCode(code)) {
-                                return res
-                                        .status(400)
-                                        .json({ message: "Coupon code must contain uppercase letters and numbers only" });
-                        }
+                const nextCode = normalizeOptionalCode(req.body.code);
+                const nextDiscount = normalizeOptionalDiscount(req.body.discountPercentage);
+                const nextExpiry = normalizeOptionalExpiry(req.body.expiresAt);
+                const nextIsActive =
+                        req.body.isActive !== undefined ? Boolean(req.body.isActive) : undefined;
 
-                        if (code !== coupon.code) {
-                                const existingCoupon = await Coupon.findOne({ code, _id: { $ne: coupon._id } });
-                                if (existingCoupon) {
-                                        return res.status(409).json({ message: "Coupon code already exists" });
-                                }
-                                coupon.code = code;
-                        }
+                if (nextCode !== undefined && nextCode !== coupon.code) {
+                        await ensureCodeUniqueness(nextCode, coupon._id);
+                        coupon.code = nextCode;
                 }
 
-                if (req.body.discountPercentage !== undefined) {
-                        const discount = parseDiscount(req.body.discountPercentage);
-                        if (!Number.isFinite(discount) || discount < 1 || discount > 90) {
-                                return res
-                                        .status(400)
-                                        .json({ message: "Discount percentage must be between 1 and 90" });
-                        }
-                        coupon.discountPercentage = discount;
+                if (nextDiscount !== undefined) {
+                        coupon.discountPercentage = nextDiscount;
                 }
 
-                if (req.body.expiresAt !== undefined) {
-                        const expiresAt = parseExpiresAt(req.body.expiresAt);
-                        if (!expiresAt || expiresAt <= new Date()) {
-                                return res.status(400).json({ message: "Expiry must be in the future" });
-                        }
-                        coupon.expiresAt = expiresAt;
+                if (nextExpiry !== undefined) {
+                        coupon.expiresAt = nextExpiry;
                 }
 
-                if (req.body.isActive !== undefined) {
-                        coupon.isActive = Boolean(req.body.isActive);
+                if (nextIsActive !== undefined) {
+                        coupon.isActive = nextIsActive;
                 }
 
                 await coupon.save();
@@ -292,10 +335,9 @@ export const updateCoupon = async (req, res) => {
                         return res.status(409).json({ message: "Coupon code already exists" });
                 }
 
-                if (error.message === "Expiry must be in the future") {
-                        return res.status(400).json({ message: "Expiry must be in the future" });
+                if (error.status) {
+                        return res.status(error.status).json({ message: error.message });
                 }
-
                 console.log("Error in updateCoupon controller", error.message);
                 return res.status(500).json({ message: "Server error" });
         }

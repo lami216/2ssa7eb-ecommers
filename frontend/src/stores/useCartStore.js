@@ -48,6 +48,33 @@ const persistCartToStorage = (cart) => {
 
 const getAuthenticatedUser = () => useUserStore.getState().user;
 
+const applyLocalCartUpdate = (set, get, product, normalizedQuantity) => {
+        const enrichedProduct = enrichCartItem({
+                ...product,
+                quantity: normalizedQuantity,
+        });
+
+        set((prevState) => {
+                const existingItem = prevState.cart.find((item) => item._id === product._id);
+                const newCart = existingItem
+                        ? prevState.cart.map((item) =>
+                                  item._id === product._id
+                                          ? enrichCartItem({
+                                                    ...item,
+                                                    ...product,
+                                                    quantity: Number(item.quantity || 0) + normalizedQuantity,
+                                            })
+                                          : item
+                          )
+                        : [...prevState.cart, enrichedProduct];
+
+                persistCartToStorage(newCart);
+                return { cart: newCart };
+        });
+
+        get().calculateTotals();
+};
+
 export const useCartStore = create((set, get) => ({
         cart: loadCartFromStorage(),
         coupon: null,
@@ -163,33 +190,8 @@ export const useCartStore = create((set, get) => ({
                 const user = getAuthenticatedUser();
                 const normalizedQuantity = Math.max(1, Number(quantity) || 1);
 
-                const updateLocalCart = () => {
-                        const enrichedProduct = enrichCartItem({
-                                ...product,
-                                quantity: normalizedQuantity,
-                        });
-                        set((prevState) => {
-                                const existingItem = prevState.cart.find((item) => item._id === product._id);
-                                const newCart = existingItem
-                                        ? prevState.cart.map((item) =>
-                                                        item._id === product._id
-                                                                ? enrichCartItem({
-                                                                          ...item,
-                                                                          ...product,
-                                                                          quantity: Number(item.quantity || 0) + normalizedQuantity,
-                                                                  })
-                                                                : item
-                                          )
-                                        : [...prevState.cart, enrichedProduct];
-
-                                persistCartToStorage(newCart);
-                                return { cart: newCart };
-                        });
-                        get().calculateTotals();
-                };
-
                 if (!user) {
-                        updateLocalCart();
+                        applyLocalCartUpdate(set, get, product, normalizedQuantity);
                         toast.success(translate("common.messages.productAddedToCart"));
                         return;
                 }
@@ -204,7 +206,7 @@ export const useCartStore = create((set, get) => ({
                         toast.error(error.response?.data?.message || translate("toast.addToCartError"));
                 }
 
-                updateLocalCart();
+                applyLocalCartUpdate(set, get, product, normalizedQuantity);
         },
         removeFromCart: async (productId) => {
                 const user = getAuthenticatedUser();

@@ -1,39 +1,42 @@
-export const getProductPricing = (product = {}) => {
+const resolveBasePrice = (product) => {
         const basePriceInput =
                 product.originalPrice !== undefined && product.originalPrice !== null
                         ? product.originalPrice
                         : product.price;
-        const price = Number(basePriceInput) || 0;
+        return Number(basePriceInput) || 0;
+};
 
-        let rawDiscountPercentage = Number(product.discountPercentage);
-        if (Number.isNaN(rawDiscountPercentage)) {
-                rawDiscountPercentage = 0;
+const resolveRawDiscount = (product) => {
+        const rawDiscount = Number(product.discountPercentage);
+        return Number.isNaN(rawDiscount) ? 0 : rawDiscount;
+};
+
+const resolveDiscountedInput = (product) => {
+        if (product.discountedPrice !== undefined && product.discountedPrice !== null) {
+                const discounted = Number(product.discountedPrice);
+                return Number.isNaN(discounted) ? undefined : discounted;
         }
 
-        let discountedPriceInput =
-                product.discountedPrice !== undefined && product.discountedPrice !== null
-                        ? Number(product.discountedPrice)
-                        : undefined;
-
-        if (
-                discountedPriceInput === undefined &&
+        const hasLegacyPrice =
                 product.isDiscounted &&
                 product.originalPrice !== undefined &&
                 product.originalPrice !== null &&
                 product.price !== undefined &&
-                product.price !== null
-        ) {
-                discountedPriceInput = Number(product.price);
+                product.price !== null;
+
+        if (hasLegacyPrice) {
+                const fallback = Number(product.price);
+                return Number.isNaN(fallback) ? undefined : fallback;
         }
 
-        if (Number.isNaN(discountedPriceInput)) {
-                discountedPriceInput = undefined;
-        }
+        return undefined;
+};
 
-        let isDiscounted = Boolean(product.isDiscounted) && rawDiscountPercentage > 0;
-        let normalizedDiscount = rawDiscountPercentage;
+const computeDiscountedTotals = ({ price, rawDiscount, discountedInput, isDiscountedFlag }) => {
+        let normalizedDiscount = rawDiscount;
+        let discountedPrice = discountedInput;
+        let isDiscounted = Boolean(isDiscountedFlag) && normalizedDiscount > 0;
 
-        let discountedPrice = discountedPriceInput;
         if (discountedPrice === undefined) {
                 discountedPrice = isDiscounted
                         ? Number((price - price * (normalizedDiscount / 100)).toFixed(2))
@@ -45,7 +48,7 @@ export const getProductPricing = (product = {}) => {
         }
 
         if (price <= 0) {
-                discountedPrice = 0;
+                        discountedPrice = 0;
         }
 
         isDiscounted = isDiscounted || discountedPrice < price;
@@ -56,10 +59,26 @@ export const getProductPricing = (product = {}) => {
         }
 
         return {
-                price,
                 discountedPrice,
                 isDiscounted,
                 discountPercentage: normalizedDiscount > 0 ? Number(normalizedDiscount.toFixed(2)) : 0,
+        };
+};
+
+export const getProductPricing = (product = {}) => {
+        const price = resolveBasePrice(product);
+        const rawDiscount = resolveRawDiscount(product);
+        const discountedInput = resolveDiscountedInput(product);
+        const totals = computeDiscountedTotals({
+                price,
+                rawDiscount,
+                discountedInput,
+                isDiscountedFlag: product.isDiscounted,
+        });
+
+        return {
+                price,
+                ...totals,
         };
 };
 
