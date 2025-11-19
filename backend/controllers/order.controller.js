@@ -17,6 +17,11 @@ const ORDER_STATUS_OPTIONS = [
 const normalizeString = (value) => (typeof value === "string" ? value.trim() : "");
 const normalizePhone = (value) => (typeof value === "string" ? value.replace(/\D/g, "") : "");
 const sanitizeSearchTerm = (value) => value.replace(/[^\p{L}\p{N}\s-]/gu, "").trim();
+const createHttpError = (status, message) => {
+        const error = new Error(message);
+        error.status = status;
+        return error;
+};
 const computeUnitPrice = (product) => {
         const price = Number(product.price) || 0;
         if (!product.isDiscounted) {
@@ -66,148 +71,241 @@ const appendLogEntry = (order, entry) => {
         });
 };
 
+const collectCouponInputs = (body) => {
+        const couponCodeInputs = [];
+        if (Array.isArray(body?.couponCodes)) {
+                couponCodeInputs.push(...body.couponCodes.filter((value) => typeof value === "string"));
+        }
+        if (!couponCodeInputs.length) {
+                const fallbackCode = normalizeString(body?.couponCode || body?.coupon?.code);
+                if (fallbackCode) {
+                        couponCodeInputs.push(fallbackCode);
+                }
+        }
+        return couponCodeInputs;
+};
+
+const extractWhatsAppPayload = (body = {}) => {
+        const items = Array.isArray(body.items) ? body.items : [];
+        const couponInputs = collectCouponInputs(body);
+        const normalizedCouponCodes = couponInputs
+                .map((value) => normalizeString(value))
+                .filter(Boolean)
+                .map((value) => value.replace(/\s+/g, "").toUpperCase());
+        return {
+                items,
+                customerName: normalizeString(body.customerName),
+                phone: normalizePhone(body.phone),
+                address: normalizeString(body.address),
+                primaryCouponCode: normalizedCouponCodes[0] || "",
+        };
+};
+
+const ensureOrderBasics = ({ items, customerName, phone, address }) => {
+        if (!items.length) {
+                throw createHttpError(400, "Order must contain at least one item");
+        }
+        if (!customerName) {
+                throw createHttpError(400, "Customer name is required");
+        }
+        if (!phone) {
+                throw createHttpError(400, "Phone number is required");
+        }
+        if (!address) {
+                throw createHttpError(400, "Address is required");
+        }
+};
+
+const normalizeOrderItems = (items) =>
+        items
+                .map((item) => {
+                        const candidate = [item.productId, item._id].find((value) =>
+                                mongoose.Types.ObjectId.isValid(value)
+                        );
+                        if (!candidate) {
+                                return null;
+                        }
+                        const quantity = Math.max(1, parseInt(item.quantity, 10) || 1);
+                        return {
+                                productId: candidate.toString(),
+                                quantity,
+                        };
+                })
+                .filter(Boolean);
+
+const fetchProductsByIds = async (productIds) => {
+        if (!productIds.length) {
+                throw createHttpError(400, "Invalid product list");
+        }
+        const products = await Product.find({ _id: { $in: productIds } }).lean();
+        if (products.length !== productIds.length) {
+                throw createHttpError(400, "One or more products are invalid");
+        }
+        return products;
+};
+
+const buildOrderItemsWithDetails = (normalizedItems, products) => {
+        const productLookup = products.reduce((accumulator, product) => {
+                accumulator[product._id.toString()] = product;
+                return accumulator;
+        }, {});
+
+        const itemsWithDetails = [];
+        let subtotal = 0;
+
+        normalizedItems.forEach((item) => {
+                const product = productLookup[item.productId];
+                if (!product) {
+                        throw createHttpError(400, "Unable to match product for order item");
+                }
+                const unitPrice = computeUnitPrice(product);
+                const lineSubtotal = Number((unitPrice * item.quantity).toFixed(2));
+                subtotal += lineSubtotal;
+                itemsWithDetails.push({
+                        productId: product._id,
+                        name: product.name,
+                        price: unitPrice,
+                        quantity: item.quantity,
+                        subtotal: lineSubtotal,
+                });
+        });
+
+        if (!itemsWithDetails.length) {
+                throw createHttpError(400, "Order items are invalid");
+        }
+
+        return { itemsWithDetails, subtotal: Number(subtotal.toFixed(2)) };
+};
+
+const calculateCouponTotals = async (primaryCouponCode, subtotal) => {
+        if (!primaryCouponCode) {
+                return { total: subtotal, totalDiscountAmount: 0, appliedCoupon: null };
+        }
+
+        const coupon = await Coupon.findOne({
+                code: primaryCouponCode,
+                isActive: true,
+                expiresAt: { $gt: new Date() },
+        }).lean();
+
+        if (!coupon) {
+                throw createHttpError(400, "One or more coupons are invalid or expired");
+        }
+
+        const discountPercentage = Number(coupon.discountPercentage) || 0;
+        const totalDiscountAmount =
+                discountPercentage > 0 && subtotal > 0
+                        ? Number(((subtotal * Math.min(discountPercentage, 100)) / 100).toFixed(2))
+                        : 0;
+
+        const total = Number(Math.max(0, subtotal - totalDiscountAmount).toFixed(2));
+
+        return {
+                total,
+                totalDiscountAmount,
+                appliedCoupon: {
+                        code: coupon.code,
+                        discountPercentage,
+                        discountAmount: totalDiscountAmount,
+                },
+        };
+};
+
+const fetchOrderByIdOrThrow = async (id) => {
+        const order = await Order.findById(id);
+        if (!order) {
+                throw createHttpError(404, "Order not found");
+        }
+        return order;
+};
+
+const ensureStatusChangeIsAllowed = (status) => {
+        if (!ORDER_STATUS_OPTIONS.includes(status)) {
+                throw createHttpError(400, "Invalid status");
+        }
+        if (status === "cancelled") {
+                throw createHttpError(400, "Use the cancel endpoint to cancel orders");
+        }
+};
+
+const applyStatusUpdate = (order, status, reason, user) => {
+        const previousStatus = order.status;
+        order.status = status;
+        if (PAID_STATUSES.includes(status) && !order.paidAt) {
+                order.paidAt = new Date();
+        }
+        if (status === "delivered") {
+                order.reconciliationNeeded = false;
+        }
+        appendLogEntry(order, {
+                action: "status_change",
+                statusBefore: previousStatus,
+                statusAfter: status,
+                reason: normalizeString(reason) || undefined,
+                changedBy: user?._id,
+                changedByName: user?.name,
+        });
+};
+
+const cancelOrderInternally = (order, reason, user) => {
+        const previousStatus = order.status;
+        order.status = "cancelled";
+        order.optimisticPaid = false;
+        order.canceledAt = new Date();
+        order.canceledBy = user?._id;
+        order.canceledByName = user?.name;
+        order.reconciliationNeeded = true;
+        appendLogEntry(order, {
+                action: "cancelled",
+                statusBefore: previousStatus,
+                statusAfter: "cancelled",
+                reason: normalizeString(reason) || undefined,
+                changedBy: user?._id,
+                changedByName: user?.name,
+        });
+};
+
+const buildOrderListFilters = (status, search) => {
+        const filters = {};
+
+        if (status && ORDER_STATUS_OPTIONS.includes(status)) {
+                filters.status = status;
+        }
+
+        if (search) {
+                const normalizedSearch = sanitizeSearchTerm(search);
+                if (normalizedSearch) {
+                        const escapedSearch = normalizedSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                        const orFilters = [
+                                { customerName: { $regex: escapedSearch, $options: "i" } },
+                                { phone: { $regex: normalizedSearch.replace(/\s+/g, ""), $options: "i" } },
+                        ];
+                        const parsedNumber = Number(normalizedSearch);
+                        if (Number.isFinite(parsedNumber)) {
+                                orFilters.push({ orderNumber: parsedNumber });
+                        }
+                        filters.$or = orFilters;
+                }
+        }
+
+        return filters;
+};
+
 export const createWhatsAppOrder = async (req, res) => {
         try {
-                const items = Array.isArray(req.body?.items) ? req.body.items : [];
-                const customerName = normalizeString(req.body?.customerName);
-                const phone = normalizePhone(req.body?.phone);
-                const address = normalizeString(req.body?.address);
-                const couponCodeInputs = [];
-
-                if (Array.isArray(req.body?.couponCodes)) {
-                        couponCodeInputs.push(
-                                ...req.body.couponCodes.filter((value) => typeof value === "string")
-                        );
-                }
-
-                if (couponCodeInputs.length === 0) {
-                        const fallbackCode = normalizeString(
-                                req.body?.couponCode || req.body?.coupon?.code
-                        );
-
-                        if (fallbackCode) {
-                                couponCodeInputs.push(fallbackCode);
-                        }
-                }
-
-                const normalizedCouponCodes = couponCodeInputs
-                        .map((value) => normalizeString(value))
-                        .filter(Boolean)
-                        .map((value) => value.replace(/\s+/g, "").toUpperCase());
-                const primaryCouponCode = normalizedCouponCodes[0] || "";
-
-                if (!items.length) {
-                        return res.status(400).json({ message: "Order must contain at least one item" });
-                }
-
-                if (!customerName) {
-                        return res.status(400).json({ message: "Customer name is required" });
-                }
-
-                if (!phone) {
-                        return res.status(400).json({ message: "Phone number is required" });
-                }
-
-                if (!address) {
-                        return res.status(400).json({ message: "Address is required" });
-                }
-
-                const normalizedItems = items
-                        .map((item) => {
-                                const candidate = [item.productId, item._id].find((value) =>
-                                        mongoose.Types.ObjectId.isValid(value)
-                                );
-
-                                if (!candidate) {
-                                        return null;
-                                }
-
-                                const quantity = Math.max(1, parseInt(item.quantity, 10) || 1);
-
-                                return {
-                                        productId: candidate.toString(),
-                                        quantity,
-                                };
-                        })
-                        .filter(Boolean);
-
+                const payload = extractWhatsAppPayload(req.body);
+                ensureOrderBasics(payload);
+                const normalizedItems = normalizeOrderItems(payload.items);
                 const productIds = [...new Set(normalizedItems.map((item) => item.productId))];
-
-                if (!productIds.length) {
-                        return res.status(400).json({ message: "Invalid product list" });
-                }
-
-                const products = await Product.find({ _id: { $in: productIds } }).lean();
-
-                if (products.length !== productIds.length) {
-                        return res.status(400).json({ message: "One or more products are invalid" });
-                }
-
-                const itemsWithDetails = [];
-                let subtotal = 0;
-
-                for (const item of normalizedItems) {
-                        const product = products.find(
-                                (productDoc) => productDoc._id.toString() === item.productId
-                        );
-
-                        if (!product) {
-                                return res.status(400).json({ message: "Unable to match product for order item" });
-                        }
-
-                        const { quantity } = item;
-                        const unitPrice = computeUnitPrice(product);
-                        const lineSubtotal = Number((unitPrice * quantity).toFixed(2));
-
-                        subtotal += lineSubtotal;
-
-                        itemsWithDetails.push({
-                                productId: product._id,
-                                name: product.name,
-                                price: unitPrice,
-                                quantity,
-                                subtotal: lineSubtotal,
-                        });
-                }
-
-                if (!itemsWithDetails.length) {
-                        return res.status(400).json({ message: "Order items are invalid" });
-                }
-
-                subtotal = Number(subtotal.toFixed(2));
-
-                let total = subtotal;
-                let totalDiscountAmount = 0;
-                let appliedCoupon = null;
-
-                if (primaryCouponCode) {
-                        const coupon = await Coupon.findOne({
-                                code: primaryCouponCode,
-                                isActive: true,
-                                expiresAt: { $gt: new Date() },
-                        }).lean();
-
-                        if (!coupon) {
-                                return res
-                                        .status(400)
-                                        .json({ message: "One or more coupons are invalid or expired" });
-                        }
-
-                        const discountPercentage = Number(coupon.discountPercentage) || 0;
-
-                        if (discountPercentage > 0 && subtotal > 0) {
-                                totalDiscountAmount = Number(
-                                        ((subtotal * Math.min(discountPercentage, 100)) / 100).toFixed(2)
-                                );
-                                total = Number(Math.max(0, subtotal - totalDiscountAmount).toFixed(2));
-                        }
-
-                        appliedCoupon = {
-                                code: coupon.code,
-                                discountPercentage,
-                                discountAmount: totalDiscountAmount,
-                        };
-                }
+                const products = await fetchProductsByIds(productIds);
+                const { itemsWithDetails, subtotal } = buildOrderItemsWithDetails(
+                        normalizedItems,
+                        products
+                );
+                const { total, totalDiscountAmount, appliedCoupon } = await calculateCouponTotals(
+                        payload.primaryCouponCode,
+                        subtotal
+                );
 
                 const order = await Order.create({
                         items: itemsWithDetails,
@@ -215,9 +313,9 @@ export const createWhatsAppOrder = async (req, res) => {
                         total,
                         coupon: appliedCoupon,
                         totalDiscountAmount,
-                        customerName,
-                        phone,
-                        address,
+                        customerName: payload.customerName,
+                        phone: payload.phone,
+                        address: payload.address,
                         paymentMethod: "whatsapp",
                         status: "paid_whatsapp",
                         paidAt: new Date(),
@@ -246,6 +344,9 @@ export const createWhatsAppOrder = async (req, res) => {
                         totalDiscountAmount: orderForResponse.totalDiscountAmount,
                 });
         } catch (error) {
+                if (error.status) {
+                        return res.status(error.status).json({ message: error.message });
+                }
                 console.log("Error in createWhatsAppOrder", error);
                 return res.status(500).json({ message: "Failed to create order" });
         }
@@ -253,34 +354,9 @@ export const createWhatsAppOrder = async (req, res) => {
 
 export const listOrders = async (req, res) => {
         try {
-                        const status =
-                                typeof req.query.status === "string" ? req.query.status.trim() : "";
-                        const search =
-                                typeof req.query.search === "string" ? req.query.search.trim() : "";
-
-                const filters = {};
-
-                if (status && ORDER_STATUS_OPTIONS.includes(status)) {
-                        filters.status = status;
-                }
-
-                if (search) {
-                        const normalizedSearch = sanitizeSearchTerm(search);
-                        if (normalizedSearch) {
-                                const escapedSearch = normalizedSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-                                const orFilters = [
-                                        { customerName: { $regex: escapedSearch, $options: "i" } },
-                                        { phone: { $regex: escapedSearch.replace(/\s+/g, ""), $options: "i" } },
-                                ];
-
-                                const parsedNumber = Number(normalizedSearch);
-                                if (Number.isFinite(parsedNumber)) {
-                                        orFilters.push({ orderNumber: parsedNumber });
-                                }
-
-                                filters.$or = orFilters;
-                        }
-                }
+                const status = typeof req.query.status === "string" ? req.query.status.trim() : "";
+                const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+                const filters = buildOrderListFilters(status, search);
 
                 const orders = await Order.find(filters)
                         .sort({ createdAt: -1 })
@@ -300,49 +376,23 @@ export const updateOrderStatus = async (req, res) => {
                 const { id } = req.params;
                 const { status, reason } = req.body || {};
 
-                if (!ORDER_STATUS_OPTIONS.includes(status)) {
-                        return res.status(400).json({ message: "Invalid status" });
-                }
+                ensureStatusChangeIsAllowed(status);
+                const order = await fetchOrderByIdOrThrow(id);
 
-                if (status === "cancelled") {
-                        return res.status(400).json({ message: "Use the cancel endpoint to cancel orders" });
-                }
-
-                const order = await Order.findById(id);
-                if (!order) {
-                        return res.status(404).json({ message: "Order not found" });
-                }
-
-                const previousStatus = order.status;
-                if (previousStatus === status) {
+                if (order.status === status) {
                         return res.json({ order: mapOrderResponse(order.toObject()) });
                 }
 
-                order.status = status;
-
-                if (PAID_STATUSES.includes(status) && !order.paidAt) {
-                        order.paidAt = new Date();
-                }
-
-                if (status === "delivered") {
-                        order.reconciliationNeeded = false;
-                }
-
-                appendLogEntry(order, {
-                        action: "status_change",
-                        statusBefore: previousStatus,
-                        statusAfter: status,
-                        reason: normalizeString(reason) || undefined,
-                        changedBy: req.user?._id,
-                        changedByName: req.user?.name,
-                });
-
+                applyStatusUpdate(order, status, reason, req.user);
                 await order.save();
 
                 const updatedOrder = await Order.findById(order._id).lean();
 
                 return res.json({ order: mapOrderResponse(updatedOrder) });
         } catch (error) {
+                if (error.status) {
+                        return res.status(error.status).json({ message: error.message });
+                }
                 console.log("Error in updateOrderStatus", error);
                 return res.status(500).json({ message: "Failed to update order status" });
         }
@@ -353,39 +403,21 @@ export const cancelOrder = async (req, res) => {
                 const { id } = req.params;
                 const { reason } = req.body || {};
 
-                const order = await Order.findById(id);
-                if (!order) {
-                        return res.status(404).json({ message: "Order not found" });
-                }
-
+                const order = await fetchOrderByIdOrThrow(id);
                 if (order.status === "cancelled") {
                         return res.json({ order: mapOrderResponse(order.toObject()) });
                 }
 
-                const previousStatus = order.status;
-
-                order.status = "cancelled";
-                order.optimisticPaid = false;
-                order.canceledAt = new Date();
-                order.canceledBy = req.user?._id;
-                order.canceledByName = req.user?.name;
-                order.reconciliationNeeded = true;
-
-                appendLogEntry(order, {
-                        action: "cancelled",
-                        statusBefore: previousStatus,
-                        statusAfter: "cancelled",
-                        reason: normalizeString(reason) || undefined,
-                        changedBy: req.user?._id,
-                        changedByName: req.user?.name,
-                });
-
+                cancelOrderInternally(order, reason, req.user);
                 await order.save();
 
                 const updatedOrder = await Order.findById(order._id).lean();
 
                 return res.json({ order: mapOrderResponse(updatedOrder) });
         } catch (error) {
+                if (error.status) {
+                        return res.status(error.status).json({ message: error.message });
+                }
                 console.log("Error in cancelOrder", error);
                 return res.status(500).json({ message: "Failed to cancel order" });
         }

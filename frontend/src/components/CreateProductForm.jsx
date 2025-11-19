@@ -22,6 +22,62 @@ const createInitialFormState = () => ({
         coverIndex: 0,
 });
 
+const readFileAsDataURL = (file) =>
+        new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+        });
+
+const validateProductFormFields = (state, totalImages, t) => {
+        const trimmedName = state.name.trim();
+        if (!trimmedName) {
+                return { error: t("admin.createProduct.messages.nameRequired") };
+        }
+
+        const trimmedDescription = state.description.trim();
+        if (!trimmedDescription) {
+                return { error: t("admin.createProduct.messages.descriptionRequired") };
+        }
+
+        if (!state.category) {
+                return { error: t("admin.createProduct.messages.categoryRequired") };
+        }
+
+        if (totalImages === 0) {
+                return { error: t("admin.createProduct.messages.missingImages") };
+        }
+
+        const numericPrice = Number(state.price);
+        if (Number.isNaN(numericPrice)) {
+                return { error: t("admin.createProduct.messages.invalidPrice") };
+        }
+
+        return { trimmedName, trimmedDescription, numericPrice };
+};
+
+const resolveDiscountForSubmission = (state, t) => {
+        if (!state.isDiscounted) {
+                return { discount: 0 };
+        }
+
+        if (!state.discountPercentage) {
+                return { error: t("admin.createProduct.messages.discountRequired") };
+        }
+
+        const numericDiscount = Number(state.discountPercentage);
+        if (Number.isNaN(numericDiscount)) {
+                return { error: t("admin.createProduct.messages.discountInvalid") };
+        }
+
+        if (numericDiscount <= 0 || numericDiscount >= 100) {
+                return { error: t("admin.createProduct.messages.discountRange") };
+        }
+
+        return { discount: Number(numericDiscount.toFixed(2)) };
+};
+
 const CreateProductForm = () => {
         const [formState, setFormState] = useState(() => createInitialFormState());
         const {
@@ -92,68 +148,56 @@ const CreateProductForm = () => {
                 ? Number((numericPricePreview - numericPricePreview * (numericDiscountValue / 100)).toFixed(2))
                 : null;
 
-        const handleImagesChange = (event) => {
-                const input = event.target;
-                const files = Array.from(input.files || []);
+        const handleImagesChange = async (event) => {
+                const files = Array.from(event.target.files || []);
                 if (!files.length) return;
 
-                Promise.all(
-                        files.map(
-                                (file) =>
-                                        new Promise((resolve, reject) => {
-                                                const reader = new FileReader();
-                                                reader.onloadend = () => resolve(reader.result);
-                                                reader.onerror = reject;
-                                                reader.readAsDataURL(file);
-                                        })
-                        )
-                )
-                        .then((base64Images) => {
-                                setFormState((previous) => {
-                                        const remainingSlots = MAX_IMAGES - (previous.existingImages.length + previous.newImages.length);
+                try {
+                        const base64Images = await Promise.all(files.map(readFileAsDataURL));
+                        setFormState((previous) => {
+                                const remainingSlots =
+                                        MAX_IMAGES - (previous.existingImages.length + previous.newImages.length);
 
-                                        if (remainingSlots <= 0) {
-                                                toast.error(
-                                                        t("admin.createProduct.messages.imagesLimit", { count: MAX_IMAGES })
-                                                );
-                                                return previous;
-                                        }
+                                if (remainingSlots <= 0) {
+                                        toast.error(
+                                                t("admin.createProduct.messages.imagesLimit", { count: MAX_IMAGES })
+                                        );
+                                        return previous;
+                                }
 
-                                        const acceptedImages = base64Images.slice(0, remainingSlots);
+                                const acceptedImages = base64Images.slice(0, remainingSlots);
 
-                                        if (base64Images.length > remainingSlots) {
-                                                toast.error(
-                                                        t("admin.createProduct.messages.imagesRemaining", {
-                                                                count: remainingSlots,
-                                                        })
-                                                );
-                                        }
+                                if (base64Images.length > remainingSlots) {
+                                        toast.error(
+                                                t("admin.createProduct.messages.imagesRemaining", { count: remainingSlots })
+                                        );
+                                }
 
-                                        if (!acceptedImages.length) {
-                                                return previous;
-                                        }
+                                if (!acceptedImages.length) {
+                                        return previous;
+                                }
 
-                                        const nextNewImages = [...previous.newImages, ...acceptedImages];
-                                        let coverSource = previous.coverSource;
-                                        let coverIndex = previous.coverIndex;
+                                const nextNewImages = [...previous.newImages, ...acceptedImages];
+                                let coverSource = previous.coverSource;
+                                let coverIndex = previous.coverIndex;
 
-                                        if (previous.existingImages.length + previous.newImages.length === 0) {
-                                                coverSource = "new";
-                                                coverIndex = 0;
-                                        }
+                                if (previous.existingImages.length + previous.newImages.length === 0) {
+                                        coverSource = "new";
+                                        coverIndex = 0;
+                                }
 
-                                        return {
-                                                ...previous,
-                                                newImages: nextNewImages,
-                                                coverSource,
-                                                coverIndex,
-                                        };
-                                });
-                        })
-                        .catch(() => console.log("Failed to read images"))
-                        .finally(() => {
-                                input.value = "";
+                                return {
+                                        ...previous,
+                                        newImages: nextNewImages,
+                                        coverSource,
+                                        coverIndex,
+                                };
                         });
+                } catch {
+                        toast.error(t("admin.createProduct.messages.imagesUploadError"));
+                } finally {
+                        event.target.value = "";
+                }
         };
 
         const handleRemoveExistingImage = (indexToRemove) => {
@@ -275,68 +319,28 @@ const CreateProductForm = () => {
         const handleSubmit = async (event) => {
                 event.preventDefault();
 
-                const trimmedName = formState.name.trim();
-                const trimmedDescription = formState.description.trim();
-
-                if (!trimmedName) {
-                        toast.error(t("admin.createProduct.messages.nameRequired"));
+                const fieldValidation = validateProductFormFields(formState, totalImages, t);
+                if (fieldValidation.error) {
+                        toast.error(fieldValidation.error);
                         return;
                 }
 
-                if (!trimmedDescription) {
-                        toast.error(t("admin.createProduct.messages.descriptionRequired"));
-                        return;
-                }
-
-                if (!formState.category) {
-                        toast.error(t("admin.createProduct.messages.categoryRequired"));
-                        return;
-                }
-
-                if (totalImages === 0) {
-                        toast.error(t("admin.createProduct.messages.missingImages"));
-                        return;
-                }
-
-                const numericPrice = Number(formState.price);
-
-                if (Number.isNaN(numericPrice)) {
-                        toast.error(t("admin.createProduct.messages.invalidPrice"));
+                const discountValidation = resolveDiscountForSubmission(formState, t);
+                if (discountValidation.error) {
+                        toast.error(discountValidation.error);
                         return;
                 }
 
                 const hasDiscountToggle = Boolean(formState.isDiscounted);
-                const numericDiscount = Number(formState.discountPercentage);
-
-                let normalizedDiscount = 0;
-
-                if (hasDiscountToggle) {
-                        if (!formState.discountPercentage) {
-                                toast.error(t("admin.createProduct.messages.discountRequired"));
-                                return;
-                        }
-
-                        if (Number.isNaN(numericDiscount)) {
-                                toast.error(t("admin.createProduct.messages.discountInvalid"));
-                                return;
-                        }
-
-                        if (numericDiscount <= 0 || numericDiscount >= 100) {
-                                toast.error(t("admin.createProduct.messages.discountRange"));
-                                return;
-                        }
-
-                        normalizedDiscount = Number(numericDiscount.toFixed(2));
-                }
-
+                const normalizedDiscount = discountValidation.discount;
                 const { existing, fresh } = buildOrderedImages();
 
                 try {
                         if (isEditing && selectedProduct) {
                                 await updateProduct(selectedProduct._id, {
-                                        name: trimmedName,
-                                        description: trimmedDescription,
-                                        price: numericPrice,
+                                        name: fieldValidation.trimmedName,
+                                        description: fieldValidation.trimmedDescription,
+                                        price: fieldValidation.numericPrice,
                                         category: formState.category,
                                         existingImages: existing.map((image) => image.public_id).filter(Boolean),
                                         newImages: fresh,
@@ -350,9 +354,9 @@ const CreateProductForm = () => {
                                 resetForm();
                         } else {
                                 await createProduct({
-                                        name: trimmedName,
-                                        description: trimmedDescription,
-                                        price: numericPrice,
+                                        name: fieldValidation.trimmedName,
+                                        description: fieldValidation.trimmedDescription,
+                                        price: fieldValidation.numericPrice,
                                         category: formState.category,
                                         images: fresh,
                                         isDiscounted: hasDiscountToggle,
