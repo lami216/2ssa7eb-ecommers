@@ -51,6 +51,79 @@ const extractBulkCodes = (value) => {
                 .filter(Boolean);
 };
 
+const validateSingleCodeField = (code, t) => {
+        const normalizedCode = code.trim().toUpperCase();
+        if (!normalizedCode) {
+                return t("admin.coupons.validation.codeRequired");
+        }
+        if (!/^[A-Z0-9]+$/.test(normalizedCode)) {
+                return t("admin.coupons.validation.codeFormat");
+        }
+        return null;
+};
+
+const validateBulkCodesField = (bulkCodes, t) => {
+        const parsedCodes = extractBulkCodes(bulkCodes);
+        if (!parsedCodes.length) {
+                return t("admin.coupons.validation.bulkRequired");
+        }
+        if (parsedCodes.some((value) => !/^[A-Z0-9]+$/.test(value))) {
+                return t("admin.coupons.validation.bulkFormat");
+        }
+        if (new Set(parsedCodes).size !== parsedCodes.length) {
+                return t("admin.coupons.validation.bulkDuplicate");
+        }
+        return null;
+};
+
+const validateDiscountField = (discountPercentage, t) => {
+        if (discountPercentage === "") {
+                return t("admin.coupons.validation.discountRequired");
+        }
+        const discountValue = Number(discountPercentage);
+        if (!Number.isFinite(discountValue)) {
+                return t("admin.coupons.validation.discountRequired");
+        }
+        if (discountValue < 1 || discountValue > 90) {
+                return t("admin.coupons.validation.discountRange");
+        }
+        return null;
+};
+
+const validateExpiryField = (expiresAt, t) => {
+        const expiresValue = toISOStringFromInput(expiresAt);
+        if (!expiresValue) {
+                return t("admin.coupons.validation.expiresRequired");
+        }
+        if (new Date(expiresValue) <= new Date()) {
+                return t("admin.coupons.validation.expiresFuture");
+        }
+        return null;
+};
+
+const buildCouponFormErrors = (values, isBulkMode, t) => {
+        const errors = {};
+        const codeError = isBulkMode
+                ? validateBulkCodesField(values.bulkCodes, t)
+                : validateSingleCodeField(values.code, t);
+
+        if (codeError) {
+                errors[isBulkMode ? "bulkCodes" : "code"] = codeError;
+        }
+
+        const discountError = validateDiscountField(values.discountPercentage, t);
+        if (discountError) {
+                        errors.discountPercentage = discountError;
+        }
+
+        const expiryError = validateExpiryField(values.expiresAt, t);
+        if (expiryError) {
+                errors.expiresAt = expiryError;
+        }
+
+        return errors;
+};
+
 const AdminCoupons = () => {
         const {
                 coupons,
@@ -158,52 +231,7 @@ const AdminCoupons = () => {
         };
 
         const validateForm = () => {
-                const errors = {};
-                const { code, bulkCodes, discountPercentage, expiresAt } = formValues;
-
-                if (isBulkMode) {
-                        const parsedCodes = extractBulkCodes(bulkCodes);
-
-                        if (!parsedCodes.length) {
-                                errors.bulkCodes = t("admin.coupons.validation.bulkRequired");
-                        } else {
-                                const hasInvalidCode = parsedCodes.some((value) => !/^[A-Z0-9]+$/.test(value));
-                                const hasDuplicates = new Set(parsedCodes).size !== parsedCodes.length;
-
-                                if (hasInvalidCode) {
-                                        errors.bulkCodes = t("admin.coupons.validation.bulkFormat");
-                                } else if (hasDuplicates) {
-                                        errors.bulkCodes = t("admin.coupons.validation.bulkDuplicate");
-                                }
-                        }
-                } else {
-                        const normalizedCode = code.trim().toUpperCase();
-
-                        if (!normalizedCode) {
-                                errors.code = t("admin.coupons.validation.codeRequired");
-                        } else if (!/^[A-Z0-9]+$/.test(normalizedCode)) {
-                                errors.code = t("admin.coupons.validation.codeFormat");
-                        }
-                }
-
-                if (discountPercentage === "") {
-                        errors.discountPercentage = t("admin.coupons.validation.discountRequired");
-                } else {
-                        const discountValue = Number(discountPercentage);
-                        if (!Number.isFinite(discountValue)) {
-                                errors.discountPercentage = t("admin.coupons.validation.discountRequired");
-                        } else if (discountValue < 1 || discountValue > 90) {
-                                errors.discountPercentage = t("admin.coupons.validation.discountRange");
-                        }
-                }
-
-                const expiresValue = toISOStringFromInput(expiresAt);
-                if (!expiresValue) {
-                        errors.expiresAt = t("admin.coupons.validation.expiresRequired");
-                } else if (new Date(expiresValue) <= new Date()) {
-                        errors.expiresAt = t("admin.coupons.validation.expiresFuture");
-                }
-
+                const errors = buildCouponFormErrors(formValues, isBulkMode, t);
                 setFormErrors(errors);
                 return Object.keys(errors).length === 0;
         };

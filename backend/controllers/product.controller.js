@@ -3,6 +3,14 @@ import { redis } from "../lib/redis.js";
 import cloudinary from "../lib/cloudinary.js";
 import Product from "../models/product.model.js";
 
+const MAX_PRODUCT_IMAGES = 3;
+
+const createHttpError = (status, message) => {
+        const error = new Error(message);
+        error.status = status;
+        return error;
+};
+
 const toBoolean = (value) => {
         if (typeof value === "boolean") return value;
         if (typeof value === "number") return value !== 0;
@@ -83,6 +91,204 @@ const escapeRegexValue = (value) => {
         return value.replace(regexSpecialChars, "\\$&");
 };
 
+const ensureNonEmptyTrimmed = (value, message) => {
+        const trimmed = typeof value === "string" ? value.trim() : "";
+        if (!trimmed) {
+                throw createHttpError(400, message);
+        }
+        return trimmed;
+};
+
+const ensureValidPriceValue = (price) => {
+        const numericPrice = Number(price);
+        if (Number.isNaN(numericPrice)) {
+                throw createHttpError(400, "Price must be a valid number");
+        }
+        return numericPrice;
+};
+
+const ensureCategoryValue = (category) => {
+        return ensureNonEmptyTrimmed(category, "Category is required");
+};
+
+const validateCreateImages = (images) => {
+        if (!Array.isArray(images) || images.length === 0) {
+                throw createHttpError(400, "At least one product image is required");
+        }
+        if (images.length > MAX_PRODUCT_IMAGES) {
+                throw createHttpError(400, "You can upload up to 3 images per product");
+        }
+        const sanitized = images
+                .filter((image) => typeof image === "string" && image.trim().length > 0)
+                .slice(0, MAX_PRODUCT_IMAGES);
+        if (!sanitized.length) {
+                throw createHttpError(400, "Provided images are not valid");
+        }
+        return sanitized;
+};
+
+const prepareDiscountSettings = (options) => {
+        const discountSettings = normalizeDiscountSettings(options);
+        if (discountSettings.error) {
+                throw createHttpError(400, discountSettings.error);
+        }
+        return discountSettings;
+};
+
+const cleanupUploadedImages = async (images) => {
+        if (!images.length) {
+                return;
+        }
+        const uploadedPublicIds = images.map((image) => image.public_id).filter(Boolean);
+        if (!uploadedPublicIds.length) {
+                return;
+        }
+        try {
+                        await cloudinary.api.delete_resources(uploadedPublicIds);
+        } catch (cleanupError) {
+                console.log("Error cleaning up uploaded images after failure", cleanupError);
+        }
+};
+
+const uploadProductImages = async (images) => {
+        const uploadedImages = [];
+        try {
+                for (const base64Image of images) {
+                        const uploadResult = await cloudinary.uploader.upload(base64Image, {
+                                folder: "products",
+                        });
+                        uploadedImages.push({
+                                url: uploadResult.secure_url,
+                                public_id: uploadResult.public_id,
+                        });
+                }
+                return uploadedImages;
+        } catch (uploadError) {
+                await cleanupUploadedImages(uploadedImages);
+                throw uploadError;
+        }
+};
+
+const buildCategoryAssignments = (categoryValue) => {
+        const payload = {
+                category: categoryValue,
+                categorySlug: categoryValue,
+        };
+        if (mongoose.Types.ObjectId.isValid(categoryValue)) {
+                payload.categoryId = new mongoose.Types.ObjectId(categoryValue);
+        }
+        return payload;
+};
+
+const collectExistingImageIds = (images) => {
+        if (!Array.isArray(images)) {
+                return [];
+        }
+        return images
+                .map((image) =>
+                        typeof image === "string"
+                                ? image
+                                : typeof image?.public_id === "string"
+                                        ? image.public_id
+                                        : null
+                )
+                .filter(Boolean);
+};
+
+const sanitizeNewImagesInput = (images) => {
+        if (!Array.isArray(images)) {
+                return [];
+        }
+        return images.filter((image) => typeof image === "string" && image.trim().length > 0);
+};
+
+const splitCurrentImages = (currentImages, retainedIds) => {
+        const images = Array.isArray(currentImages) ? currentImages : [];
+        return {
+                retainedImages: images.filter((image) => retainedIds.includes(image.public_id)),
+                removedImages: images.filter((image) => !retainedIds.includes(image.public_id)),
+        };
+};
+
+const ensureImageCountsForUpdate = (retainedImages, newImages) => {
+        const totalImagesCount = retainedImages.length + newImages.length;
+        if (totalImagesCount === 0) {
+                throw createHttpError(400, "At least one product image is required");
+        }
+        if (totalImagesCount > MAX_PRODUCT_IMAGES) {
+                throw createHttpError(400, "You can upload up to 3 images per product");
+        }
+};
+
+const deleteImagesFromCloudinary = async (images) => {
+        const publicIdsToDelete = images.map((image) => image.public_id).filter(Boolean);
+        if (!publicIdsToDelete.length) {
+                return;
+        }
+        try {
+                await cloudinary.api.delete_resources(publicIdsToDelete, {
+                        type: "upload",
+                        resource_type: "image",
+                });
+        } catch (cloudinaryError) {
+                console.log("Error deleting removed images from Cloudinary", cloudinaryError);
+        }
+};
+
+const uploadNewProductImages = async (newImages) => {
+        if (!newImages.length) {
+                return [];
+        }
+        const uploadedImages = [];
+        try {
+                for (const base64Image of newImages) {
+                        const uploadResult = await cloudinary.uploader.upload(base64Image, {
+                                folder: "products",
+                        });
+                        uploadedImages.push({
+                                url: uploadResult.secure_url,
+                                public_id: uploadResult.public_id,
+                        });
+                }
+                return uploadedImages;
+        } catch (uploadError) {
+                await cleanupUploadedImages(uploadedImages);
+                throw uploadError;
+        }
+};
+
+const orderRetainedImages = (existingImageIds, retainedImages) => {
+        const lookup = retainedImages.reduce((accumulator, image) => {
+                accumulator[image.public_id] = image;
+                return accumulator;
+        }, {});
+        return existingImageIds.map((publicId) => lookup[publicId]).filter(Boolean);
+};
+
+const arrangeFinalImages = (existingImageIds, retainedImages, uploadedImages, coverPreference) => {
+        const orderedRetainedImages = orderRetainedImages(existingImageIds, retainedImages);
+        const coverSettings =
+                coverPreference && typeof coverPreference === "object"
+                        ? coverPreference
+                        : { source: null };
+        const coverSource =
+                typeof coverSettings.source === "string"
+                        ? coverSettings.source.toLowerCase()
+                        : null;
+
+        if (coverSource === "new" && uploadedImages.length) {
+                const [coverImage, ...restUploaded] = uploadedImages;
+                return [coverImage, ...orderedRetainedImages, ...restUploaded];
+        }
+
+        if (orderedRetainedImages.length) {
+                const [coverImage, ...restRetained] = orderedRetainedImages;
+                return [coverImage, ...restRetained, ...uploadedImages];
+        }
+
+        return [...uploadedImages];
+};
+
 export const getAllProducts = async (req, res) => {
         try {
                 const products = await Product.find({}).lean({ virtuals: true });
@@ -128,8 +334,8 @@ export const searchProducts = async (req, res) => {
 
                 if (q) {
                         const escaped = escapeRegexValue(q);
-                        const rx = new RegExp(escaped.replace(/\s+/g, "\\s"), "i");
-                        filters.push({ name: { $regex: rx } });
+                        const pattern = escaped.replace(/\s+/g, "\\s");
+                        filters.push({ name: { $regex: pattern, $options: "i" } });
                 }
 
                 if (rawCategory) {
@@ -184,108 +390,42 @@ export const searchProducts = async (req, res) => {
 
 export const createProduct = async (req, res) => {
         try {
-                const { name, description, price, category, images, isDiscounted, discountPercentage } = req.body;
+                const { name, description, price, category, images, isDiscounted, discountPercentage } =
+                        req.body;
 
-                const trimmedName = typeof name === "string" ? name.trim() : "";
-                const trimmedDescription =
-                        typeof description === "string" ? description.trim() : "";
-
-                if (!trimmedName) {
-                        return res.status(400).json({ message: "Product name is required" });
-                }
-
-                if (!trimmedDescription) {
-                        return res.status(400).json({ message: "Product description is required" });
-                }
-
-                if (!Array.isArray(images) || images.length === 0) {
-                        return res.status(400).json({ message: "At least one product image is required" });
-                }
-
-                if (images.length > 3) {
-                        return res.status(400).json({ message: "You can upload up to 3 images per product" });
-                }
-
-                if (typeof category !== "string" || !category.trim()) {
-                        return res.status(400).json({ message: "Category is required" });
-                }
-
-                const sanitizedImages = images
-                        .filter((image) => typeof image === "string" && image.trim().length > 0)
-                        .slice(0, 3);
-
-                if (!sanitizedImages.length) {
-                        return res.status(400).json({ message: "Provided images are not valid" });
-                }
-
-                const numericPrice = Number(price);
-
-                if (Number.isNaN(numericPrice)) {
-                        return res.status(400).json({ message: "Price must be a valid number" });
-                }
-
-                const discountSettings = normalizeDiscountSettings({
+                const trimmedName = ensureNonEmptyTrimmed(name, "Product name is required");
+                const trimmedDescription = ensureNonEmptyTrimmed(
+                        description,
+                        "Product description is required"
+                );
+                const sanitizedImages = validateCreateImages(images);
+                const numericPrice = ensureValidPriceValue(price);
+                const normalizedCategory = ensureCategoryValue(category);
+                const discountSettings = prepareDiscountSettings({
                         rawIsDiscounted: isDiscounted,
                         rawDiscountPercentage: discountPercentage,
                 });
+                const uploadedImages = await uploadProductImages(sanitizedImages);
+                const categoryAssignments = buildCategoryAssignments(normalizedCategory);
 
-                if (discountSettings.error) {
-                        return res.status(400).json({ message: discountSettings.error });
-                }
-
-                const uploadedImages = [];
-
-                try {
-                        for (const base64Image of sanitizedImages) {
-                                const uploadResult = await cloudinary.uploader.upload(base64Image, {
-                                        folder: "products",
-                                });
-
-                                uploadedImages.push({
-                                        url: uploadResult.secure_url,
-                                        public_id: uploadResult.public_id,
-                                });
-                        }
-                } catch (uploadError) {
-                        if (uploadedImages.length) {
-                                const uploadedPublicIds = uploadedImages
-                                        .map((image) => image.public_id)
-                                        .filter(Boolean);
-
-                                try {
-                                        await cloudinary.api.delete_resources(uploadedPublicIds);
-                                } catch (cleanupError) {
-                                        console.log(
-                                                "Error cleaning up uploaded images after failure",
-                                                cleanupError
-                                        );
-                                }
-                        }
-
-                        throw uploadError;
-                }
-
-                const normalizedCategory = category.trim();
                 const productPayload = {
                         name: trimmedName,
                         description: trimmedDescription,
                         price: numericPrice,
                         image: uploadedImages[0]?.url,
                         images: uploadedImages,
-                        category: normalizedCategory,
-                        categorySlug: normalizedCategory,
+                        ...categoryAssignments,
                         isDiscounted: discountSettings.isDiscounted,
                         discountPercentage: discountSettings.discountPercentage,
                 };
-
-                if (mongoose.Types.ObjectId.isValid(normalizedCategory)) {
-                        productPayload.categoryId = new mongoose.Types.ObjectId(normalizedCategory);
-                }
 
                 const product = await Product.create(productPayload);
 
                 res.status(201).json(serializeProduct(product));
         } catch (error) {
+                if (error.status) {
+                        return res.status(error.status).json({ message: error.message });
+                }
                 console.log("Error in createProduct controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
         }
@@ -312,157 +452,49 @@ export const updateProduct = async (req, res) => {
                         return res.status(404).json({ message: "Product not found" });
                 }
 
-                const trimmedName = typeof name === "string" ? name.trim() : product.name;
-                const trimmedDescription =
-                        typeof description === "string" ? description.trim() : product.description;
+                const trimmedName = ensureNonEmptyTrimmed(name ?? product.name, "Product name is required");
+                const trimmedDescription = ensureNonEmptyTrimmed(
+                        description ?? product.description,
+                        "Product description is required"
+                );
+                const existingImageIds = collectExistingImageIds(existingImages);
+                const sanitizedNewImages = sanitizeNewImagesInput(newImages);
+                const { retainedImages, removedImages } = splitCurrentImages(
+                        product.images,
+                        existingImageIds
+                );
 
-                if (!trimmedName) {
-                        return res.status(400).json({ message: "Product name is required" });
-                }
-
-                if (!trimmedDescription) {
-                        return res.status(400).json({ message: "Product description is required" });
-                }
-
-                const existingImageIds = Array.isArray(existingImages)
-                        ? existingImages
-                                  .map((image) =>
-                                          typeof image === "string"
-                                                  ? image
-                                                  : typeof image?.public_id === "string"
-                                                          ? image.public_id
-                                                          : null
-                                  )
-                                  .filter(Boolean)
-                        : [];
-
-                const sanitizedNewImages = Array.isArray(newImages)
-                        ? newImages.filter((image) => typeof image === "string" && image.trim().length > 0)
-                        : [];
-
-                const currentImages = Array.isArray(product.images) ? product.images : [];
-                const retainedImages = currentImages.filter((image) => existingImageIds.includes(image.public_id));
-                const removedImages = currentImages.filter((image) => !existingImageIds.includes(image.public_id));
-
-                const totalImagesCount = retainedImages.length + sanitizedNewImages.length;
-
-                if (totalImagesCount === 0) {
-                        return res.status(400).json({ message: "At least one product image is required" });
-                }
-
-                if (totalImagesCount > 3) {
-                        return res.status(400).json({ message: "You can upload up to 3 images per product" });
-                }
-
-                if (removedImages.length) {
-                        const publicIdsToDelete = removedImages
-                                .map((image) => image.public_id)
-                                .filter(Boolean);
-
-                        if (publicIdsToDelete.length) {
-                                try {
-                                        await cloudinary.api.delete_resources(publicIdsToDelete, {
-                                                type: "upload",
-                                                resource_type: "image",
-                                        });
-                                } catch (cloudinaryError) {
-                                        console.log("Error deleting removed images from Cloudinary", cloudinaryError);
-                                }
-                        }
-                }
-
-                const uploadedImages = [];
-
-                for (const base64Image of sanitizedNewImages) {
-                        try {
-                                const uploadResult = await cloudinary.uploader.upload(base64Image, {
-                                        folder: "products",
-                                });
-
-                                uploadedImages.push({
-                                        url: uploadResult.secure_url,
-                                        public_id: uploadResult.public_id,
-                                });
-                        } catch (uploadError) {
-                                if (uploadedImages.length) {
-                                        const uploadedPublicIds = uploadedImages
-                                                .map((image) => image.public_id)
-                                                .filter(Boolean);
-
-                                        try {
-                                                await cloudinary.api.delete_resources(uploadedPublicIds);
-                                        } catch (cleanupError) {
-                                                console.log(
-                                                        "Error cleaning up uploaded images after update failure",
-                                                        cleanupError
-                                                );
-                                        }
-                                }
-
-                                throw uploadError;
-                        }
-                }
-
-                const imageLookup = retainedImages.reduce((accumulator, image) => {
-                        accumulator[image.public_id] = image;
-                        return accumulator;
-                }, {});
-
-                const orderedRetainedImages = existingImageIds
-                        .map((publicId) => imageLookup[publicId])
-                        .filter(Boolean);
-
-                const coverPreference =
-                        cover && typeof cover === "object" ? cover : { source: null, index: 0 };
-                const coverSource =
-                        typeof coverPreference.source === "string"
-                                ? coverPreference.source.toLowerCase()
-                                : null;
-
-                let finalImages = [];
-
-                if (coverSource === "new" && uploadedImages.length) {
-                        const [coverImage, ...restUploaded] = uploadedImages;
-                        finalImages = [coverImage, ...orderedRetainedImages, ...restUploaded];
-                } else if (orderedRetainedImages.length) {
-                        const [coverImage, ...restRetained] = orderedRetainedImages;
-                        finalImages = [coverImage, ...restRetained, ...uploadedImages];
-                } else {
-                        finalImages = [...uploadedImages];
-                }
-
-                const numericPrice =
-                        price === undefined || price === null ? product.price : Number(price);
-
-                if (Number.isNaN(numericPrice)) {
-                        return res.status(400).json({ message: "Price must be a valid number" });
-                }
-
+                ensureImageCountsForUpdate(retainedImages, sanitizedNewImages);
+                await deleteImagesFromCloudinary(removedImages);
+                const uploadedImages = await uploadNewProductImages(sanitizedNewImages);
+                const finalImages = arrangeFinalImages(
+                        existingImageIds,
+                        retainedImages,
+                        uploadedImages,
+                        cover
+                );
+                const numericPrice = ensureValidPriceValue(
+                        price === undefined || price === null ? product.price : price
+                );
                 const nextCategory =
                         typeof category === "string" && category.trim().length
                                 ? category.trim()
                                 : product.category;
-
-                const discountSettings = normalizeDiscountSettings({
+                const discountSettings = prepareDiscountSettings({
                         rawIsDiscounted: isDiscounted,
                         rawDiscountPercentage: discountPercentage,
                         fallbackIsDiscounted: product.isDiscounted,
                         fallbackPercentage: product.discountPercentage,
                 });
-
-                if (discountSettings.error) {
-                        return res.status(400).json({ message: discountSettings.error });
-                }
+                const categoryAssignments = buildCategoryAssignments(nextCategory);
 
                 product.name = trimmedName;
                 product.description = trimmedDescription;
                 product.price = numericPrice;
-                product.category = nextCategory;
-                product.categorySlug = nextCategory;
-                product.categoryId = mongoose.Types.ObjectId.isValid(nextCategory)
-                        ? new mongoose.Types.ObjectId(nextCategory)
-                        : null;
-                product.images = finalImages;
+                product.category = categoryAssignments.category;
+                product.categorySlug = categoryAssignments.categorySlug;
+                product.categoryId = categoryAssignments.categoryId || null;
+                product.images = finalImages.length ? finalImages : product.images;
                 product.image = finalImages[0]?.url || product.image;
                 product.isDiscounted = discountSettings.isDiscounted;
                 product.discountPercentage = discountSettings.discountPercentage;
@@ -475,6 +507,9 @@ export const updateProduct = async (req, res) => {
 
                 res.json(serializeProduct(updatedProduct));
         } catch (error) {
+                if (error.status) {
+                        return res.status(error.status).json({ message: error.message });
+                }
                 console.log("Error in updateProduct controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
         }

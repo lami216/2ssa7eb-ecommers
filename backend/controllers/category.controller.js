@@ -8,6 +8,12 @@ const isCloudinaryConfigured = () =>
                         process.env.CLOUDINARY_API_SECRET
         );
 
+const createHttpError = (status, message) => {
+        const error = new Error(message);
+        error.status = status;
+        return error;
+};
+
 const uploadCategoryImage = async (image) => {
         if (!image || typeof image !== "string") {
                 throw new Error("INVALID_IMAGE_FORMAT");
@@ -71,6 +77,100 @@ const serializeCategory = (category) => {
         return typeof category.toObject === "function" ? category.toObject() : category;
 };
 
+const sanitizeCreateCategoryPayload = (body) => {
+        const payload = body && typeof body === "object" ? body : {};
+        const rawName = payload.name;
+        const rawDescription = payload.description;
+        const rawImage = payload.image;
+
+        if (typeof rawName !== "string" || !rawName.trim()) {
+                throw createHttpError(400, "Name is required");
+        }
+
+        if (rawDescription !== undefined && typeof rawDescription !== "string") {
+                throw createHttpError(400, "Invalid category description");
+        }
+
+        if (typeof rawImage !== "string") {
+                throw createHttpError(400, "Category image is required");
+        }
+
+        return {
+                trimmedName: rawName.trim(),
+                trimmedDescription: typeof rawDescription === "string" ? rawDescription.trim() : "",
+                imageContent: rawImage.toString(),
+        };
+};
+
+const handleImageUpload = async (imageContent) => {
+        try {
+                return await uploadCategoryImage(imageContent);
+        } catch (uploadError) {
+                if (uploadError.message === "INVALID_IMAGE_FORMAT") {
+                        throw createHttpError(400, "Invalid category image format");
+                }
+                throw uploadError;
+        }
+};
+
+const ensureUploadSuccess = (uploadResult) => {
+        if (!uploadResult?.secure_url) {
+                throw createHttpError(500, "Failed to process category image");
+        }
+
+        return {
+                secureUrl:
+                        typeof uploadResult.secure_url === "string"
+                                ? uploadResult.secure_url
+                                : String(uploadResult.secure_url),
+                publicId:
+                        typeof uploadResult.public_id === "string"
+                                ? uploadResult.public_id
+                                : uploadResult.public_id
+                                  ? String(uploadResult.public_id)
+                                  : null,
+        };
+};
+
+const applyNameUpdate = async (category, name) => {
+        if (typeof name !== "string" || !name.trim()) {
+                return;
+        }
+
+        const trimmed = name.trim();
+        if (trimmed !== category.name) {
+                category.slug = await generateUniqueSlug(trimmed, category._id);
+        }
+        category.name = trimmed;
+};
+
+const applyDescriptionUpdate = (category, description) => {
+        if (typeof description === "string") {
+                category.description = description.trim();
+        }
+};
+
+const cleanupCategoryImage = async (category) => {
+        if (category.imagePublicId && isCloudinaryConfigured()) {
+                try {
+                        await cloudinary.uploader.destroy(category.imagePublicId);
+                } catch (cleanupError) {
+                        console.log("Failed to delete previous category image", cleanupError.message);
+                }
+        }
+};
+
+const updateCategoryImage = async (category, image) => {
+        if (typeof image !== "string" || !image.startsWith("data:")) {
+                return;
+        }
+
+        const uploadResult = ensureUploadSuccess(await handleImageUpload(image));
+        await cleanupCategoryImage(category);
+        category.imageUrl = uploadResult.secureUrl;
+        category.imagePublicId = uploadResult.publicId;
+};
+
 export const getCategories = async (req, res) => {
         try {
                 const categories = await Category.find({}).lean();
@@ -83,64 +183,26 @@ export const getCategories = async (req, res) => {
 
 export const createCategory = async (req, res) => {
         try {
-                const payload = req?.body && typeof req.body === "object" ? req.body : {};
-                const rawName = payload.name;
-                const rawDescription = payload.description;
-                const rawImage = payload.image;
-
-                if (typeof rawName !== "string" || !rawName.trim()) {
-                        return res.status(400).json({ message: "Name is required" });
-                }
-
-                if (rawDescription !== undefined && typeof rawDescription !== "string") {
-                        return res.status(400).json({ message: "Invalid category description" });
-                }
-
-                if (typeof rawImage !== "string") {
-                        return res.status(400).json({ message: "Category image is required" });
-                }
-
-                const trimmedName = rawName.trim();
-                const trimmedDescription =
-                        typeof rawDescription === "string" ? rawDescription.trim() : "";
-                const imageContent = rawImage.toString();
-
-                let uploadResult;
-                try {
-                        uploadResult = await uploadCategoryImage(imageContent);
-                } catch (uploadError) {
-                        if (uploadError.message === "INVALID_IMAGE_FORMAT") {
-                                return res.status(400).json({ message: "Invalid category image format" });
-                        }
-                        throw uploadError;
-                }
-
-                if (!uploadResult?.secure_url) {
-                        return res.status(500).json({ message: "Failed to process category image" });
-                }
-
+                const { trimmedName, trimmedDescription, imageContent } =
+                        sanitizeCreateCategoryPayload(req.body);
+                const uploadResult = ensureUploadSuccess(await handleImageUpload(imageContent));
                 const slug = await generateUniqueSlug(trimmedName);
 
                 const categoryData = {
                         name: trimmedName.toString(),
                         description: trimmedDescription.toString(),
                         slug: slug.toString(),
-                        imageUrl:
-                                typeof uploadResult.secure_url === "string"
-                                        ? uploadResult.secure_url
-                                        : String(uploadResult.secure_url),
-                        imagePublicId:
-                                typeof uploadResult.public_id === "string"
-                                        ? uploadResult.public_id
-                                        : uploadResult.public_id
-                                          ? String(uploadResult.public_id)
-                                          : null,
+                        imageUrl: uploadResult.secureUrl,
+                        imagePublicId: uploadResult.publicId,
                 };
 
                 const category = await Category.create(categoryData);
 
                 res.status(201).json(serializeCategory(category));
         } catch (error) {
+                if (error.status) {
+                        return res.status(error.status).json({ message: error.message });
+                }
                 console.log("Error in createCategory controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
         }
@@ -157,49 +219,17 @@ export const updateCategory = async (req, res) => {
                         return res.status(404).json({ message: "Category not found" });
                 }
 
-                if (typeof name === "string" && name.trim()) {
-                        const trimmed = name.trim();
-                        if (trimmed !== category.name) {
-                                category.slug = await generateUniqueSlug(trimmed, category._id);
-                        }
-                        category.name = trimmed;
-                }
-
-                if (typeof description === "string") {
-                        category.description = description.trim();
-                }
-
-                if (image && typeof image === "string" && image.startsWith("data:")) {
-                        let uploadResult;
-                        try {
-                                uploadResult = await uploadCategoryImage(image);
-                        } catch (uploadError) {
-                                if (uploadError.message === "INVALID_IMAGE_FORMAT") {
-                                        return res.status(400).json({ message: "Invalid category image format" });
-                                }
-                                throw uploadError;
-                        }
-
-                        if (!uploadResult?.secure_url) {
-                                return res.status(500).json({ message: "Failed to process category image" });
-                        }
-
-                        if (category.imagePublicId && isCloudinaryConfigured()) {
-                                try {
-                                        await cloudinary.uploader.destroy(category.imagePublicId);
-                                } catch (cleanupError) {
-                                        console.log("Failed to delete previous category image", cleanupError.message);
-                                }
-                        }
-
-                        category.imageUrl = uploadResult.secure_url;
-                        category.imagePublicId = uploadResult.public_id;
-                }
+                await applyNameUpdate(category, name);
+                applyDescriptionUpdate(category, description);
+                await updateCategoryImage(category, image);
 
                 await category.save();
 
                 res.json(serializeCategory(category));
         } catch (error) {
+                if (error.status) {
+                        return res.status(error.status).json({ message: error.message });
+                }
                 console.log("Error in updateCategory controller", error.message);
                 res.status(500).json({ message: "Server error", error: error.message });
         }
