@@ -313,7 +313,7 @@ export const getFeaturedProducts = async (req, res) => {
 
                 featuredProducts = await Product.find({ isFeatured: true }).lean({ virtuals: true });
 
-                if (!featuredProducts || !featuredProducts.length) {
+                if (!featuredProducts?.length) {
                         return res.status(404).json({ message: "No featured products found" });
                 }
 

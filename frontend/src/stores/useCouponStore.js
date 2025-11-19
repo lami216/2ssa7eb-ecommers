@@ -102,12 +102,15 @@ export const useCouponStore = create((set, get) => ({
                         const pagination = data.pagination || {};
 
                         const resolvedCoupons = Array.isArray(data.coupons) ? data.coupons : [];
-                        const resolvedTotal =
-                                typeof pagination.total === "number"
-                                        ? pagination.total
-                                        : typeof data.total === "number"
-                                        ? data.total
-                                        : resolvedCoupons.length;
+
+                        let resolvedTotal;
+                        if (typeof pagination.total === "number") {
+                                resolvedTotal = pagination.total;
+                        } else if (typeof data.total === "number") {
+                                resolvedTotal = data.total;
+                        } else {
+                                resolvedTotal = resolvedCoupons.length;
+                        }
 
                         set({
                                 coupons: resolvedCoupons,

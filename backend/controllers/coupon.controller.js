@@ -284,7 +284,7 @@ export const validateCoupon = async (req, res) => {
 
                 const coupon = await Coupon.findOne({ code }).lean();
 
-                if (!coupon || !coupon.isActive || coupon.expiresAt <= new Date()) {
+                if (!coupon?.isActive || coupon?.expiresAt <= new Date()) {
                         return res.status(404).json({ message: "Coupon is invalid or has expired" });
                 }
 

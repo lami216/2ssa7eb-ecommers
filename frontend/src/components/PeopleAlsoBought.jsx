@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PropTypes from "prop-types";
 import useTranslation from "../hooks/useTranslation";
 import ProductCard from "./ProductCard";
 import toast from "react-hot-toast";
@@ -72,4 +73,10 @@ const PeopleAlsoBought = ({ productId, category }) => {
 		</div>
 	);
 };
+
+PeopleAlsoBought.propTypes = {
+        productId: PropTypes.string,
+        category: PropTypes.string,
+};
+
 export default PeopleAlsoBought;
