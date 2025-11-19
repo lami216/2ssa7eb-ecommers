@@ -45,13 +45,13 @@ const slugify = (value) => {
         const normalized = value
                 .toString()
                 .normalize("NFKD")
-                .replace(/[\u0300-\u036f]/g, "");
+                .replaceAll(/[\u0300-\u036f]/g, "");
 
         const slug = normalized
-                .replace(/[^\p{L}\p{N}\s-]/gu, "")
+                .replaceAll(/[^\p{L}\p{N}\s-]/gu, "")
                 .trim()
-                .replace(/[\s_-]+/g, "-")
-                .replace(/(?:^-+)|(?:-+$)/g, "")
+                .replaceAll(/[\s_-]+/g, "-")
+                .replaceAll(/(?:^-+)|(?:-+$)/g, "")
                 .toLowerCase();
 
         return slug;

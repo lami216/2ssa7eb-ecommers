@@ -88,7 +88,7 @@ const serializeProduct = (product) => {
 const regexSpecialChars = /[.*+?^${}()|[\\]\\]/g;
 
 const escapeRegexValue = (value) => {
-        return value.replace(regexSpecialChars, "\\$&");
+        return value.replaceAll(regexSpecialChars, "\\$&");
 };
 
 const ensureNonEmptyTrimmed = (value, message) => {
@@ -338,7 +338,7 @@ export const searchProducts = async (req, res) => {
 
                 if (q) {
                         const escaped = escapeRegexValue(q);
-                        const pattern = escaped.replace(/\s+/g, "\\s");
+                        const pattern = escaped.replaceAll(/\s+/g, "\\s");
                         filters.push({ name: { $regex: pattern, $options: "i" } });
                 }
 

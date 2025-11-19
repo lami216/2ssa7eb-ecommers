@@ -11,7 +11,7 @@ const normalizeCode = (value) => {
                 return "";
         }
 
-        return value.replace(/\s+/g, "").toUpperCase();
+        return value.replaceAll(/\s+/g, "").toUpperCase();
 };
 
 const isValidCode = (code) => /^[A-Z0-9]+$/.test(code);
@@ -52,7 +52,7 @@ const buildFilter = (search) => {
                 return {};
         }
 
-        const sanitized = search.replace(/[^A-Za-z0-9]/g, "").trim();
+        const sanitized = search.replaceAll(/[^A-Za-z0-9]/g, "").trim();
 
         if (!sanitized) {
                 return {};

@@ -47,7 +47,7 @@ const extractBulkCodes = (value) => {
 
         return value
                 .split(/[\s,;]+/)
-                .map((segment) => segment.replace(/[^A-Z0-9]/gi, "").toUpperCase())
+                .map((segment) => segment.replaceAll(/[^A-Z0-9]/gi, "").toUpperCase())
                 .filter(Boolean);
 };
 
@@ -205,17 +205,17 @@ const AdminCoupons = () => {
         const handleFieldChange = (field, value) => {
                 setFormValues((previous) => {
                         if (field === "code") {
-                                const cleaned = value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+                                const cleaned = value.replaceAll(/[^a-zA-Z0-9]/g, "").toUpperCase();
                                 return { ...previous, code: cleaned };
                         }
                         if (field === "bulkCodes") {
                                 return {
                                         ...previous,
-                                        bulkCodes: value.toUpperCase().replace(/[^A-Z0-9,\s;]/g, ""),
+                                        bulkCodes: value.toUpperCase().replaceAll(/[^A-Z0-9,\s;]/g, ""),
                                 };
                         }
                         if (field === "discountPercentage") {
-                                return { ...previous, discountPercentage: value.replace(/[^0-9]/g, "") };
+                                return { ...previous, discountPercentage: value.replaceAll(/[^0-9]/g, "") };
                         }
                         return { ...previous, [field]: value };
                 });

@@ -94,7 +94,7 @@ export const useCartStore = create((set, get) => ({
                 const user = getAuthenticatedUser();
                 const normalizedCode =
                         typeof code === "string"
-                                ? code.replace(/\s+/g, "").toUpperCase()
+                                ? code.replaceAll(/\s+/g, "").toUpperCase()
                                 : "";
 
                 if (!normalizedCode) {
