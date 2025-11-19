@@ -7,7 +7,7 @@ import { getProductPricing } from "../lib/getProductPricing";
 
 const LOCAL_CART_KEY = "guest_cart_items";
 
-const isBrowser = typeof window !== "undefined";
+const isBrowser = typeof globalThis !== "undefined" && Boolean(globalThis.window);
 
 const enrichCartItem = (item) => {
         const { discountedPrice, isDiscounted, discountPercentage } = getProductPricing(item);
@@ -23,7 +23,7 @@ const loadCartFromStorage = () => {
         if (!isBrowser) return [];
 
         try {
-                const storedCart = window.localStorage.getItem(LOCAL_CART_KEY);
+                const storedCart = globalThis.window?.localStorage.getItem(LOCAL_CART_KEY);
                 if (!storedCart) return [];
 
                 const parsedCart = JSON.parse(storedCart);
@@ -40,7 +40,7 @@ const persistCartToStorage = (cart) => {
         if (!isBrowser) return;
 
         try {
-                window.localStorage.setItem(LOCAL_CART_KEY, JSON.stringify(cart));
+                globalThis.window?.localStorage.setItem(LOCAL_CART_KEY, JSON.stringify(cart));
         } catch (error) {
                 console.error("Failed to persist cart to storage", error);
         }

@@ -53,10 +53,10 @@ const CheckoutPage = () => {
                         return;
                 }
 
-                if (!/^\d{8,15}$/.test(digitsOnly)) {
-                        setWhatsAppError(t("common.messages.whatsAppInvalid"));
-                } else {
+                if (/^\d{8,15}$/.test(digitsOnly)) {
                         setWhatsAppError("");
+                } else {
+                        setWhatsAppError(t("common.messages.whatsAppInvalid"));
                 }
         };
 
@@ -198,8 +198,9 @@ const CheckoutPage = () => {
                                 const discountPercentage = formatNumberEn(
                                         Number(serverCoupon.discountPercentage) || 0
                                 );
-                                messageLines.push("", t("checkout.messages.couponHeader"));
                                 messageLines.push(
+                                        "",
+                                        t("checkout.messages.couponHeader"),
                                         t("checkout.messages.coupon", {
                                                 code: serverCoupon.code,
                                                 discount: discountPercentage,
@@ -214,8 +215,12 @@ const CheckoutPage = () => {
                                 );
                         }
 
-                        messageLines.push("", t("checkout.messages.total", { amount: formatMRU(serverTotal) }));
-                        messageLines.push("", t("checkout.messages.thanks"));
+                        messageLines.push(
+                                "",
+                                t("checkout.messages.total", { amount: formatMRU(serverTotal) }),
+                                "",
+                                t("checkout.messages.thanks")
+                        );
 
                         const whatsappURL = new URL("https://wa.me/" + STORE_WHATSAPP_NUMBER);
                         whatsappURL.searchParams.set("text", messageLines.join("\n"));

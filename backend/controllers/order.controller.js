@@ -276,7 +276,10 @@ const buildOrderListFilters = (status, search) => {
         if (search) {
                 const normalizedSearch = sanitizeSearchTerm(search);
                 if (normalizedSearch) {
-                        const escapedSearch = normalizedSearch.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                        const escapedSearch = normalizedSearch.replaceAll(
+                                /[.*+?^${}()|[\]\\]/g,
+                                String.raw`\$&`
+                        );
                         const orFilters = [
                                 { customerName: { $regex: escapedSearch, $options: "i" } },
                                 { phone: { $regex: normalizedSearch.replaceAll(/\s+/g, ""), $options: "i" } },

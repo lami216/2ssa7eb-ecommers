@@ -215,7 +215,7 @@ const AdminCoupons = () => {
                                 };
                         }
                         if (field === "discountPercentage") {
-                                return { ...previous, discountPercentage: value.replaceAll(/[^0-9]/g, "") };
+                                return { ...previous, discountPercentage: value.replaceAll(/[^\d]/g, "") };
                         }
                         return { ...previous, [field]: value };
                 });

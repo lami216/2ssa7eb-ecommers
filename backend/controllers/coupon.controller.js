@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Coupon from "../models/coupon.model.js";
 
 const createHttpError = (status, message) => {
@@ -133,7 +134,7 @@ const ensureCodesAvailable = async (codes) => {
 const buildCouponPayload = ({ code, discount, expiresAt, isActive }) => ({
         code: String(code),
         discountPercentage: Number(discount),
-        expiresAt: new Date(expiresAt.getTime()),
+        expiresAt: new Date(expiresAt),
         isActive: Boolean(isActive),
 });
 
@@ -298,7 +299,13 @@ export const validateCoupon = async (req, res) => {
 export const updateCoupon = async (req, res) => {
         try {
                 const { id } = req.params;
-                const coupon = await Coupon.findById(id);
+                const couponId = typeof id === "string" ? id : "";
+
+                if (!mongoose.Types.ObjectId.isValid(couponId)) {
+                        return res.status(400).json({ message: "Invalid coupon id" });
+                }
+
+                const coupon = await Coupon.findById(couponId);
 
                 if (!coupon) {
                         return res.status(404).json({ message: "Coupon not found" });

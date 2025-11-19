@@ -10,7 +10,7 @@ const ProductsList = ({ onEdit }) => {
         const { t } = useTranslation();
 
         const handleEdit = (product) => {
-                const confirmed = window.confirm(
+                const confirmed = globalThis.window?.confirm(
                         t("admin.productsTable.confirmations.edit", { name: product.name })
                 );
 
@@ -23,7 +23,7 @@ const ProductsList = ({ onEdit }) => {
         };
 
         const handleDelete = (product) => {
-                const confirmed = window.confirm(
+                const confirmed = globalThis.window?.confirm(
                         t("admin.productsTable.confirmations.delete", { name: product.name })
                 );
 

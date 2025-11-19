@@ -118,7 +118,7 @@ const CategoryManager = () => {
         };
 
         const handleDelete = (category) => {
-                if (window.confirm(t("categories.manager.confirmDelete"))) {
+                if (globalThis.window?.confirm(t("categories.manager.confirmDelete"))) {
                         deleteCategory(category._id);
                 }
         };

@@ -65,8 +65,8 @@ const OrderSummary = () => {
                         <motion.button
                                 type='button'
                                 className='w-full rounded-full bg-payzone-gold px-6 py-3 text-sm font-semibold text-payzone-navy transition-colors duration-300 hover:bg-[#b8873d] focus:outline-none focus-visible:ring-2 focus-visible:ring-payzone-gold focus-visible:ring-offset-2 focus-visible:ring-offset-payzone-navy disabled:cursor-not-allowed disabled:opacity-60 md:w-1/2 md:self-end'
-                                whileHover={!isDisabled ? { scale: 1.02 } : undefined}
-                                whileTap={!isDisabled ? { scale: 0.97 } : undefined}
+                                whileHover={isDisabled ? undefined : { scale: 1.02 }}
+                                whileTap={isDisabled ? undefined : { scale: 0.97 }}
                                 onClick={handleCheckout}
                                 disabled={isDisabled}
                         >

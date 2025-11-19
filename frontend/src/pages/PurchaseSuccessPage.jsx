@@ -44,11 +44,13 @@ const PurchaseSuccessPage = () => {
                         setError(null);
                 };
 
-                const sessionId = new URLSearchParams(window.location.search).get("session_id");
+                const sessionId = new URLSearchParams(globalThis.location?.search ?? "").get(
+                        "session_id"
+                );
                 if (isWhatsAppState) {
                         sessionStorage.removeItem("whatsappOrderSent");
                         finalizeWhatsAppOrder();
-                        navigate(window.location.pathname, { replace: true, state: null });
+                        navigate(globalThis.location?.pathname ?? "/", { replace: true, state: null });
                 } else if (sessionId) {
                         sessionStorage.removeItem("whatsappOrderSent");
                         handleCheckoutSuccess(sessionId);

@@ -44,7 +44,9 @@ const numericQuantity = Math.max(1, Number.parseInt(quantity, 10) || 1);
                         return item?.toString() === productId;
                 });
 
-                if (existingItemIndex !== -1) {
+                if (existingItemIndex === -1) {
+                        user.cartItems.push({ product: productId, quantity: numericQuantity });
+                } else {
                         const existingItem = user.cartItems[existingItemIndex];
 
                         if (existingItem?.product) {
@@ -55,8 +57,6 @@ const numericQuantity = Math.max(1, Number.parseInt(quantity, 10) || 1);
                                         quantity: (existingItem?.quantity ?? 1) + numericQuantity,
                                 };
                         }
-                } else {
-                        user.cartItems.push({ product: productId, quantity: numericQuantity });
                 }
 
                 await user.save();
@@ -103,30 +103,31 @@ const normalizedQuantity = Math.max(0, Number.parseInt(quantity, 10) || 0);
                         return item?.toString() === productId;
                 });
 
-                if (existingItemIndex !== -1) {
-                        const existingItem = user.cartItems[existingItemIndex];
-
-                        if (normalizedQuantity === 0) {
-                                user.cartItems = user.cartItems.filter((item, index) => index !== existingItemIndex);
-                                await user.save();
-                                return res.json(user.cartItems);
-                        }
-
-                        if (existingItem?.product) {
-                                existingItem.quantity = normalizedQuantity;
-                        } else {
-                                user.cartItems[existingItemIndex] = {
-                                        product: productId,
-                                        quantity: normalizedQuantity,
-                                };
-                        }
-                        await user.save();
-                        res.json(user.cartItems);
-                } else {
+                if (existingItemIndex === -1) {
                         res.status(404).json({ message: "Product not found" });
-		}
-	} catch (error) {
-		console.log("Error in updateQuantity controller", error.message);
-		res.status(500).json({ message: "Server error", error: error.message });
-	}
+                        return;
+                }
+
+                const existingItem = user.cartItems[existingItemIndex];
+
+                if (normalizedQuantity === 0) {
+                        user.cartItems = user.cartItems.filter((item, index) => index !== existingItemIndex);
+                        await user.save();
+                        return res.json(user.cartItems);
+                }
+
+                if (existingItem?.product) {
+                        existingItem.quantity = normalizedQuantity;
+                } else {
+                        user.cartItems[existingItemIndex] = {
+                                product: productId,
+                                quantity: normalizedQuantity,
+                        };
+                }
+                await user.save();
+                res.json(user.cartItems);
+        } catch (error) {
+                console.log("Error in updateQuantity controller", error.message);
+                res.status(500).json({ message: "Server error", error: error.message });
+        }
 };
