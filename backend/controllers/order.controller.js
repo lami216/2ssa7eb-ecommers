@@ -266,15 +266,18 @@ const cancelOrderInternally = (order, reason, user) => {
         });
 };
 
-const buildOrderListFilters = (status, search) => {
+const buildOrderListFilters = ({ status, search }) => {
         const filters = {};
 
-        if (status && ORDER_STATUS_OPTIONS.has(status)) {
-                filters.status = status;
+        if (typeof status === "string") {
+                const normalizedStatus = status.trim();
+                if (normalizedStatus && ORDER_STATUS_OPTIONS.has(normalizedStatus)) {
+                        filters.status = normalizedStatus;
+                }
         }
 
-        if (search) {
-                const normalizedSearch = sanitizeSearchTerm(search);
+        if (typeof search === "string") {
+                const normalizedSearch = sanitizeSearchTerm(search.trim());
                 if (normalizedSearch) {
                         const escapedSearch = normalizedSearch.replaceAll(
                                 /[.*+?^${}()|[\]\\]/g,
@@ -358,9 +361,10 @@ export const createWhatsAppOrder = async (req, res) => {
 
 export const listOrders = async (req, res) => {
         try {
-                const status = typeof req.query.status === "string" ? req.query.status.trim() : "";
-                const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
-                const filters = buildOrderListFilters(status, search);
+                const filters = buildOrderListFilters({
+                        status: req.query?.status,
+                        search: req.query?.search,
+                });
 
                 const orders = await Order.find(filters)
                         .sort({ createdAt: -1 })
