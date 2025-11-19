@@ -38,8 +38,9 @@ const computeUnitPrice = (product) => {
         return Number(discounted.toFixed(2));
 };
 
+
 const normalizeCoupon = (coupon) => {
-        if (!coupon || !coupon.code) {
+        if (!coupon?.code) {
                 return null;
         }
 
