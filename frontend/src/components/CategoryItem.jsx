@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import PropTypes from "prop-types";
 import useTranslation from "../hooks/useTranslation";
 
 const CategoryItem = ({ category }) => {
@@ -27,3 +28,12 @@ const CategoryItem = ({ category }) => {
 };
 
 export default CategoryItem;
+
+CategoryItem.propTypes = {
+        category: PropTypes.shape({
+                _id: PropTypes.string,
+                slug: PropTypes.string.isRequired,
+                name: PropTypes.string.isRequired,
+                imageUrl: PropTypes.string,
+        }).isRequired,
+};

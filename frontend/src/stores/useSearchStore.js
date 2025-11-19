@@ -70,7 +70,11 @@ export const useSearchStore = create((set, get) => ({
                         }
 
                         const queryString = queryParts.join("&");
-                        const endpoint = `/products/search${queryString ? `?${queryString}` : ""}`;
+                        let endpoint = "/products/search";
+
+                        if (queryString) {
+                                endpoint += `?${queryString}`;
+                        }
                         const data = await apiClient.get(endpoint, { signal: controller.signal });
 
                         if (controller.signal.aborted) {

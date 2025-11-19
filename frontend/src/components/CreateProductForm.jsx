@@ -475,12 +475,13 @@ const CreateProductForm = () => {
                                                                 {t("admin.createProduct.fields.discountHint")}
                                                         </p>
                                                 </div>
-                                                <label className='discount-switch'>
-                                                        <input
-                                                                id='discountToggleSwitch'
-                                                                type='checkbox'
-                                                                className='discount-switch__checkbox'
-                                                                checked={formState.isDiscounted}
+                                          <label className='discount-switch'>
+                                                  <span className='sr-only'>{t("admin.createProduct.fields.discountToggle")}</span>
+                                                  <input
+                                                          id='discountToggleSwitch'
+                                                          type='checkbox'
+                                                          className='discount-switch__checkbox'
+                                                          checked={formState.isDiscounted}
                                                                 onChange={handleToggleDiscount}
                                                         />
                                                         <span className='discount-switch__slider' />

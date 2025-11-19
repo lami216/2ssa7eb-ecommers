@@ -3,8 +3,8 @@ import Order from "../models/order.model.js";
 import Product from "../models/product.model.js";
 import Coupon from "../models/coupon.model.js";
 
-const PAID_STATUSES = ["paid", "paid_whatsapp", "delivered"];
-const ORDER_STATUS_OPTIONS = [
+const PAID_STATUSES = new Set(["paid", "paid_whatsapp", "delivered"]);
+const ORDER_STATUS_OPTIONS = new Set([
         "pending",
         "paid",
         "paid_whatsapp",
@@ -12,7 +12,7 @@ const ORDER_STATUS_OPTIONS = [
         "shipped",
         "delivered",
         "cancelled",
-];
+]);
 
 const normalizeString = (value) => (typeof value === "string" ? value.trim() : "");
 const normalizePhone = (value) => (typeof value === "string" ? value.replace(/\D/g, "") : "");
@@ -220,7 +220,7 @@ const fetchOrderByIdOrThrow = async (id) => {
 };
 
 const ensureStatusChangeIsAllowed = (status) => {
-        if (!ORDER_STATUS_OPTIONS.includes(status)) {
+        if (!ORDER_STATUS_OPTIONS.has(status)) {
                 throw createHttpError(400, "Invalid status");
         }
         if (status === "cancelled") {
@@ -231,7 +231,7 @@ const ensureStatusChangeIsAllowed = (status) => {
 const applyStatusUpdate = (order, status, reason, user) => {
         const previousStatus = order.status;
         order.status = status;
-        if (PAID_STATUSES.includes(status) && !order.paidAt) {
+        if (PAID_STATUSES.has(status) && !order.paidAt) {
                 order.paidAt = new Date();
         }
         if (status === "delivered") {
@@ -268,7 +268,7 @@ const cancelOrderInternally = (order, reason, user) => {
 const buildOrderListFilters = (status, search) => {
         const filters = {};
 
-        if (status && ORDER_STATUS_OPTIONS.includes(status)) {
+        if (status && ORDER_STATUS_OPTIONS.has(status)) {
                 filters.status = status;
         }
 

@@ -36,12 +36,14 @@ function App() {
         }, [initializeCart]);
 
         useEffect(() => {
-                if (!user) return;
-
-                getCartItems();
+                if (user) {
+                        getCartItems();
+                }
         }, [getCartItems, user]);
 
-	if (checkingAuth) return <LoadingSpinner />;
+        if (checkingAuth) {
+                return <LoadingSpinner />;
+        }
 
         return (
                 <div className='relative min-h-screen bg-payzone-navy text-payzone-white'>
