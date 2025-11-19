@@ -34,7 +34,7 @@ export const addToCart = async (req, res) => {
                 const { productId, quantity } = req.body;
                 const user = req.user;
 
-                const numericQuantity = Math.max(1, parseInt(quantity, 10) || 1);
+const numericQuantity = Math.max(1, Number.parseInt(quantity, 10) || 1);
 
                 const existingItemIndex = user.cartItems.findIndex((item) => {
                         if (item?.product) {
@@ -94,7 +94,7 @@ export const updateQuantity = async (req, res) => {
                 const { id: productId } = req.params;
                 const { quantity } = req.body;
                 const user = req.user;
-                const normalizedQuantity = Math.max(0, parseInt(quantity, 10) || 0);
+const normalizedQuantity = Math.max(0, Number.parseInt(quantity, 10) || 0);
                 const existingItemIndex = user.cartItems.findIndex((item) => {
                         if (item?.product) {
                                 return item.product.toString() === productId;

@@ -125,7 +125,7 @@ const normalizeOrderItems = (items) =>
                         if (!candidate) {
                                 return null;
                         }
-                        const quantity = Math.max(1, parseInt(item.quantity, 10) || 1);
+const quantity = Math.max(1, Number.parseInt(item.quantity, 10) || 1);
                         return {
                                 productId: candidate.toString(),
                                 quantity,
