@@ -10,6 +10,14 @@ const productSchema = new mongoose.Schema(
                         type: String,
                         required: true,
                 },
+                projectUrl: {
+                        type: String,
+                        default: "",
+                },
+                richText: {
+                        type: String,
+                        default: "",
+                },
                 price: {
                         type: Number,
                         min: 0,

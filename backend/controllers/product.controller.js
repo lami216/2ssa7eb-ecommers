@@ -303,6 +303,16 @@ export const getAllProducts = async (req, res) => {
         }
 };
 
+export const getPublicProjects = async (req, res) => {
+        try {
+                const projects = await Product.find({}).sort({ createdAt: -1 }).lean({ virtuals: true });
+                res.json({ projects: projects.map(finalizeProductPayload) });
+        } catch (error) {
+                console.log("Error in getPublicProjects controller", error.message);
+                res.status(500).json({ message: "Server error", error: error.message });
+        }
+};
+
 export const getFeaturedProducts = async (req, res) => {
         try {
                 let featuredProducts = await redis.get("featured_products");
@@ -394,14 +404,25 @@ export const searchProducts = async (req, res) => {
 
 export const createProduct = async (req, res) => {
         try {
-                const { name, description, price, category, images, isDiscounted, discountPercentage } =
-                        req.body;
+                const {
+                        name,
+                        description,
+                        projectUrl,
+                        richText,
+                        price,
+                        category,
+                        images,
+                        isDiscounted,
+                        discountPercentage,
+                } = req.body;
 
                 const trimmedName = ensureNonEmptyTrimmed(name, "Product name is required");
                 const trimmedDescription = ensureNonEmptyTrimmed(
                         description,
                         "Product description is required"
                 );
+                const trimmedProjectUrl = ensureNonEmptyTrimmed(projectUrl, "Project link is required");
+                const trimmedRichText = ensureNonEmptyTrimmed(richText, "Project details are required");
                 const sanitizedImages = validateCreateImages(images);
                 const numericPrice = ensureValidPriceValue(price);
                 const normalizedCategory = ensureCategoryValue(category);
@@ -415,6 +436,8 @@ export const createProduct = async (req, res) => {
                 const productPayload = {
                         name: trimmedName,
                         description: trimmedDescription,
+                        projectUrl: trimmedProjectUrl,
+                        richText: trimmedRichText,
                         price: numericPrice,
                         image: uploadedImages[0]?.url,
                         images: uploadedImages,
@@ -441,6 +464,8 @@ export const updateProduct = async (req, res) => {
                 const {
                         name,
                         description,
+                        projectUrl,
+                        richText,
                         price,
                         category,
                         existingImages,
@@ -460,6 +485,14 @@ export const updateProduct = async (req, res) => {
                 const trimmedDescription = ensureNonEmptyTrimmed(
                         description ?? product.description,
                         "Product description is required"
+                );
+                const trimmedProjectUrl = ensureNonEmptyTrimmed(
+                        projectUrl ?? product.projectUrl,
+                        "Project link is required"
+                );
+                const trimmedRichText = ensureNonEmptyTrimmed(
+                        richText ?? product.richText,
+                        "Project details are required"
                 );
                 const existingImageIds = collectExistingImageIds(existingImages);
                 const sanitizedNewImages = sanitizeNewImagesInput(newImages);
@@ -494,6 +527,8 @@ export const updateProduct = async (req, res) => {
 
                 product.name = trimmedName;
                 product.description = trimmedDescription;
+                product.projectUrl = trimmedProjectUrl;
+                product.richText = trimmedRichText;
                 product.price = numericPrice;
                 product.category = categoryAssignments.category;
                 product.categorySlug = categoryAssignments.categorySlug;
