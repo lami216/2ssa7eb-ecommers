@@ -67,6 +67,17 @@ export const useProductStore = create((set, get) => ({
                         toast.error(error.response?.data?.message || translate("toast.fetchProductsError"));
                 }
         },
+        fetchPublicProjects: async () => {
+                set({ loading: true });
+                try {
+                        const data = await apiClient.get(`/products/public`);
+                        get().setProducts(data.projects || []);
+                        set({ loading: false });
+                } catch (error) {
+                        set({ error: translate("toast.fetchProductsError"), loading: false });
+                        toast.error(error.response?.data?.message || translate("toast.fetchProductsError"));
+                }
+        },
         fetchProductsByCategory: async (category) => {
                 set({ loading: true });
                 try {

@@ -1,30 +1,12 @@
-import { ShoppingCart, UserPlus, LogIn, LogOut, Lock } from "lucide-react";
+import { UserPlus, LogIn, LogOut, Lock, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import useTranslation from "../hooks/useTranslation";
 import { useUserStore } from "../stores/useUserStore";
-import { useCartStore } from "../stores/useCartStore";
 
 const Navbar = () => {
         const { user, logout } = useUserStore();
         const isAdmin = user?.role === "admin";
-        const { cart } = useCartStore();
-        const cartItemCount = cart.reduce((total, item) => total + (item.quantity ?? 0), 0);
         const { t } = useTranslation();
-
-        const cartLink = (
-                <Link
-                        to={'/cart'}
-                        className='relative group flex items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-sm font-semibold text-payzone-white transition duration-300 ease-in-out hover:bg-white/20'
-                >
-                        <ShoppingCart size={18} />
-                        <span className='hidden sm:inline'>{t("nav.cart")}</span>
-                        {cartItemCount > 0 && (
-                                <span className='absolute -top-2 -right-2 rounded-full bg-payzone-gold px-2 py-0.5 text-xs font-semibold text-payzone-navy shadow-sm transition duration-300 ease-in-out group-hover:bg-[#b8873d]'>
-                                        {cartItemCount}
-                                </span>
-                        )}
-                </Link>
-        );
 
         return (
                 <header className='fixed top-0 right-0 w-full border-b border-payzone-indigo/40 bg-payzone-navy/95 backdrop-blur-xl shadow-lg transition-all duration-300 z-40'>
@@ -47,6 +29,12 @@ const Navbar = () => {
                                                         >
                                                                 {t("nav.home")}
                                                         </Link>
+                                                        <Link
+                                                                to={'/demo'}
+                                                                className='text-white/80 transition duration-300 ease-in-out hover:text-payzone-indigo'
+                                                        >
+                                                                {t("nav.demo")}
+                                                        </Link>
                                                         {isAdmin && (
                                                                 <Link
                                                                         className='flex items-center gap-2 rounded-md bg-payzone-indigo px-3 py-1 text-payzone-white transition duration-300 ease-in-out hover:bg-[#3b3ad6]'
@@ -59,7 +47,15 @@ const Navbar = () => {
                                                 </nav>
 
                                                 <div className='flex items-center gap-3'>
-                                                        {cartLink}
+                                                        <a
+                                                                href='https://wa.me/22231117700?text=%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%D8%8C%20%D8%A3%D8%B1%D8%BA%D8%A8%20%D8%A8%D8%AF%D8%A1%20%D8%A7%D9%84%D8%AA%D8%B9%D8%A7%D9%88%D9%86%20%D9%85%D8%B9%20Payzone%20%D8%A8%D8%A7%D9%8A%D8%B2%D9%88%D9%88%D9%86%20%D9%84%D8%A8%D9%86%D8%A7%D8%A1%20%D9%85%D8%AA%D8%AC%D8%B1%D9%8A%20%D8%A7%D9%84%D8%A5%D9%84%D9%83%D8%AA%D8%B1%D9%88%D9%86%D9%8A.'
+                                                                target='_blank'
+                                                                rel='noreferrer'
+                                                                className='flex items-center gap-2 rounded-md bg-payzone-gold px-4 py-2 font-semibold text-payzone-navy transition duration-300 ease-in-out hover:bg-[#b8873d]'
+                                                        >
+                                                                <ExternalLink size={18} />
+                                                                <span className='hidden sm:inline'>{t("nav.start")}</span>
+                                                        </a>
                                                         {user ? (
                                                                 <button
                                                                         className='flex items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-payzone-white transition duration-300 ease-in-out hover:bg-white/20'

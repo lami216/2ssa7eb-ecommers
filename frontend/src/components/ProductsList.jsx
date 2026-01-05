@@ -1,12 +1,11 @@
 import { motion } from "framer-motion";
 import PropTypes from "prop-types";
-import { Trash, Star, Edit3 } from "lucide-react";
+import { Trash, Edit3, ExternalLink } from "lucide-react";
 import useTranslation from "../hooks/useTranslation";
 import { useProductStore } from "../stores/useProductStore";
-import { formatMRU } from "../lib/formatMRU";
 
 const ProductsList = ({ onEdit }) => {
-        const { deleteProduct, toggleFeaturedProduct, products, setSelectedProduct } = useProductStore();
+        const { deleteProduct, products, setSelectedProduct } = useProductStore();
         const { t } = useTranslation();
 
         const handleEdit = (product) => {
@@ -43,12 +42,10 @@ const ProductsList = ({ onEdit }) => {
                                 <table className='min-w-full divide-y divide-white/10'>
                                 <thead className='bg-payzone-navy/80'>
                                         <tr>
-                                                {[ 
-                                                        t("admin.productsTable.headers.product"),
-                                                        t("admin.productsTable.headers.price"),
-                                                        t("admin.productsTable.headers.discount"),
-                                                        t("admin.productsTable.headers.category"),
-                                                        t("admin.productsTable.headers.featured"),
+                                                {[
+                                                        t("admin.productsTable.headers.project"),
+                                                        t("admin.productsTable.headers.link"),
+                                                        t("admin.productsTable.headers.images"),
                                                         t("admin.productsTable.headers.actions"),
                                                 ].map((heading) => (
                                                         <th
@@ -76,46 +73,24 @@ const ProductsList = ({ onEdit }) => {
                                                                 </div>
                                                         </td>
                                                         <td className='whitespace-nowrap px-6 py-4'>
-                                                                <div className='flex flex-col items-end text-sm'>
-                                                                        {product.isDiscounted && product.discountPercentage > 0 ? (
-                                                                                <span className='text-xs text-white/60 line-through'>
-                                                                                        {formatMRU(product.price)}
-                                                                                </span>
-                                                                        ) : (
-                                                                                <span className='text-payzone-gold'>
-                                                                                        {formatMRU(product.price)}
-                                                                                </span>
-                                                                        )}
-                                                                </div>
-                                                        </td>
-                                                        <td className='whitespace-nowrap px-6 py-4'>
-                                                                {product.isDiscounted && product.discountPercentage > 0 ? (
-                                                                        <div className='flex items-center justify-end gap-2'>
-                                                                                <span className='rounded-full bg-red-500/20 px-2 py-1 text-xs font-semibold text-red-200'>
-                                                                                        -{product.discountPercentage}%
-                                                                                </span>
-                                                                                <span className='text-sm text-red-200'>
-                                                                                        {formatMRU(product.discountedPrice ?? product.price)}
-                                                                                </span>
-                                                                        </div>
+                                                                {product.projectUrl ? (
+                                                                        <a
+                                                                                href={product.projectUrl}
+                                                                                target='_blank'
+                                                                                rel='noreferrer'
+                                                                                className='inline-flex items-center gap-2 text-sm text-payzone-gold hover:text-white'
+                                                                        >
+                                                                                {t("admin.productsTable.actions.open")}
+                                                                                <ExternalLink className='h-4 w-4' />
+                                                                        </a>
                                                                 ) : (
                                                                         <span className='text-sm text-white/60'>—</span>
                                                                 )}
                                                         </td>
                                                         <td className='whitespace-nowrap px-6 py-4'>
-                                                                <div className='text-sm text-white/70'>{product.category}</div>
-                                                        </td>
-                                                        <td className='whitespace-nowrap px-6 py-4'>
-                                                                <button
-                                                                        onClick={() => toggleFeaturedProduct(product._id)}
-                                                                        className={`rounded-full p-1 transition-colors duration-200 ${
-                                                                                product.isFeatured
-                                                                                        ? "bg-payzone-gold text-payzone-navy"
-                                                                                        : "bg-payzone-navy/60 text-white/70"
-                                                                        } hover:ring-2 hover:ring-payzone-indigo/40`}
-                                                                >
-                                                                        <Star className='h-5 w-5' />
-                                                                </button>
+                                                                <span className='text-sm text-white/70'>
+                                                                        {Array.isArray(product.images) ? product.images.length : 0}
+                                                                </span>
                                                         </td>
                                                         <td className='whitespace-nowrap px-6 py-4 text-sm font-medium'>
                                                                 <div className='flex items-center justify-end gap-4'>

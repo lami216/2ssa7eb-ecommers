@@ -1,21 +1,17 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { PlusCircle, Upload, Loader, Star, X, Save } from "lucide-react";
+import { Upload, Loader, X, Save, PlusCircle, Star } from "lucide-react";
 import toast from "react-hot-toast";
 import useTranslation from "../hooks/useTranslation";
 import { useProductStore } from "../stores/useProductStore";
-import { useCategoryStore } from "../stores/useCategoryStore";
-import { formatMRU } from "../lib/formatMRU";
 
 const MAX_IMAGES = 3;
 
 const createInitialFormState = () => ({
         name: "",
         description: "",
-        price: "",
-        category: "",
-        isDiscounted: false,
-        discountPercentage: "",
+        projectUrl: "",
+        richText: "",
         existingImages: [],
         newImages: [],
         coverSource: "existing",
@@ -41,41 +37,26 @@ const validateProductFormFields = (state, totalImages, t) => {
                 return { error: t("admin.createProduct.messages.descriptionRequired") };
         }
 
-        if (!state.category) {
-                return { error: t("admin.createProduct.messages.categoryRequired") };
+        const trimmedProjectUrl = state.projectUrl.trim();
+        if (!trimmedProjectUrl) {
+                return { error: t("admin.createProduct.messages.projectUrlRequired") };
+        }
+
+        const trimmedRichText = state.richText.trim();
+        if (!trimmedRichText) {
+                return { error: t("admin.createProduct.messages.richTextRequired") };
         }
 
         if (totalImages === 0) {
                 return { error: t("admin.createProduct.messages.missingImages") };
         }
 
-        const numericPrice = Number(state.price);
-        if (Number.isNaN(numericPrice)) {
-                return { error: t("admin.createProduct.messages.invalidPrice") };
-        }
-
-        return { trimmedName, trimmedDescription, numericPrice };
-};
-
-const resolveDiscountForSubmission = (state, t) => {
-        if (!state.isDiscounted) {
-                return { discount: 0 };
-        }
-
-        if (!state.discountPercentage) {
-                return { error: t("admin.createProduct.messages.discountRequired") };
-        }
-
-        const numericDiscount = Number(state.discountPercentage);
-        if (Number.isNaN(numericDiscount)) {
-                return { error: t("admin.createProduct.messages.discountInvalid") };
-        }
-
-        if (numericDiscount <= 0 || numericDiscount >= 100) {
-                return { error: t("admin.createProduct.messages.discountRange") };
-        }
-
-        return { discount: Number(numericDiscount.toFixed(2)) };
+        return {
+                trimmedName,
+                trimmedDescription,
+                trimmedProjectUrl,
+                trimmedRichText,
+        };
 };
 
 const CreateProductForm = () => {
@@ -87,12 +68,7 @@ const CreateProductForm = () => {
                 selectedProduct,
                 clearSelectedProduct,
         } = useProductStore();
-        const { categories, fetchCategories } = useCategoryStore();
         const { t } = useTranslation();
-
-        useEffect(() => {
-                fetchCategories();
-        }, [fetchCategories]);
 
         useEffect(() => {
                 if (!selectedProduct) {
@@ -112,18 +88,8 @@ const CreateProductForm = () => {
                 setFormState({
                         name: selectedProduct.name ?? "",
                         description: selectedProduct.description ?? "",
-                        price:
-                                selectedProduct.price !== undefined && selectedProduct.price !== null
-                                        ? String(selectedProduct.price)
-                                        : "",
-                        category: selectedProduct.category ?? "",
-                        isDiscounted: Boolean(selectedProduct.isDiscounted) &&
-                                Number(selectedProduct.discountPercentage) > 0,
-                        discountPercentage:
-                                selectedProduct.discountPercentage !== undefined &&
-                                selectedProduct.discountPercentage !== null
-                                        ? String(selectedProduct.discountPercentage)
-                                        : "",
+                        projectUrl: selectedProduct.projectUrl ?? "",
+                        richText: selectedProduct.richText ?? "",
                         existingImages,
                         newImages: [],
                         coverSource: existingImages.length ? "existing" : "new",
@@ -134,19 +100,6 @@ const CreateProductForm = () => {
         const totalImages = formState.existingImages.length + formState.newImages.length;
 
         const isEditing = Boolean(selectedProduct);
-
-        const hasDiscount = formState.isDiscounted;
-        const numericPricePreview = Number(formState.price);
-        const numericDiscountValue = Number(formState.discountPercentage);
-        const isDiscountPreviewValid =
-                hasDiscount &&
-                !Number.isNaN(numericDiscountValue) &&
-                numericDiscountValue > 0 &&
-                numericDiscountValue < 100 &&
-                !Number.isNaN(numericPricePreview);
-        const discountedPreviewPrice = isDiscountPreviewValid
-                ? Number((numericPricePreview - numericPricePreview * (numericDiscountValue / 100)).toFixed(2))
-                : null;
 
         const handleImagesChange = async (event) => {
                 const files = Array.from(event.target.files || []);
@@ -275,24 +228,6 @@ const CreateProductForm = () => {
                 clearSelectedProduct();
         };
 
-        const handleToggleDiscount = () => {
-                        setFormState((previous) => ({
-                                ...previous,
-                                isDiscounted: !previous.isDiscounted,
-                                discountPercentage: previous.isDiscounted
-                                        ? ""
-                                        : previous.discountPercentage || "",
-                        }));
-                };
-
-        const handleDiscountPercentageChange = (event) => {
-                const { value } = event.target;
-                setFormState((previous) => ({
-                        ...previous,
-                        discountPercentage: value,
-                }));
-        };
-
         const buildOrderedImages = () => {
                 let existing = [...formState.existingImages];
                 let fresh = [...formState.newImages];
@@ -326,15 +261,6 @@ const CreateProductForm = () => {
                         toast.error(fieldValidation.error);
                         return;
                 }
-
-                const discountValidation = resolveDiscountForSubmission(formState, t);
-                if (discountValidation.error) {
-                        toast.error(discountValidation.error);
-                        return;
-                }
-
-                const hasDiscountToggle = Boolean(formState.isDiscounted);
-                const normalizedDiscount = discountValidation.discount;
                 const { existing, fresh } = buildOrderedImages();
 
                 try {
@@ -342,27 +268,27 @@ const CreateProductForm = () => {
                                 await updateProduct(selectedProduct._id, {
                                         name: fieldValidation.trimmedName,
                                         description: fieldValidation.trimmedDescription,
-                                        price: fieldValidation.numericPrice,
-                                        category: formState.category,
+                                        projectUrl: fieldValidation.trimmedProjectUrl,
+                                        richText: fieldValidation.trimmedRichText,
+                                        price: 0,
+                                        category: "مشاريع",
                                         existingImages: existing.map((image) => image.public_id).filter(Boolean),
                                         newImages: fresh,
                                         cover: {
                                                 source: formState.coverSource,
                                                 index: formState.coverIndex,
                                         },
-                                        isDiscounted: hasDiscountToggle,
-                                        discountPercentage: normalizedDiscount,
                                 });
                                 resetForm();
                         } else {
                                 await createProduct({
                                         name: fieldValidation.trimmedName,
                                         description: fieldValidation.trimmedDescription,
-                                        price: fieldValidation.numericPrice,
-                                        category: formState.category,
+                                        projectUrl: fieldValidation.trimmedProjectUrl,
+                                        richText: fieldValidation.trimmedRichText,
+                                        price: 0,
+                                        category: "مشاريع",
                                         images: fresh,
-                                        isDiscounted: hasDiscountToggle,
-                                        discountPercentage: normalizedDiscount,
                                 });
                                 setFormState(createInitialFormState());
                         }
@@ -449,102 +375,41 @@ const CreateProductForm = () => {
                                 </div>
 
                                 <div>
-                                        <label htmlFor='price' className='block text-sm font-medium text-white/80'>
-                                                {t("admin.createProduct.fields.price")}
+                                        <label htmlFor='projectUrl' className='block text-sm font-medium text-white/80'>
+                                                {t("admin.createProduct.fields.projectUrl")}
                                         </label>
                                         <input
-                                                type='number'
-                                                id='price'
-                                                name='price'
-                                                value={formState.price}
-                                                onChange={(event) => setFormState({ ...formState, price: event.target.value })}
-                                                step='0.01'
+                                                type='url'
+                                                id='projectUrl'
+                                                name='projectUrl'
+                                                value={formState.projectUrl}
+                                                onChange={(event) =>
+                                                        setFormState({ ...formState, projectUrl: event.target.value })
+                                                }
                                                 className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
                                                 required
                                         />
                                 </div>
 
-                                <div className='rounded-lg border border-payzone-indigo/40 bg-payzone-navy/50 p-4'>
-                                        <div className='flex items-start justify-between gap-4'>
-                                                <div>
-                                                        <label
-                                                                htmlFor='discountToggleSwitch'
-                                                                className='text-sm font-medium text-white/80'
-                                                        >
-                                                                {t("admin.createProduct.fields.discountToggle")}
-                                                        </label>
-                                                        <p className='mt-1 text-xs text-white/60'>
-                                                                {t("admin.createProduct.fields.discountHint")}
-                                                        </p>
-                                                </div>
-                                          <label className='discount-switch'>
-                                                  <span className='sr-only'>{t("admin.createProduct.fields.discountToggle")}</span>
-                                                  <input
-                                                          id='discountToggleSwitch'
-                                                          type='checkbox'
-                                                          className='discount-switch__checkbox'
-                                                          checked={formState.isDiscounted}
-                                                                onChange={handleToggleDiscount}
-                                                        />
-                                                        <span className='discount-switch__slider' />
-                                                </label>
-                                        </div>
-
-                                        {formState.isDiscounted && (
-                                                <div className='mt-4 space-y-2'>
-                                                        <label
-                                                                htmlFor='discountPercentage'
-                                                                className='block text-sm font-medium text-white/80'
-                                                        >
-                                                                {t("admin.createProduct.fields.discountPercentage")}
-                                                        </label>
-                                                        <input
-                                                                id='discountPercentage'
-                                                                type='number'
-                                                                min='1'
-                                                                max='99'
-                                                                step='0.01'
-                                                                value={formState.discountPercentage}
-                                                                onChange={handleDiscountPercentageChange}
-                                                                className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
-                                                                placeholder={t("admin.createProduct.placeholders.discountPercentage")}
-                                                        />
-                                                        {discountedPreviewPrice !== null && (
-                                                                <p className='text-xs text-payzone-gold'>
-                                                                        {t("admin.createProduct.fields.discountPreview", {
-                                                                                price: formatMRU(numericPricePreview || 0),
-                                                                                discount: formState.discountPercentage || "0",
-                                                                                final: formatMRU(discountedPreviewPrice),
-                                                                        })}
-                                                                </p>
-                                                        )}
-                                                </div>
-                                        )}
-                                </div>
-
                                 <div>
-                                        <label htmlFor='category' className='block text-sm font-medium text-white/80'>
-                                                {t("admin.createProduct.fields.category")}
+                                        <label htmlFor='richText' className='block text-sm font-medium text-white/80'>
+                                                {t("admin.createProduct.fields.richText")}
                                         </label>
-                                        <select
-                                                id='category'
-                                                name='category'
-                                                value={formState.category}
+                                        <textarea
+                                                id='richText'
+                                                name='richText'
+                                                value={formState.richText}
                                                 onChange={(event) =>
-                                                        setFormState({ ...formState, category: event.target.value })
+                                                        setFormState({ ...formState, richText: event.target.value })
                                                 }
-                                                className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
+                                                rows='6'
+                                                className='mt-1 block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo'
+                                                placeholder={t("admin.createProduct.placeholders.richText")}
                                                 required
-                                        >
-                                                <option value=''>
-                                                        {t("admin.createProduct.placeholders.category")}
-                                                </option>
-                                                {categories.map((category) => (
-                                                        <option key={category._id} value={category.slug}>
-                                                                {category.name}
-                                                        </option>
-                                                ))}
-                                        </select>
+                                        />
+                                        <p className='mt-2 text-xs text-white/60'>
+                                                {t("admin.createProduct.fields.richTextHint")}
+                                        </p>
                                 </div>
 
                                 <div className='mt-1 flex items-center'>

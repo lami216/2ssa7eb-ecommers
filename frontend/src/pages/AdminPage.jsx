@@ -1,14 +1,10 @@
-import { BarChart, PlusCircle, ShoppingBasket, FolderTree, TicketPercent, ClipboardList } from "lucide-react";
+import { PlusCircle, FolderKanban } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import useTranslation from "../hooks/useTranslation";
 
-import AnalyticsTab from "../components/AnalyticsTab";
 import CreateProductForm from "../components/CreateProductForm";
 import ProductsList from "../components/ProductsList";
-import CategoryManager from "../components/CategoryManager";
-import AdminCoupons from "../components/AdminCoupons";
-import AdminOrders from "../components/AdminOrders";
 import { useProductStore } from "../stores/useProductStore";
 
 const AdminPage = () => {
@@ -23,11 +19,7 @@ const AdminPage = () => {
         const tabs = useMemo(
                 () => [
                         { id: "create", label: t("admin.tabs.create"), icon: PlusCircle },
-                        { id: "products", label: t("admin.tabs.products"), icon: ShoppingBasket },
-                        { id: "categories", label: t("admin.tabs.categories"), icon: FolderTree },
-                        { id: "analytics", label: t("admin.tabs.analytics"), icon: BarChart },
-                        { id: "orders", label: t("admin.tabs.orders"), icon: ClipboardList },
-                        { id: "coupons", label: t("admin.tabs.coupons"), icon: TicketPercent },
+                        { id: "products", label: t("admin.tabs.products"), icon: FolderKanban },
                 ],
                 [t]
         );
@@ -64,10 +56,6 @@ const AdminPage = () => {
                                 </div>
                                 {activeTab === "create" && <CreateProductForm />}
                                 {activeTab === "products" && <ProductsList onEdit={() => setActiveTab("create")} />}
-                                {activeTab === "categories" && <CategoryManager />}
-                                {activeTab === "analytics" && <AnalyticsTab />}
-                                {activeTab === "orders" && <AdminOrders />}
-                                {activeTab === "coupons" && <AdminCoupons />}
                         </div>
                 </div>
         );
