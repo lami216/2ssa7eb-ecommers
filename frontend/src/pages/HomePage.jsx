@@ -10,7 +10,7 @@ const HomePage = () => {
                                 name: "باقة الانطلاق",
                                 price: "5000 أوقية قديمة",
                                 monthly: "3000 أوقية قديمة",
-                                badge: "خصم 75%",
+                                badge: "خصم 70%",
                                 details: [
                                         "قالب جاهز نغيّر الاسم والألوان فقط.",
                                         "لوحة التحكم ثابتة كما هي في القالب.",
@@ -22,7 +22,7 @@ const HomePage = () => {
                                 name: "باقة التوسّع",
                                 price: "10000 أوقية قديمة",
                                 monthly: "5000 أوقية قديمة",
-                                badge: "خصم 50%",
+                                badge: "خصم 55%",
                                 details: [
                                         "القالب كأساس مع تخصيص كامل لأي جزء.",
                                         "إضافة ميزات حسب الطلب.",
@@ -35,7 +35,7 @@ const HomePage = () => {
                                 name: "باقة الحل الكامل",
                                 price: "20000 أوقية قديمة",
                                 monthly: "7000 أوقية قديمة",
-                                badge: "خصم 30%",
+                                badge: "خصم 40%",
                                 details: [
                                         "بناء من الصفر بدون قالب.",
                                         "تنفيذ متجر أو منصة أو موقع خدمات أو أي نظام حسب الفكرة أو استنساخ موقع موجود.",
@@ -49,24 +49,20 @@ const HomePage = () => {
 
         const comparisonRows = useMemo(
                 () => [
-                        {
-                                label: "طريقة التصميم",
-                                starter: "قالب جاهز ثابت",
-                                growth: "قالب مع تخصيص شامل",
-                                full: "تصميم من الصفر",
-                        },
-                        {
-                                label: "لوحة التحكم",
-                                starter: "لوحة قالب ثابتة",
-                                growth: "لوحة قابلة للتخصيص",
-                                full: "لوحة مبنية حسب الطلب",
-                        },
-                        {
-                                label: "المرونة في التعديلات",
-                                starter: "محدودة",
-                                growth: "مرنة حسب الطلب",
-                                full: "أقصى مرونة ممكنة",
-                        },
+                        { label: "متجر إلكتروني جاهز", starter: "✅", growth: "✅", full: "✅" },
+                        { label: "تشغيل سريع", starter: "✅", growth: "✅", full: "✅" },
+                        { label: "لوحة تحكم", starter: "✅", growth: "✅", full: "✅" },
+                        { label: "تعديل الاسم والألوان", starter: "✅", growth: "✅", full: "✅" },
+                        { label: "استضافة على سيرفر خاص", starter: "✅", growth: "✅", full: "✅" },
+                        { label: "دعم فني عبر واتساب", starter: "✅", growth: "✅", full: "✅" },
+                        { label: "حل الأعطال بدون حدود", starter: "✅", growth: "✅", full: "✅" },
+                        { label: "تعديل القالب", starter: "❌", growth: "✅", full: "✅" },
+                        { label: "إضافة ميزات جديدة", starter: "❌", growth: "✅", full: "✅" },
+                        { label: "تخصيص لوحة التحكم", starter: "❌", growth: "✅", full: "✅" },
+                        { label: "تصميم من الصفر", starter: "❌", growth: "❌", full: "✅" },
+                        { label: "بناء نظام حسب الفكرة", starter: "❌", growth: "❌", full: "✅" },
+                        { label: "قابلية توسعة مستقبلية عالية", starter: "❌", growth: "❌", full: "✅" },
+                        { label: "مناسب للشركات والمنصات", starter: "❌", growth: "❌", full: "✅" },
                 ],
                 []
         );
@@ -111,15 +107,11 @@ const HomePage = () => {
                                         </p>
                                         <div className='mt-8 flex flex-wrap justify-center gap-4'>
                                                 <a
-                                                        href={buildWhatsAppLink("استفسار عام")}
-                                                        target='_blank'
-                                                        rel='noreferrer'
-                                                        className='rounded-lg bg-payzone-gold px-6 py-3 font-semibold text-payzone-navy transition hover:bg-[#b8873d]'
-                                                >
-                                                        ابدأ الآن عبر واتساب
-                                                </a>
-                                                <a
-                                                        href='#packages'
+                                                        href='#qualification'
+                                                        onClick={(event) => {
+                                                                event.preventDefault();
+                                                                document.getElementById("qualification")?.scrollIntoView({ behavior: "smooth" });
+                                                        }}
                                                         className='rounded-lg border border-payzone-indigo/50 px-6 py-3 font-semibold text-white/80 transition hover:border-payzone-gold hover:text-payzone-gold'
                                                 >
                                                         عرض الباقات والأسعار
@@ -205,12 +197,14 @@ const HomePage = () => {
                                                 {packages.map((pkg) => (
                                                         <div
                                                                 key={pkg.id}
-                                                                className='relative flex h-full flex-col rounded-2xl border border-payzone-indigo/40 bg-white/5 p-8 shadow-lg'
+                                                                className='flex h-full flex-col rounded-2xl border border-payzone-indigo/40 bg-white/5 p-8 shadow-lg'
                                                         >
-                                                                <span className='absolute right-4 top-4 rounded-full bg-payzone-gold px-3 py-1 text-sm font-semibold text-payzone-navy'>
-                                                                        {pkg.badge}
-                                                                </span>
-                                                                <h3 className='text-2xl font-semibold text-white'>{pkg.name}</h3>
+                                                                <div className='flex items-center justify-between gap-4'>
+                                                                        <h3 className='text-2xl font-semibold text-white'>{pkg.name}</h3>
+                                                                        <span className='rounded-full bg-payzone-gold px-3 py-1 text-sm font-semibold text-payzone-navy'>
+                                                                                {pkg.badge}
+                                                                        </span>
+                                                                </div>
                                                                 <div className='mt-4 text-3xl font-bold text-payzone-gold'>{pkg.price}</div>
                                                                 <div className='mt-2 text-sm text-white/70'>اشتراك شهري: {pkg.monthly}</div>
                                                                 <ul className='mt-6 space-y-3 text-white/80'>
@@ -255,7 +249,7 @@ const HomePage = () => {
                                                 <table className='min-w-full text-right text-sm'>
                                                         <thead>
                                                                 <tr className='text-white/60'>
-                                                                        <th className='px-4 py-3'>المعيار</th>
+                                                                        <th className='px-4 py-3'>الميزة</th>
                                                                         <th className='px-4 py-3'>الانطلاق</th>
                                                                         <th className='px-4 py-3'>التوسّع</th>
                                                                         <th className='px-4 py-3'>الحل الكامل</th>
@@ -275,7 +269,7 @@ const HomePage = () => {
                                         </div>
                                 </section>
 
-                                <section className='mt-20 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]'>
+                                <section id='qualification' className='mt-20 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]'>
                                         <div className='rounded-3xl border border-payzone-indigo/40 bg-white/5 p-10'>
                                                 <h2 className='text-3xl font-bold text-payzone-gold'>نموذج تأهيل سريع قبل واتساب</h2>
                                                 <p className='mt-3 text-white/70'>
