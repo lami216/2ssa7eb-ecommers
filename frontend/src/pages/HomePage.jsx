@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Briefcase, ChevronDown, MessageSquare, Package } from "lucide-react";
 
 const WHATSAPP_NUMBER = "22231117700";
 
@@ -73,6 +75,32 @@ const HomePage = () => {
                 notes: "",
         });
 
+        const shouldReduceMotion = useReducedMotion();
+        const pageRef = useRef(null);
+
+        useEffect(() => {
+                if (!pageRef.current) return;
+                let rafId = null;
+
+                const updateParallax = () => {
+                        if (!pageRef.current) return;
+                        pageRef.current.style.setProperty("--scroll-y", `${window.scrollY}px`);
+                };
+
+                const handleScroll = () => {
+                        if (rafId) cancelAnimationFrame(rafId);
+                        rafId = requestAnimationFrame(updateParallax);
+                };
+
+                updateParallax();
+                window.addEventListener("scroll", handleScroll, { passive: true });
+
+                return () => {
+                        window.removeEventListener("scroll", handleScroll);
+                        if (rafId) cancelAnimationFrame(rafId);
+                };
+        }, []);
+
         const buildWhatsAppLink = (packageName, extra) => {
                 const lines = [
                         "السلام عليكم، أرغب بالبدء مع Payzone بايزوون.",
@@ -91,35 +119,89 @@ const HomePage = () => {
 
         const qualificationLink = buildWhatsAppLink(qualification.packageName, qualification);
 
-        return (
-                <div className='relative min-h-screen overflow-hidden text-payzone-white'>
-                        <div className='relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8'>
-                                <section className='text-center'>
-                                        <span className='inline-flex items-center justify-center rounded-full bg-white/10 px-4 py-2 text-sm text-payzone-gold'>
-                                                Payzone | بايزوون
-                                        </span>
-                                        <h1 className='mt-6 text-4xl font-bold sm:text-5xl lg:text-6xl'>
-                                                نبني لك متجرك الإلكتروني بلوحة تحكم سهلة واستضافة قوية
-                                        </h1>
-                                        <p className='mt-4 text-lg text-white/70'>
-                                                خدمة Payzone بايزوون تجمع بين التصميم السريع، لوحة التحكم الواضحة،
-                                                واستضافة دائمة على سيرفرنا الخاص لتحمل الضغط والزيارات العالية مع سرعة واستقرار.
-                                        </p>
-                                        <div className='mt-8 flex flex-wrap justify-center gap-4'>
-                                                <a
-                                                        href='#qualification'
-                                                        onClick={(event) => {
-                                                                event.preventDefault();
-                                                                document.getElementById("qualification")?.scrollIntoView({ behavior: "smooth" });
-                                                        }}
-                                                        className='rounded-lg border border-payzone-indigo/50 px-6 py-3 font-semibold text-white/80 transition hover:border-payzone-gold hover:text-payzone-gold'
-                                                >
-                                                        عرض الباقات والأسعار
-                                                </a>
-                                        </div>
-                                </section>
+        const staggerContainer = {
+                hidden: {},
+                visible: {
+                        transition: {
+                                staggerChildren: 0.14,
+                        },
+                },
+        };
 
-                                <section className='mt-16 grid gap-6 lg:grid-cols-3'>
+        const slideInVariant = (direction = "right") => ({
+                hidden: {
+                        opacity: 0,
+                        x: shouldReduceMotion ? 0 : direction === "right" ? 60 : -60,
+                        filter: shouldReduceMotion ? "none" : "blur(10px)",
+                },
+                visible: {
+                        opacity: 1,
+                        x: 0,
+                        filter: "blur(0px)",
+                        transition: {
+                                duration: 0.45,
+                                ease: [0.22, 1, 0.36, 1],
+                        },
+                },
+        });
+
+        return (
+                <div ref={pageRef} className='relative min-h-screen overflow-hidden text-payzone-white'>
+                        <div className='pointer-events-none absolute inset-0 overflow-hidden'>
+                                <div className='absolute -top-40 right-[-10%] h-[420px] w-[420px] rounded-full bg-payzone-indigo/30 blur-[140px] parallax-orb parallax-orb--fast' />
+                                <div className='absolute top-[20%] left-[-5%] h-[520px] w-[520px] rounded-full bg-payzone-gold/20 blur-[160px] parallax-orb parallax-orb--slow' />
+                                <div className='absolute bottom-[-25%] right-[10%] h-[380px] w-[380px] rounded-full bg-white/10 blur-[140px] parallax-orb' />
+                                <div className='absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(82,89,255,0.12),_transparent_55%),radial-gradient(circle_at_80%_10%,_rgba(210,156,74,0.18),_transparent_45%)]' />
+                        </div>
+
+                        <div className='relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8'>
+                                <motion.section
+                                        variants={staggerContainer}
+                                        initial='hidden'
+                                        whileInView='visible'
+                                        viewport={{ once: true, amount: 0.3 }}
+                                        className='text-center'
+                                >
+                                        <motion.div variants={slideInVariant("right")} className='glass-hero px-6 py-10 sm:px-10 sm:py-12 lg:px-14'>
+                                                <span className='inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-payzone-gold'>
+                                                        Payzone | بايزوون
+                                                </span>
+                                                <h1 className='mt-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl'>
+                                                        نبني لك متجرك الإلكتروني بلوحة تحكم سهلة واستضافة قوية
+                                                </h1>
+                                                <p className='mt-4 text-lg text-white/70'>
+                                                        خدمة Payzone بايزوون تجمع بين التصميم السريع، لوحة التحكم الواضحة،
+                                                        واستضافة دائمة على سيرفرنا الخاص لتحمل الضغط والزيارات العالية مع سرعة واستقرار.
+                                                </p>
+                                                <div className='mt-8 flex flex-wrap justify-center gap-4'>
+                                                        <a
+                                                                href='#qualification'
+                                                                onClick={(event) => {
+                                                                        event.preventDefault();
+                                                                        document.getElementById("qualification")?.scrollIntoView({ behavior: "smooth" });
+                                                                }}
+                                                                className='btn-primary'
+                                                        >
+                                                                عرض الباقات والأسعار
+                                                        </a>
+                                                        <a
+                                                                href='#features'
+                                                                className='btn-secondary'
+                                                        >
+                                                                استكشف المزايا
+                                                        </a>
+                                                </div>
+                                        </motion.div>
+                                </motion.section>
+
+                                <motion.section
+                                        id='features'
+                                        variants={staggerContainer}
+                                        initial='hidden'
+                                        whileInView='visible'
+                                        viewport={{ once: true, amount: 0.2 }}
+                                        className='mt-16 grid gap-6 lg:grid-cols-3'
+                                >
                                         {[
                                                 {
                                                         title: "لوحة تحكم سهلة",
@@ -136,141 +218,192 @@ const HomePage = () => {
                                                         description:
                                                                 "دعم فني سريع ومباشر عبر واتساب لمتابعة أي مشكلة أو طلب.",
                                                 },
-                                        ].map((item) => (
-                                                <div
+                                        ].map((item, index) => (
+                                                <motion.div
                                                         key={item.title}
-                                                        className='rounded-2xl border border-payzone-indigo/40 bg-white/5 p-6 shadow-lg'
+                                                        variants={slideInVariant(index % 2 === 0 ? "right" : "left")}
+                                                        className='glass-card'
                                                 >
                                                         <h3 className='text-xl font-semibold text-payzone-gold'>{item.title}</h3>
                                                         <p className='mt-3 text-white/70'>{item.description}</p>
-                                                </div>
+                                                </motion.div>
                                         ))}
-                                </section>
+                                </motion.section>
 
-                                <section className='mt-20 rounded-3xl border border-payzone-indigo/40 bg-white/5 p-10 shadow-xl'>
-                                        <h2 className='text-3xl font-bold text-payzone-gold'>آلية استقبال الطلبات عبر واتساب</h2>
-                                        <p className='mt-4 text-white/70'>
-                                                نقوم بربط المتجر مباشرة بواتساب العميل. عند قيام أي زبون بالطلب،
-                                                تصل رسالة جاهزة بكل تفاصيل الطلب إلى واتساب صاحب المتجر ليتم التواصل
-                                                وإغلاق البيع بسهولة ودون تعقيد.
-                                        </p>
-                                        <div className='mt-8 grid gap-6 md:grid-cols-3'>
-                                                {[
-                                                        {
-                                                                step: "1",
-                                                                title: "الزبون يطلب من المتجر",
-                                                                description: "واجهة واضحة تحفّز على إكمال الطلب.",
-                                                        },
-                                                        {
-                                                                step: "2",
-                                                                title: "رسالة جاهزة تصل فوراً",
-                                                                description: "تفاصيل الطلب تصل كاملة على واتساب صاحب المتجر.",
-                                                        },
-                                                        {
-                                                                step: "3",
-                                                                title: "تواصل مباشر وإغلاق البيع",
-                                                                description: "نقاش مباشر مع العميل لإتمام البيع بسهولة.",
-                                                        },
-                                                ].map((item) => (
-                                                        <div
-                                                                key={item.step}
-                                                                className='rounded-2xl border border-payzone-indigo/40 bg-payzone-navy/60 p-6'
-                                                        >
-                                                                <span className='inline-flex h-10 w-10 items-center justify-center rounded-full bg-payzone-gold text-payzone-navy font-bold'>
-                                                                        {item.step}
-                                                                </span>
-                                                                <h3 className='mt-4 text-lg font-semibold'>{item.title}</h3>
-                                                                <p className='mt-2 text-white/70'>{item.description}</p>
+                                <motion.section
+                                        id='steps'
+                                        variants={staggerContainer}
+                                        initial='hidden'
+                                        whileInView='visible'
+                                        viewport={{ once: true, amount: 0.2 }}
+                                        className='mt-20'
+                                >
+                                        <motion.div variants={slideInVariant("right")} className='glass-panel px-6 py-10 sm:px-10'>
+                                                <div className='flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between'>
+                                                        <div>
+                                                                <h2 className='text-3xl font-bold text-payzone-gold'>آلية استقبال الطلبات عبر واتساب</h2>
+                                                                <p className='mt-4 text-white/70'>
+                                                                        نقوم بربط المتجر مباشرة بواتساب العميل. عند قيام أي زبون بالطلب،
+                                                                        تصل رسالة جاهزة بكل تفاصيل الطلب إلى واتساب صاحب المتجر ليتم التواصل
+                                                                        وإغلاق البيع بسهولة ودون تعقيد.
+                                                                </p>
                                                         </div>
-                                                ))}
-                                        </div>
-                                </section>
+                                                        <div className='hidden lg:flex lg:flex-col lg:items-center lg:gap-3'>
+                                                                <span className='text-sm text-white/50'>تسلسل الطلب</span>
+                                                                <div className='h-20 w-px bg-gradient-to-b from-transparent via-payzone-gold/60 to-transparent' />
+                                                        </div>
+                                                </div>
+                                                <div className='mt-8 grid gap-6 md:grid-cols-3'>
+                                                        {[
+                                                                {
+                                                                        step: "1",
+                                                                        title: "الزبون يطلب من المتجر",
+                                                                        description: "واجهة واضحة تحفّز على إكمال الطلب.",
+                                                                },
+                                                                {
+                                                                        step: "2",
+                                                                        title: "رسالة جاهزة تصل فوراً",
+                                                                        description: "تفاصيل الطلب تصل كاملة على واتساب صاحب المتجر.",
+                                                                },
+                                                                {
+                                                                        step: "3",
+                                                                        title: "تواصل مباشر وإغلاق البيع",
+                                                                        description: "نقاش مباشر مع العميل لإتمام البيع بسهولة.",
+                                                                },
+                                                        ].map((item) => (
+                                                                <motion.div
+                                                                        key={item.step}
+                                                                        variants={slideInVariant("left")}
+                                                                        className='glass-card glass-card--compact'
+                                                                >
+                                                                        <span className='inline-flex h-11 w-11 items-center justify-center rounded-full bg-payzone-gold text-payzone-navy text-lg font-bold'>
+                                                                                {item.step}
+                                                                        </span>
+                                                                        <h3 className='mt-4 text-lg font-semibold'>{item.title}</h3>
+                                                                        <p className='mt-2 text-white/70'>{item.description}</p>
+                                                                </motion.div>
+                                                        ))}
+                                                </div>
+                                        </motion.div>
+                                </motion.section>
 
-                                <section id='packages' className='mt-20'>
-                                        <div className='text-center'>
+                                <motion.section
+                                        id='packages'
+                                        variants={staggerContainer}
+                                        initial='hidden'
+                                        whileInView='visible'
+                                        viewport={{ once: true, amount: 0.2 }}
+                                        className='mt-20'
+                                >
+                                        <motion.div variants={slideInVariant("right")} className='text-center'>
                                                 <h2 className='text-3xl font-bold text-payzone-gold'>الباقات والأسعار</h2>
                                                 <p className='mt-3 text-white/70'>
                                                         الأسعار المعروضة هي السعر بعد التخفيض مباشرة، مع دعم شهري ثابت لكل باقة.
                                                 </p>
-                                        </div>
+                                        </motion.div>
                                         <div className='mt-10 grid gap-8 lg:grid-cols-3'>
-                                                {packages.map((pkg) => (
-                                                        <div
-                                                                key={pkg.id}
-                                                                className='flex h-full flex-col rounded-2xl border border-payzone-indigo/40 bg-white/5 p-8 shadow-lg'
-                                                        >
-                                                                <div className='flex items-center justify-between gap-4'>
-                                                                        <h3 className='text-2xl font-semibold text-white'>{pkg.name}</h3>
-                                                                        <span className='rounded-full bg-payzone-gold px-3 py-1 text-sm font-semibold text-payzone-navy'>
-                                                                                {pkg.badge}
-                                                                        </span>
-                                                                </div>
-                                                                <div className='mt-4 text-3xl font-bold text-payzone-gold'>{pkg.price}</div>
-                                                                <div className='mt-2 text-sm text-white/70'>اشتراك شهري: {pkg.monthly}</div>
-                                                                <ul className='mt-6 space-y-3 text-white/80'>
-                                                                        {pkg.details.map((detail) => (
-                                                                                <li key={detail} className='flex items-start gap-2'>
-                                                                                        <span className='mt-1 h-2 w-2 rounded-full bg-payzone-gold' />
-                                                                                        <span>{detail}</span>
-                                                                                </li>
-                                                                        ))}
-                                                                </ul>
-                                                                <div className='mt-6 text-sm text-white/70'>
-                                                                        حل المشاكل والأعطال غير محدود ضمن الاشتراك الشهري في جميع الباقات.
-                                                                </div>
-                                                                <div className='mt-3 text-sm text-white/70'>
-                                                                        إضافة ميزات جديدة متاحة في باقة التوسّع وباقة الحل الكامل،
-                                                                        مع مرونة أكبر في الحل الكامل.
-                                                                </div>
-                                                                {pkg.id === "full" && (
-                                                                        <div className='mt-3 text-sm text-white/70'>
-                                                                                السورس كود متاح فقط في هذه الباقة بقيمة 5000 أوقية قديمة عند الطلب.
-                                                                        </div>
-                                                                )}
-                                                                <a
-                                                                        href={buildWhatsAppLink(pkg.name)}
-                                                                        target='_blank'
-                                                                        rel='noreferrer'
-                                                                        className='mt-8 inline-flex items-center justify-center rounded-lg bg-payzone-gold px-5 py-3 font-semibold text-payzone-navy transition hover:bg-[#b8873d]'
+                                                {packages.map((pkg) => {
+                                                        const isHighlighted = pkg.id === "growth";
+                                                        return (
+                                                                <motion.div
+                                                                        key={pkg.id}
+                                                                        variants={slideInVariant(isHighlighted ? "right" : "left")}
+                                                                        className={`glass-card flex h-full flex-col ${
+                                                                                isHighlighted
+                                                                                        ? "ring-1 ring-payzone-gold/40 shadow-[0_30px_80px_rgba(210,156,74,0.25)]"
+                                                                                        : ""
+                                                                        }`}
                                                                 >
-                                                                        اطلب باقتك الآن
-                                                                </a>
-                                                        </div>
-                                                ))}
+                                                                        <div className='flex items-center justify-between gap-4'>
+                                                                                <h3 className='text-2xl font-semibold text-white'>{pkg.name}</h3>
+                                                                                <span className='rounded-full bg-payzone-gold px-3 py-1 text-sm font-semibold text-payzone-navy'>
+                                                                                        {pkg.badge}
+                                                                                </span>
+                                                                        </div>
+                                                                        <div className='mt-4 text-3xl font-bold text-payzone-gold'>{pkg.price}</div>
+                                                                        <div className='mt-2 text-sm text-white/70'>اشتراك شهري: {pkg.monthly}</div>
+                                                                        <ul className='mt-6 space-y-3 text-white/80'>
+                                                                                {pkg.details.map((detail) => (
+                                                                                        <li key={detail} className='flex items-start gap-2'>
+                                                                                                <span className='mt-1 h-2 w-2 rounded-full bg-payzone-gold' />
+                                                                                                <span>{detail}</span>
+                                                                                        </li>
+                                                                                ))}
+                                                                        </ul>
+                                                                        <div className='mt-6 text-sm text-white/70'>
+                                                                                حل المشاكل والأعطال غير محدود ضمن الاشتراك الشهري في جميع الباقات.
+                                                                        </div>
+                                                                        <div className='mt-3 text-sm text-white/70'>
+                                                                                إضافة ميزات جديدة متاحة في باقة التوسّع وباقة الحل الكامل،
+                                                                                مع مرونة أكبر في الحل الكامل.
+                                                                        </div>
+                                                                        {pkg.id === "full" && (
+                                                                                <div className='mt-3 text-sm text-white/70'>
+                                                                                        السورس كود متاح فقط في هذه الباقة بقيمة 5000 أوقية قديمة عند الطلب.
+                                                                                </div>
+                                                                        )}
+                                                                        <a
+                                                                                href={buildWhatsAppLink(pkg.name)}
+                                                                                target='_blank'
+                                                                                rel='noreferrer'
+                                                                                className='btn-primary mt-8'
+                                                                        >
+                                                                                اطلب باقتك الآن
+                                                                        </a>
+                                                                </motion.div>
+                                                        );
+                                                })}
                                         </div>
-                                </section>
+                                </motion.section>
 
-                                <section className='mt-20 rounded-3xl border border-payzone-indigo/40 bg-payzone-navy/70 p-10'>
-                                        <h2 className='text-3xl font-bold text-payzone-gold'>مقارنة حقيقية بين الباقات</h2>
-                                        <p className='mt-3 text-white/70'>
-                                                الفرق الأساسي في التصميم ولوحة التحكم ومستوى المرونة.
-                                        </p>
-                                        <div className='mt-8 overflow-x-auto'>
-                                                <table className='min-w-full text-right text-sm'>
-                                                        <thead>
-                                                                <tr className='text-white/60'>
-                                                                        <th className='px-4 py-3'>الميزة</th>
-                                                                        <th className='px-4 py-3'>الانطلاق</th>
-                                                                        <th className='px-4 py-3'>التوسّع</th>
-                                                                        <th className='px-4 py-3'>الحل الكامل</th>
-                                                                </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                                {comparisonRows.map((row) => (
-                                                                        <tr key={row.label} className='border-t border-white/10'>
-                                                                                <td className='px-4 py-3 text-white/80'>{row.label}</td>
-                                                                                <td className='px-4 py-3'>{row.starter}</td>
-                                                                                <td className='px-4 py-3'>{row.growth}</td>
-                                                                                <td className='px-4 py-3'>{row.full}</td>
+                                <motion.section
+                                        variants={staggerContainer}
+                                        initial='hidden'
+                                        whileInView='visible'
+                                        viewport={{ once: true, amount: 0.2 }}
+                                        className='mt-20'
+                                >
+                                        <motion.div variants={slideInVariant("right")} className='glass-panel px-6 py-10 sm:px-10'>
+                                                <h2 className='text-3xl font-bold text-payzone-gold'>مقارنة حقيقية بين الباقات</h2>
+                                                <p className='mt-3 text-white/70'>الفرق الأساسي في التصميم ولوحة التحكم ومستوى المرونة.</p>
+                                                <div className='mt-8 overflow-x-auto'>
+                                                        <table className='min-w-[680px] text-right text-sm'>
+                                                                <thead>
+                                                                        <tr className='text-white/60'>
+                                                                                <th className='sticky right-0 z-10 border-l border-white/10 bg-payzone-navy/70 px-4 py-3 backdrop-blur-lg'>
+                                                                                        الميزة
+                                                                                </th>
+                                                                                <th className='px-4 py-3'>الانطلاق</th>
+                                                                                <th className='px-4 py-3'>التوسّع</th>
+                                                                                <th className='px-4 py-3'>الحل الكامل</th>
                                                                         </tr>
-                                                                ))}
-                                                        </tbody>
-                                                </table>
-                                        </div>
-                                </section>
+                                                                </thead>
+                                                                <tbody>
+                                                                        {comparisonRows.map((row) => (
+                                                                                <tr key={row.label} className='border-t border-white/10 text-white/80'>
+                                                                                        <td className='sticky right-0 z-10 border-l border-white/10 bg-payzone-navy/60 px-4 py-3 backdrop-blur-lg'>
+                                                                                                {row.label}
+                                                                                        </td>
+                                                                                        <td className='px-4 py-3'>{row.starter}</td>
+                                                                                        <td className='px-4 py-3'>{row.growth}</td>
+                                                                                        <td className='px-4 py-3'>{row.full}</td>
+                                                                                </tr>
+                                                                        ))}
+                                                                </tbody>
+                                                        </table>
+                                                </div>
+                                        </motion.div>
+                                </motion.section>
 
-                                <section id='qualification' className='mt-20 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]'>
-                                        <div className='rounded-3xl border border-payzone-indigo/40 bg-white/5 p-10'>
+                                <motion.section
+                                        id='qualification'
+                                        variants={staggerContainer}
+                                        initial='hidden'
+                                        whileInView='visible'
+                                        viewport={{ once: true, amount: 0.2 }}
+                                        className='mt-20 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]'
+                                >
+                                        <motion.div variants={slideInVariant("right")} className='glass-panel px-6 py-10 sm:px-10'>
                                                 <h2 className='text-3xl font-bold text-payzone-gold'>نموذج تأهيل سريع قبل واتساب</h2>
                                                 <p className='mt-3 text-white/70'>
                                                         ساعدنا في تصفية طلبك حتى نوجّهك مباشرةً للخيار الأنسب قبل التواصل عبر واتساب.
@@ -278,107 +411,124 @@ const HomePage = () => {
                                                 <form className='mt-6 grid gap-4'>
                                                         <label className='text-sm text-white/70'>
                                                                 الباقة المختارة
-                                                                <select
-                                                                        value={qualification.packageName}
-                                                                        onChange={(event) =>
-                                                                                setQualification((prev) => ({
-                                                                                        ...prev,
-                                                                                        packageName: event.target.value,
-                                                                                }))
-                                                                        }
-                                                                        className='mt-2 w-full rounded-lg border border-payzone-indigo/40 bg-payzone-navy/70 px-4 py-3 text-white'
-                                                                >
-                                                                        {packages.map((pkg) => (
-                                                                                <option key={pkg.id} value={pkg.name}>
-                                                                                        {pkg.name}
-                                                                                </option>
-                                                                        ))}
-                                                                </select>
+                                                                <div className='relative mt-2'>
+                                                                        <Package className='absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
+                                                                        <ChevronDown className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
+                                                                        <select
+                                                                                value={qualification.packageName}
+                                                                                onChange={(event) =>
+                                                                                        setQualification((prev) => ({
+                                                                                                ...prev,
+                                                                                                packageName: event.target.value,
+                                                                                        }))
+                                                                                }
+                                                                                className='glass-input w-full appearance-none pr-12 pl-12'
+                                                                        >
+                                                                                {packages.map((pkg) => (
+                                                                                        <option key={pkg.id} value={pkg.name}>
+                                                                                                {pkg.name}
+                                                                                        </option>
+                                                                                ))}
+                                                                        </select>
+                                                                </div>
                                                         </label>
                                                         <label className='text-sm text-white/70'>
                                                                 نوع النشاط
-                                                                <select
-                                                                        value={qualification.businessType}
-                                                                        onChange={(event) =>
-                                                                                setQualification((prev) => ({
-                                                                                        ...prev,
-                                                                                        businessType: event.target.value,
-                                                                                }))
-                                                                        }
-                                                                        className='mt-2 w-full rounded-lg border border-payzone-indigo/40 bg-payzone-navy/70 px-4 py-3 text-white'
-                                                                >
-                                                                        <option>شركة</option>
-                                                                        <option>تاجر</option>
-                                                                        <option>منصة/فكرة</option>
-                                                                        <option>فرد</option>
-                                                                </select>
+                                                                <div className='relative mt-2'>
+                                                                        <Briefcase className='absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
+                                                                        <ChevronDown className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
+                                                                        <select
+                                                                                value={qualification.businessType}
+                                                                                onChange={(event) =>
+                                                                                        setQualification((prev) => ({
+                                                                                                ...prev,
+                                                                                                businessType: event.target.value,
+                                                                                        }))
+                                                                                }
+                                                                                className='glass-input w-full appearance-none pr-12 pl-12'
+                                                                        >
+                                                                                <option>شركة</option>
+                                                                                <option>تاجر</option>
+                                                                                <option>منصة/فكرة</option>
+                                                                                <option>فرد</option>
+                                                                        </select>
+                                                                </div>
                                                         </label>
                                                         <label className='text-sm text-white/70'>
                                                                 تفاصيل مختصرة
-                                                                <textarea
-                                                                        value={qualification.notes}
-                                                                        onChange={(event) =>
-                                                                                setQualification((prev) => ({
-                                                                                        ...prev,
-                                                                                        notes: event.target.value,
-                                                                                }))
-                                                                        }
-                                                                        rows={3}
-                                                                        className='mt-2 w-full rounded-lg border border-payzone-indigo/40 bg-payzone-navy/70 px-4 py-3 text-white'
-                                                                        placeholder='صف متطلباتك بسرعة (اختياري)'
-                                                                />
+                                                                <div className='relative mt-2'>
+                                                                        <MessageSquare className='absolute right-4 top-4 h-4 w-4 text-white/40' />
+                                                                        <textarea
+                                                                                value={qualification.notes}
+                                                                                onChange={(event) =>
+                                                                                        setQualification((prev) => ({
+                                                                                                ...prev,
+                                                                                                notes: event.target.value,
+                                                                                        }))
+                                                                                }
+                                                                                rows={3}
+                                                                                className='glass-input w-full resize-none pr-12'
+                                                                                placeholder='صف متطلباتك بسرعة (اختياري)'
+                                                                        />
+                                                                </div>
                                                         </label>
                                                         <a
                                                                 href={qualificationLink}
                                                                 target='_blank'
                                                                 rel='noreferrer'
-                                                                className='inline-flex items-center justify-center rounded-lg bg-payzone-gold px-5 py-3 font-semibold text-payzone-navy transition hover:bg-[#b8873d]'
+                                                                className='btn-primary'
                                                         >
                                                                 انتقل لواتساب برسالة جاهزة
                                                         </a>
                                                 </form>
-                                        </div>
-                                        <div className='rounded-3xl border border-payzone-indigo/40 bg-payzone-navy/60 p-10'>
+                                        </motion.div>
+                                        <motion.div variants={slideInVariant("left")} className='glass-panel px-6 py-10 sm:px-10'>
                                                 <h2 className='text-2xl font-bold text-payzone-gold'>لمن هذه الخدمة؟</h2>
                                                 <ol className='mt-6 space-y-4 text-white/80'>
-                                                        <li className='flex items-center gap-3'>
-                                                                <span className='h-8 w-8 rounded-full bg-payzone-gold text-payzone-navy flex items-center justify-center font-bold'>1</span>
-                                                                الشركات
-                                                        </li>
-                                                        <li className='flex items-center gap-3'>
-                                                                <span className='h-8 w-8 rounded-full bg-payzone-gold text-payzone-navy flex items-center justify-center font-bold'>2</span>
-                                                                التجار
-                                                        </li>
-                                                        <li className='flex items-center gap-3'>
-                                                                <span className='h-8 w-8 rounded-full bg-payzone-gold text-payzone-navy flex items-center justify-center font-bold'>3</span>
-                                                                أصحاب الأفكار والمنصات
-                                                        </li>
-                                                        <li className='flex items-center gap-3'>
-                                                                <span className='h-8 w-8 rounded-full bg-payzone-gold text-payzone-navy flex items-center justify-center font-bold'>4</span>
-                                                                الأفراد
-                                                        </li>
+                                                        {[
+                                                                "الشركات",
+                                                                "التجار",
+                                                                "أصحاب الأفكار والمنصات",
+                                                                "الأفراد",
+                                                        ].map((item, index) => (
+                                                                <li key={item} className='flex items-center gap-3'>
+                                                                        <span className='flex h-8 w-8 items-center justify-center rounded-full bg-payzone-gold text-payzone-navy font-bold'>
+                                                                                {index + 1}
+                                                                        </span>
+                                                                        {item}
+                                                                </li>
+                                                        ))}
                                                 </ol>
-                                        </div>
-                                </section>
+                                        </motion.div>
+                                </motion.section>
 
-                                <section className='mt-20 rounded-3xl border border-payzone-indigo/40 bg-white/5 p-10 text-center'>
-                                        <h2 className='text-3xl font-bold text-payzone-gold'>عروض تسويقية لفترة محدودة</h2>
-                                        <p className='mt-3 text-white/70'>
-                                                الأسعار الحالية هي أسعار مخفّضة بالفعل. العروض لفترة محدودة بدون تحديد تاريخ.
-                                        </p>
-                                        <div className='mt-8 grid gap-6 md:grid-cols-3'>
-                                                {packages.map((pkg) => (
-                                                        <div
-                                                                key={`${pkg.id}-offer`}
-                                                                className='rounded-2xl border border-payzone-indigo/40 bg-payzone-navy/60 p-6'
-                                                        >
-                                                                <div className='text-4xl font-bold text-payzone-gold'>{pkg.badge}</div>
-                                                                <div className='mt-3 text-lg font-semibold text-white'>{pkg.name}</div>
-                                                                <div className='mt-2 text-sm text-white/70'>السعر بعد الخصم: {pkg.price}</div>
-                                                        </div>
-                                                ))}
-                                        </div>
-                                </section>
+                                <motion.section
+                                        variants={staggerContainer}
+                                        initial='hidden'
+                                        whileInView='visible'
+                                        viewport={{ once: true, amount: 0.2 }}
+                                        className='mt-20'
+                                >
+                                        <motion.div variants={slideInVariant("right")} className='glass-panel px-6 py-10 text-center sm:px-10'>
+                                                <h2 className='text-3xl font-bold text-payzone-gold'>عروض تسويقية لفترة محدودة</h2>
+                                                <p className='mt-3 text-white/70'>
+                                                        الأسعار الحالية هي أسعار مخفّضة بالفعل. العروض لفترة محدودة بدون تحديد تاريخ.
+                                                </p>
+                                                <div className='mt-8 grid gap-6 md:grid-cols-3'>
+                                                        {packages.map((pkg) => (
+                                                                <motion.div
+                                                                        key={`${pkg.id}-offer`}
+                                                                        variants={slideInVariant("left")}
+                                                                        className='glass-card glass-card--compact'
+                                                                >
+                                                                        <div className='text-4xl font-bold text-payzone-gold'>{pkg.badge}</div>
+                                                                        <div className='mt-3 text-lg font-semibold text-white'>{pkg.name}</div>
+                                                                        <div className='mt-2 text-sm text-white/70'>السعر بعد الخصم: {pkg.price}</div>
+                                                                </motion.div>
+                                                        ))}
+                                                </div>
+                                        </motion.div>
+                                </motion.section>
                         </div>
                 </div>
         );
