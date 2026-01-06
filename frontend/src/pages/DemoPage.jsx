@@ -37,7 +37,7 @@ const DemoPage = () => {
                                         <span className='inline-flex items-center justify-center rounded-full bg-white/10 px-4 py-2 text-sm text-payzone-gold'>
                                                 أعمال Payzone | بايزوون
                                         </span>
-                                        <h1 className='mt-6 text-4xl font-bold sm:text-5xl'>ديمو الأعمال المنفّذة</h1>
+                                        <h1 className='mt-6 text-4xl font-bold sm:text-5xl'>أعمالنا</h1>
                                         <p className='mt-4 text-lg text-white/70'>
                                                 نماذج لمتاجر قمنا بتنفيذها مع تفاصيل مختصرة وروابط مباشرة لعرض التجربة.
                                         </p>

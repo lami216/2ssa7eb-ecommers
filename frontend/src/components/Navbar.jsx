@@ -30,7 +30,7 @@ const Navbar = () => {
                                                                 {t("nav.home")}
                                                         </Link>
                                                         <Link
-                                                                to={'/demo'}
+                                                                to={'/our-work'}
                                                                 className='flex items-center gap-2 rounded-md bg-payzone-gold px-4 py-2 font-semibold text-payzone-navy transition duration-300 ease-in-out hover:bg-[#b8873d]'
                                                         >
                                                                 {t("nav.demo")}
