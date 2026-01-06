@@ -51,9 +51,7 @@ const HomePage = () => {
 
         const comparisonRows = useMemo(
                 () => [
-                        { label: "متجر إلكتروني جاهز", starter: "✅", growth: "✅", full: "✅" },
                         { label: "تشغيل سريع", starter: "✅", growth: "✅", full: "✅" },
-                        { label: "لوحة تحكم", starter: "✅", growth: "✅", full: "✅" },
                         { label: "تعديل الاسم والألوان", starter: "✅", growth: "✅", full: "✅" },
                         { label: "استضافة على سيرفر خاص", starter: "✅", growth: "✅", full: "✅" },
                         { label: "دعم فني عبر واتساب", starter: "✅", growth: "✅", full: "✅" },
@@ -119,35 +117,50 @@ const HomePage = () => {
 
         const qualificationLink = buildWhatsAppLink(qualification.packageName, qualification);
 
-        const staggerContainer = {
-                hidden: {},
-                visible: {
-                        transition: {
-                                staggerChildren: 0.14,
-                        },
-                },
-        };
-
         const slideInVariant = (direction = "right") => ({
                 hidden: {
                         opacity: 0,
                         x: shouldReduceMotion ? 0 : direction === "right" ? 60 : -60,
                         filter: shouldReduceMotion ? "none" : "blur(10px)",
+                        transition: {
+                                duration: 0.35,
+                                ease: [0.22, 1, 0.36, 1],
+                        },
                 },
                 visible: {
                         opacity: 1,
                         x: 0,
                         filter: "blur(0px)",
                         transition: {
-                                duration: 0.45,
+                                duration: 0.4,
                                 ease: [0.22, 1, 0.36, 1],
                         },
                 },
         });
 
+        const ScrollReveal = ({ children, className, direction = "right", viewportAmount = 0.3 }) => {
+                const [isVisible, setIsVisible] = useState(false);
+                return (
+                        <motion.div
+                                variants={slideInVariant(direction)}
+                                initial='hidden'
+                                animate={isVisible ? "visible" : "hidden"}
+                                onViewportEnter={() => setIsVisible(true)}
+                                onViewportLeave={() => setIsVisible(false)}
+                                viewport={{ amount: viewportAmount }}
+                                className={className}
+                        >
+                                {children}
+                        </motion.div>
+                );
+        };
+
         return (
                 <div ref={pageRef} className='relative min-h-screen overflow-hidden text-payzone-white'>
                         <div className='pointer-events-none absolute inset-0 overflow-hidden'>
+                                <div className='absolute inset-0 bg-tech-grid parallax-tech parallax-tech--slow' />
+                                <div className='absolute inset-0 bg-tech-circuit parallax-tech parallax-tech--fast' />
+                                <div className='absolute inset-0 bg-tech-symbols parallax-tech' />
                                 <div className='absolute -top-40 right-[-10%] h-[420px] w-[420px] rounded-full bg-payzone-indigo/30 blur-[140px] parallax-orb parallax-orb--fast' />
                                 <div className='absolute top-[20%] left-[-5%] h-[520px] w-[520px] rounded-full bg-payzone-gold/20 blur-[160px] parallax-orb parallax-orb--slow' />
                                 <div className='absolute bottom-[-25%] right-[10%] h-[380px] w-[380px] rounded-full bg-white/10 blur-[140px] parallax-orb' />
@@ -155,14 +168,8 @@ const HomePage = () => {
                         </div>
 
                         <div className='relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8'>
-                                <motion.section
-                                        variants={staggerContainer}
-                                        initial='hidden'
-                                        whileInView='visible'
-                                        viewport={{ once: true, amount: 0.3 }}
-                                        className='text-center'
-                                >
-                                        <motion.div variants={slideInVariant("right")} className='glass-hero px-6 py-10 sm:px-10 sm:py-12 lg:px-14'>
+                                <section className='text-center'>
+                                        <ScrollReveal direction='right' className='glass-hero px-6 py-10 sm:px-10 sm:py-12 lg:px-14'>
                                                 <span className='inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-payzone-gold'>
                                                         Payzone | بايزوون
                                                 </span>
@@ -191,15 +198,11 @@ const HomePage = () => {
                                                                 استكشف المزايا
                                                         </a>
                                                 </div>
-                                        </motion.div>
-                                </motion.section>
+                                        </ScrollReveal>
+                                </section>
 
-                                <motion.section
+                                <section
                                         id='features'
-                                        variants={staggerContainer}
-                                        initial='hidden'
-                                        whileInView='visible'
-                                        viewport={{ once: true, amount: 0.2 }}
                                         className='mt-16 grid gap-6 lg:grid-cols-3'
                                 >
                                         {[
@@ -219,26 +222,22 @@ const HomePage = () => {
                                                                 "دعم فني سريع ومباشر عبر واتساب لمتابعة أي مشكلة أو طلب.",
                                                 },
                                         ].map((item, index) => (
-                                                <motion.div
+                                                <ScrollReveal
                                                         key={item.title}
-                                                        variants={slideInVariant(index % 2 === 0 ? "right" : "left")}
+                                                        direction={index % 2 === 0 ? "right" : "left"}
                                                         className='glass-card'
                                                 >
                                                         <h3 className='text-xl font-semibold text-payzone-gold'>{item.title}</h3>
                                                         <p className='mt-3 text-white/70'>{item.description}</p>
-                                                </motion.div>
+                                                </ScrollReveal>
                                         ))}
-                                </motion.section>
+                                </section>
 
-                                <motion.section
+                                <section
                                         id='steps'
-                                        variants={staggerContainer}
-                                        initial='hidden'
-                                        whileInView='visible'
-                                        viewport={{ once: true, amount: 0.2 }}
                                         className='mt-20'
                                 >
-                                        <motion.div variants={slideInVariant("right")} className='glass-panel px-6 py-10 sm:px-10'>
+                                        <ScrollReveal direction='right' className='glass-panel px-6 py-10 sm:px-10'>
                                                 <div className='flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between'>
                                                         <div>
                                                                 <h2 className='text-3xl font-bold text-payzone-gold'>آلية استقبال الطلبات عبر واتساب</h2>
@@ -271,9 +270,9 @@ const HomePage = () => {
                                                                         description: "نقاش مباشر مع العميل لإتمام البيع بسهولة.",
                                                                 },
                                                         ].map((item) => (
-                                                                <motion.div
+                                                                <ScrollReveal
                                                                         key={item.step}
-                                                                        variants={slideInVariant("left")}
+                                                                        direction='left'
                                                                         className='glass-card glass-card--compact'
                                                                 >
                                                                         <span className='inline-flex h-11 w-11 items-center justify-center rounded-full bg-payzone-gold text-payzone-navy text-lg font-bold'>
@@ -281,33 +280,29 @@ const HomePage = () => {
                                                                         </span>
                                                                         <h3 className='mt-4 text-lg font-semibold'>{item.title}</h3>
                                                                         <p className='mt-2 text-white/70'>{item.description}</p>
-                                                                </motion.div>
+                                                                </ScrollReveal>
                                                         ))}
                                                 </div>
-                                        </motion.div>
-                                </motion.section>
+                                        </ScrollReveal>
+                                </section>
 
-                                <motion.section
+                                <section
                                         id='packages'
-                                        variants={staggerContainer}
-                                        initial='hidden'
-                                        whileInView='visible'
-                                        viewport={{ once: true, amount: 0.2 }}
                                         className='mt-20'
                                 >
-                                        <motion.div variants={slideInVariant("right")} className='text-center'>
+                                        <ScrollReveal direction='right' className='text-center'>
                                                 <h2 className='text-3xl font-bold text-payzone-gold'>الباقات والأسعار</h2>
                                                 <p className='mt-3 text-white/70'>
                                                         الأسعار المعروضة هي السعر بعد التخفيض مباشرة، مع دعم شهري ثابت لكل باقة.
                                                 </p>
-                                        </motion.div>
+                                        </ScrollReveal>
                                         <div className='mt-10 grid gap-8 lg:grid-cols-3'>
                                                 {packages.map((pkg) => {
                                                         const isHighlighted = pkg.id === "growth";
                                                         return (
-                                                                <motion.div
+                                                                <ScrollReveal
                                                                         key={pkg.id}
-                                                                        variants={slideInVariant(isHighlighted ? "right" : "left")}
+                                                                        direction={isHighlighted ? "right" : "left"}
                                                                         className={`glass-card flex h-full flex-col ${
                                                                                 isHighlighted
                                                                                         ? "ring-1 ring-payzone-gold/40 shadow-[0_30px_80px_rgba(210,156,74,0.25)]"
@@ -350,20 +345,14 @@ const HomePage = () => {
                                                                         >
                                                                                 اطلب باقتك الآن
                                                                         </a>
-                                                                </motion.div>
+                                                                </ScrollReveal>
                                                         );
                                                 })}
                                         </div>
-                                </motion.section>
+                                </section>
 
-                                <motion.section
-                                        variants={staggerContainer}
-                                        initial='hidden'
-                                        whileInView='visible'
-                                        viewport={{ once: true, amount: 0.2 }}
-                                        className='mt-20'
-                                >
-                                        <motion.div variants={slideInVariant("right")} className='glass-panel px-6 py-10 sm:px-10'>
+                                <section className='mt-20'>
+                                        <ScrollReveal direction='right' className='glass-panel px-6 py-10 sm:px-10'>
                                                 <h2 className='text-3xl font-bold text-payzone-gold'>مقارنة حقيقية بين الباقات</h2>
                                                 <p className='mt-3 text-white/70'>الفرق الأساسي في التصميم ولوحة التحكم ومستوى المرونة.</p>
                                                 <div className='mt-8 overflow-x-auto'>
@@ -392,18 +381,14 @@ const HomePage = () => {
                                                                 </tbody>
                                                         </table>
                                                 </div>
-                                        </motion.div>
-                                </motion.section>
+                                        </ScrollReveal>
+                                </section>
 
-                                <motion.section
+                                <section
                                         id='qualification'
-                                        variants={staggerContainer}
-                                        initial='hidden'
-                                        whileInView='visible'
-                                        viewport={{ once: true, amount: 0.2 }}
                                         className='mt-20 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]'
                                 >
-                                        <motion.div variants={slideInVariant("right")} className='glass-panel px-6 py-10 sm:px-10'>
+                                        <ScrollReveal direction='right' className='glass-panel px-6 py-10 sm:px-10'>
                                                 <h2 className='text-3xl font-bold text-payzone-gold'>نموذج تأهيل سريع قبل واتساب</h2>
                                                 <p className='mt-3 text-white/70'>
                                                         ساعدنا في تصفية طلبك حتى نوجّهك مباشرةً للخيار الأنسب قبل التواصل عبر واتساب.
@@ -481,8 +466,8 @@ const HomePage = () => {
                                                                 انتقل لواتساب برسالة جاهزة
                                                         </a>
                                                 </form>
-                                        </motion.div>
-                                        <motion.div variants={slideInVariant("left")} className='glass-panel px-6 py-10 sm:px-10'>
+                                        </ScrollReveal>
+                                        <ScrollReveal direction='left' className='glass-panel px-6 py-10 sm:px-10'>
                                                 <h2 className='text-2xl font-bold text-payzone-gold'>لمن هذه الخدمة؟</h2>
                                                 <ol className='mt-6 space-y-4 text-white/80'>
                                                         {[
@@ -497,38 +482,32 @@ const HomePage = () => {
                                                                         </span>
                                                                         {item}
                                                                 </li>
-                                                        ))}
+                                                                ))}
                                                 </ol>
-                                        </motion.div>
-                                </motion.section>
+                                        </ScrollReveal>
+                                </section>
 
-                                <motion.section
-                                        variants={staggerContainer}
-                                        initial='hidden'
-                                        whileInView='visible'
-                                        viewport={{ once: true, amount: 0.2 }}
-                                        className='mt-20'
-                                >
-                                        <motion.div variants={slideInVariant("right")} className='glass-panel px-6 py-10 text-center sm:px-10'>
+                                <section className='mt-20'>
+                                        <ScrollReveal direction='right' className='glass-panel px-6 py-10 text-center sm:px-10'>
                                                 <h2 className='text-3xl font-bold text-payzone-gold'>عروض تسويقية لفترة محدودة</h2>
                                                 <p className='mt-3 text-white/70'>
                                                         الأسعار الحالية هي أسعار مخفّضة بالفعل. العروض لفترة محدودة بدون تحديد تاريخ.
                                                 </p>
                                                 <div className='mt-8 grid gap-6 md:grid-cols-3'>
                                                         {packages.map((pkg) => (
-                                                                <motion.div
+                                                                <ScrollReveal
                                                                         key={`${pkg.id}-offer`}
-                                                                        variants={slideInVariant("left")}
+                                                                        direction='left'
                                                                         className='glass-card glass-card--compact'
                                                                 >
                                                                         <div className='text-4xl font-bold text-payzone-gold'>{pkg.badge}</div>
                                                                         <div className='mt-3 text-lg font-semibold text-white'>{pkg.name}</div>
                                                                         <div className='mt-2 text-sm text-white/70'>السعر بعد الخصم: {pkg.price}</div>
-                                                                </motion.div>
+                                                                </ScrollReveal>
                                                         ))}
                                                 </div>
-                                        </motion.div>
-                                </motion.section>
+                                        </ScrollReveal>
+                                </section>
                         </div>
                 </div>
         );
