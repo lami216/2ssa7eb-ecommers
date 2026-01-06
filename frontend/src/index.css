@@ -62,3 +62,149 @@
         outline: 2px solid #fbbf24;
         outline-offset: 2px;
 }
+
+@layer components {
+        .glass-panel {
+                border-radius: 24px;
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                background: rgba(255, 255, 255, 0.08);
+                box-shadow: 0 24px 80px rgba(8, 22, 45, 0.45);
+        }
+
+        .glass-hero {
+                border-radius: 32px;
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04));
+                box-shadow: 0 32px 90px rgba(6, 18, 38, 0.55);
+        }
+
+        .glass-card {
+                border-radius: 24px;
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                background: rgba(255, 255, 255, 0.08);
+                padding: 24px;
+                box-shadow: 0 20px 60px rgba(6, 18, 38, 0.4);
+                transition: transform 300ms ease, box-shadow 300ms ease;
+        }
+
+        .glass-card:hover {
+                transform: translateY(-6px);
+                box-shadow: 0 30px 70px rgba(6, 18, 38, 0.5);
+        }
+
+        .glass-card:active {
+                transform: translateY(-2px) scale(0.99);
+        }
+
+        .glass-card--compact {
+                padding: 20px;
+        }
+
+        .btn-primary {
+                border-radius: 9999px;
+                background: #d29c4a;
+                color: #0e2748;
+                font-weight: 600;
+                padding: 12px 28px;
+                transition: transform 250ms ease, box-shadow 250ms ease, background 250ms ease;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+        }
+
+        .btn-primary:hover {
+                background: #b8873d;
+                box-shadow: 0 0 30px rgba(210, 156, 74, 0.45);
+                transform: translateY(-1px);
+        }
+
+        .btn-primary:active {
+                transform: scale(0.98);
+        }
+
+        .btn-primary:focus-visible {
+                outline: 2px solid rgba(210, 156, 74, 0.7);
+                outline-offset: 3px;
+        }
+
+        .btn-secondary {
+                border-radius: 9999px;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                color: rgba(255, 255, 255, 0.8);
+                padding: 12px 28px;
+                transition: color 250ms ease, border-color 250ms ease, transform 250ms ease;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+        }
+
+        .btn-secondary:hover {
+                border-color: rgba(210, 156, 74, 0.6);
+                color: #d29c4a;
+                transform: translateY(-1px);
+        }
+
+        .btn-secondary:active {
+                transform: scale(0.98);
+        }
+
+        .btn-secondary:focus-visible {
+                outline: 2px solid rgba(210, 156, 74, 0.6);
+                outline-offset: 3px;
+        }
+
+        .glass-input {
+                border-radius: 20px;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                background: rgba(255, 255, 255, 0.08);
+                padding: 12px 16px;
+                color: #ffffff;
+                transition: border-color 250ms ease, box-shadow 250ms ease;
+        }
+
+        .glass-input::placeholder {
+                color: rgba(255, 255, 255, 0.4);
+        }
+
+        .glass-input:focus {
+                outline: none;
+                border-color: rgba(210, 156, 74, 0.6);
+                box-shadow: 0 0 0 3px rgba(210, 156, 74, 0.2);
+        }
+}
+
+@supports ((-webkit-backdrop-filter: blur(18px)) or (backdrop-filter: blur(18px))) {
+        .glass-panel,
+        .glass-hero,
+        .glass-card,
+        .glass-input {
+                backdrop-filter: blur(18px);
+                -webkit-backdrop-filter: blur(18px);
+                background: rgba(255, 255, 255, 0.12);
+        }
+}
+
+.parallax-orb {
+        transform: translate3d(0, calc(var(--scroll-y, 0px) * 0.04), 0);
+        transition: transform 0.2s ease-out;
+}
+
+.parallax-orb--slow {
+        transform: translate3d(0, calc(var(--scroll-y, 0px) * 0.02), 0);
+}
+
+.parallax-orb--fast {
+        transform: translate3d(0, calc(var(--scroll-y, 0px) * 0.06), 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+        .parallax-orb,
+        .parallax-orb--slow,
+        .parallax-orb--fast,
+        .glass-card,
+        .btn-primary,
+        .btn-secondary {
+                transition: none;
+                transform: none !important;
+        }
+}
