@@ -135,7 +135,7 @@ const AdminOrders = () => {
 
         return (
                 <motion.div
-                        className='space-y-6 rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 text-white shadow-lg backdrop-blur-sm'
+                        className='space-y-6 rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 text-white shadow-lg'
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                 >

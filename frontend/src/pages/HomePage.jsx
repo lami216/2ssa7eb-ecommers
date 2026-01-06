@@ -92,37 +92,28 @@ const HomePage = () => {
 
         const qualificationLink = buildWhatsAppLink(qualification.packageName, qualification);
 
-        const ScrollReveal = ({ children, className, direction = "right", offset = ["start 95%", "end 5%"] }) => {
+        const ScrollReveal = ({ children, className, direction = "right", offset = ["start 90%", "start 55%"] }) => {
                 const cardRef = useRef(null);
                 const { scrollYProgress } = useScroll({
                         target: cardRef,
                         offset,
                 });
-                const fromX = direction === "right" ? 48 : -48;
-                const shouldBlur = className?.includes("glass-");
-                const x = useTransform(scrollYProgress, [0, 0.6, 1], shouldReduceMotion ? [0, 0, 0] : [fromX, 0, fromX]);
-                const opacity = useTransform(
-                        scrollYProgress,
-                        [0, 0.5, 0.6, 1],
-                        shouldReduceMotion ? [1, 1, 1, 1] : [0, 1, 1, 0]
-                );
-                const filter = useTransform(
-                        scrollYProgress,
-                        [0, 0.6, 1],
-                        shouldReduceMotion || !shouldBlur
-                                ? ["blur(0px)", "blur(0px)", "blur(0px)"]
-                                : ["blur(6px)", "blur(0px)", "blur(6px)"]
-                );
+                const isGlass = className?.includes("glass-");
+                const fromX = direction === "right" ? 40 : direction === "left" ? -40 : 0;
+                const fromY = direction === "up" ? 24 : 0;
+                const x = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? [0, 0] : [fromX, 0]);
+                const y = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? [0, 0] : [fromY, 0]);
+                const opacity = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? [1, 1] : [0, 1]);
 
                 return (
                         <motion.div
                                 ref={cardRef}
                                 style={{
                                         x,
+                                        y,
                                         opacity,
-                                        filter: shouldBlur ? filter : "none",
-                                        translateZ: shouldBlur ? 0 : undefined,
-                                        willChange: shouldReduceMotion || !shouldBlur ? "auto" : "transform, opacity, filter",
+                                        translateZ: isGlass ? 0 : undefined,
+                                        willChange: isGlass && !shouldReduceMotion ? "transform, opacity" : "auto",
                                 }}
                                 className={`scroll-reveal ${className ?? ""}`}
                         >
@@ -175,7 +166,7 @@ const HomePage = () => {
 
                                 <section
                                         id='features'
-                                        className='mt-16 grid gap-6 lg:grid-cols-3'
+                                        className='scroll-section mt-16 grid gap-6 lg:grid-cols-3'
                                 >
                                         {[
                                                 {
@@ -207,7 +198,7 @@ const HomePage = () => {
 
                                 <section
                                         id='steps'
-                                        className='mt-20'
+                                        className='scroll-section mt-20'
                                 >
                                         <ScrollReveal direction='right' className='glass-panel px-6 py-10 sm:px-10'>
                                                 <div className='flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between'>
@@ -260,7 +251,7 @@ const HomePage = () => {
 
                                 <section
                                         id='packages'
-                                        className='mt-20'
+                                        className='scroll-section mt-20'
                                 >
                                         <ScrollReveal direction='right' className='text-center'>
                                                 <h2 className='text-3xl font-bold text-payzone-gold'>الباقات والأسعار</h2>
@@ -323,7 +314,7 @@ const HomePage = () => {
                                         </div>
                                 </section>
 
-                                <section className='mt-20'>
+                                <section className='scroll-section mt-20'>
                                         <ScrollReveal direction='right' className='glass-panel px-6 py-10 sm:px-10'>
                                                 <h2 className='text-3xl font-bold text-payzone-gold'>مقارنة حقيقية بين الباقات</h2>
                                                 <p className='mt-3 text-white/70'>الفرق الأساسي في التصميم ولوحة التحكم ومستوى المرونة.</p>
@@ -358,7 +349,7 @@ const HomePage = () => {
 
                                 <section
                                         id='qualification'
-                                        className='mt-20 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]'
+                                        className='scroll-section mt-20 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]'
                                 >
                                         <ScrollReveal direction='right' className='glass-panel px-6 py-10 sm:px-10'>
                                                 <h2 className='text-3xl font-bold text-payzone-gold'>نموذج تأهيل سريع قبل واتساب</h2>
@@ -459,7 +450,7 @@ const HomePage = () => {
                                         </ScrollReveal>
                                 </section>
 
-                                <section className='mt-20'>
+                                <section className='scroll-section mt-20'>
                                         <ScrollReveal direction='right' className='glass-panel px-6 py-10 text-center sm:px-10'>
                                                 <h2 className='text-3xl font-bold text-payzone-gold'>عروض تسويقية لفترة محدودة</h2>
                                                 <p className='mt-3 text-white/70'>

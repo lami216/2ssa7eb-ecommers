@@ -27,7 +27,7 @@ const OrderSummary = () => {
 
         return (
                 <motion.section
-                        className='space-y-5 rounded-3xl border border-white/12 bg-white/5 p-6 text-white shadow-xl shadow-black/20 backdrop-blur-md'
+                        className='space-y-5 rounded-3xl border border-white/12 bg-white/5 p-6 text-white shadow-xl shadow-black/20'
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}

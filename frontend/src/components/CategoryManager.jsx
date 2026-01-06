@@ -125,7 +125,7 @@ const CategoryManager = () => {
 
         return (
                 <div className='mx-auto mb-12 max-w-5xl space-y-8'>
-                        <div className='rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 shadow-lg backdrop-blur-sm'>
+                        <div className='rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 shadow-lg'>
                                 <div className='mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
                                         <div>
                                                 <h2 className='text-2xl font-semibold text-payzone-gold'>{t("categories.manager.title")}</h2>
@@ -223,7 +223,7 @@ const CategoryManager = () => {
                                 </form>
                         </div>
 
-                        <div className='rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 shadow-lg backdrop-blur-sm'>
+                        <div className='rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 shadow-lg'>
                                 <h3 className='mb-4 text-xl font-semibold text-payzone-gold'>{t("categories.manager.list.title")}</h3>
                                 {categories.length === 0 ? (
                                         <p className='text-sm text-white/70'>{t("categories.manager.list.empty")}</p>

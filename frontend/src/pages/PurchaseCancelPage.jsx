@@ -11,7 +11,7 @@ const PurchaseCancelPage = () => {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5 }}
-                                className='relative z-10 w-full max-w-md overflow-hidden rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 shadow-2xl backdrop-blur-sm sm:p-8'
+                                className='relative z-10 w-full max-w-md overflow-hidden rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 shadow-2xl sm:p-8'
                         >
                                 <div className='flex justify-center'>
                                         <XCircle className='mb-4 h-16 w-16 text-payzone-indigo' />
