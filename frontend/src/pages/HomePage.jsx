@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { Briefcase, ChevronDown, MessageSquare, Package } from "lucide-react";
 
@@ -74,31 +74,6 @@ const HomePage = () => {
         });
 
         const shouldReduceMotion = useReducedMotion();
-        const pageRef = useRef(null);
-
-        useEffect(() => {
-                if (!pageRef.current) return;
-                let rafId = null;
-
-                const updateParallax = () => {
-                        if (!pageRef.current) return;
-                        pageRef.current.style.setProperty("--scroll-y", `${window.scrollY}px`);
-                };
-
-                const handleScroll = () => {
-                        if (rafId) cancelAnimationFrame(rafId);
-                        rafId = requestAnimationFrame(updateParallax);
-                };
-
-                updateParallax();
-                window.addEventListener("scroll", handleScroll, { passive: true });
-
-                return () => {
-                        window.removeEventListener("scroll", handleScroll);
-                        if (rafId) cancelAnimationFrame(rafId);
-                };
-        }, []);
-
         const buildWhatsAppLink = (packageName, extra) => {
                 const lines = [
                         "السلام عليكم، أرغب بالبدء مع Payzone بايزوون.",
@@ -137,7 +112,7 @@ const HomePage = () => {
                 const filter = useTransform(
                         scrollYProgress,
                         [0, 1],
-                        shouldReduceMotion ? ["blur(0px)", "blur(0px)"] : ["blur(8px)", "blur(0px)"]
+                        shouldReduceMotion ? ["blur(0px)", "blur(0px)"] : ["blur(6px)", "blur(0px)"]
                 );
 
                 return (
@@ -158,15 +133,11 @@ const HomePage = () => {
         };
 
         return (
-                <div ref={pageRef} className='relative min-h-screen overflow-hidden text-payzone-white'>
-                        <div className='pointer-events-none absolute inset-0 overflow-hidden'>
-                                <div className='absolute inset-0 bg-tech-grid parallax-tech parallax-tech--slow' />
-                                <div className='absolute inset-0 bg-tech-circuit parallax-tech parallax-tech--fast' />
-                                <div className='absolute inset-0 bg-tech-symbols parallax-tech' />
-                                <div className='absolute -top-40 right-[-10%] h-[420px] w-[420px] rounded-full bg-payzone-indigo/30 blur-[140px] parallax-orb parallax-orb--fast' />
-                                <div className='absolute top-[20%] left-[-5%] h-[520px] w-[520px] rounded-full bg-payzone-gold/20 blur-[160px] parallax-orb parallax-orb--slow' />
-                                <div className='absolute bottom-[-25%] right-[10%] h-[380px] w-[380px] rounded-full bg-white/10 blur-[140px] parallax-orb' />
-                                <div className='absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(82,89,255,0.12),_transparent_55%),radial-gradient(circle_at_80%_10%,_rgba(210,156,74,0.18),_transparent_45%)]' />
+                <div className='relative min-h-screen overflow-hidden text-payzone-white'>
+                        <div className='tech-bg'>
+                                <div className='tech-bg__layer bg-tech-grid' />
+                                <div className='tech-bg__layer bg-tech-circuit' />
+                                <div className='tech-bg__layer bg-tech-symbols' />
                         </div>
 
                         <div className='relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8'>
@@ -361,7 +332,7 @@ const HomePage = () => {
                                                         <table className='min-w-[680px] text-right text-sm'>
                                                                 <thead>
                                                                         <tr className='text-white/60'>
-                                                                                <th className='sticky right-0 z-10 border-l border-white/10 bg-payzone-navy/70 px-4 py-3 backdrop-blur-lg'>
+                                                                                <th className='sticky right-0 z-10 border-l border-white/10 bg-payzone-navy/70 px-4 py-3'>
                                                                                         الميزة
                                                                                 </th>
                                                                                 <th className='px-4 py-3'>الانطلاق</th>
@@ -372,7 +343,7 @@ const HomePage = () => {
                                                                 <tbody>
                                                                         {comparisonRows.map((row) => (
                                                                                 <tr key={row.label} className='border-t border-white/10 text-white/80'>
-                                                                                        <td className='sticky right-0 z-10 border-l border-white/10 bg-payzone-navy/60 px-4 py-3 backdrop-blur-lg'>
+                                                                                        <td className='sticky right-0 z-10 border-l border-white/10 bg-payzone-navy/60 px-4 py-3'>
                                                                                                 {row.label}
                                                                                         </td>
                                                                                         <td className='px-4 py-3'>{row.starter}</td>

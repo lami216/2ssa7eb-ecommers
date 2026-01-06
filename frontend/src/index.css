@@ -69,9 +69,9 @@
                 overflow: hidden;
                 border-radius: 32px;
                 border: 1px solid rgba(255, 255, 255, 0.18);
-                background: radial-gradient(120% 140% at 10% 10%, rgba(255, 255, 255, 0.2), transparent 60%),
-                        radial-gradient(120% 140% at 90% 80%, rgba(255, 255, 255, 0.12), transparent 65%),
-                        rgba(255, 255, 255, 0.16);
+                background: radial-gradient(120% 140% at 10% 10%, rgba(255, 255, 255, 0.16), transparent 60%),
+                        radial-gradient(120% 140% at 90% 80%, rgba(255, 255, 255, 0.1), transparent 65%),
+                        rgba(255, 255, 255, 0.12);
                 box-shadow: 0 18px 50px rgba(6, 18, 38, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.08);
         }
 
@@ -80,9 +80,9 @@
                 overflow: hidden;
                 border-radius: 40px;
                 border: 1px solid rgba(255, 255, 255, 0.2);
-                background: radial-gradient(120% 140% at 15% 15%, rgba(255, 255, 255, 0.2), transparent 62%),
-                        radial-gradient(120% 140% at 85% 85%, rgba(255, 255, 255, 0.12), transparent 65%),
-                        rgba(255, 255, 255, 0.16);
+                background: radial-gradient(120% 140% at 15% 15%, rgba(255, 255, 255, 0.16), transparent 62%),
+                        radial-gradient(120% 140% at 85% 85%, rgba(255, 255, 255, 0.1), transparent 65%),
+                        rgba(255, 255, 255, 0.12);
                 box-shadow: 0 22px 70px rgba(6, 18, 38, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1);
         }
 
@@ -91,9 +91,9 @@
                 overflow: hidden;
                 border-radius: 30px;
                 border: 1px solid rgba(255, 255, 255, 0.18);
-                background: radial-gradient(120% 140% at 10% 10%, rgba(255, 255, 255, 0.2), transparent 60%),
-                        radial-gradient(120% 140% at 90% 80%, rgba(255, 255, 255, 0.12), transparent 65%),
-                        rgba(255, 255, 255, 0.16);
+                background: radial-gradient(120% 140% at 10% 10%, rgba(255, 255, 255, 0.16), transparent 60%),
+                        radial-gradient(120% 140% at 90% 80%, rgba(255, 255, 255, 0.1), transparent 65%),
+                        rgba(255, 255, 255, 0.12);
                 padding: 24px;
                 box-shadow: 0 16px 40px rgba(6, 18, 38, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.08);
                 transition: transform 300ms ease, box-shadow 300ms ease;
@@ -114,8 +114,8 @@
         .glass-panel::before,
         .glass-hero::before,
         .glass-card::before {
-                background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), transparent 45%);
-                opacity: 0.35;
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.28), transparent 50%);
+                opacity: 0.4;
         }
 
         .glass-panel::after,
@@ -218,59 +218,71 @@
         .glass-hero,
         .glass-card,
         .glass-input {
-                backdrop-filter: blur(18px) saturate(140%) contrast(110%);
-                -webkit-backdrop-filter: blur(18px) saturate(140%) contrast(110%);
+                backdrop-filter: blur(16px) saturate(140%) contrast(110%);
+                -webkit-backdrop-filter: blur(16px) saturate(140%) contrast(110%);
                 background: radial-gradient(120% 140% at 10% 10%, rgba(255, 255, 255, 0.12), transparent 60%),
-                        radial-gradient(120% 140% at 90% 80%, rgba(255, 255, 255, 0.08), transparent 65%),
+                        radial-gradient(120% 140% at 90% 80%, rgba(255, 255, 255, 0.07), transparent 65%),
                         rgba(255, 255, 255, 0.1);
         }
 }
 
+.tech-bg {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+}
+
+.tech-bg__layer {
+        position: absolute;
+        inset: 0;
+}
+
 .bg-tech-grid {
-        background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 120px),
-                repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 120px);
+        background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 120px),
+                repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 120px);
         background-size: 120px 120px;
-        opacity: 0.35;
-        animation: tech-grid-drift 40s linear infinite;
+        opacity: 0.4;
+        animation: tech-grid-drift 60s linear infinite;
 }
 
 .bg-tech-circuit {
-        background-image: radial-gradient(circle at 15% 20%, rgba(210, 156, 74, 0.2), transparent 45%),
-                radial-gradient(circle at 80% 10%, rgba(82, 89, 255, 0.2), transparent 40%),
-                linear-gradient(120deg, rgba(255, 255, 255, 0.08), transparent 55%),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.04) 2px, transparent 2px);
-        background-size: 420px 420px, 520px 520px, 240px 240px, 160px 160px;
-        opacity: 0.3;
-        animation: tech-circuit-drift 50s linear infinite;
+        background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 55%),
+                linear-gradient(45deg, rgba(210, 156, 74, 0.12), transparent 60%),
+                repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0 2px, transparent 2px 120px);
+        background-size: 360px 360px, 420px 420px, 220px 220px;
+        opacity: 0.35;
+        animation: tech-circuit-drift 70s linear infinite;
 }
 
 .bg-tech-symbols {
         position: relative;
         overflow: hidden;
-        opacity: 0.4;
+        opacity: 0.35;
 }
 
 .bg-tech-symbols::before,
 .bg-tech-symbols::after {
-        content: "function() {}  const  API  MongoDB  Redis  Nginx  PM2  JWT  Admin Panel  Payzone  { }  0101  []  < />  ";
+        content: "const  API  Redis  MongoDB  Nginx  PM2  JWT  Admin Panel  Payzone  SDK  0101  { }  []  < />  ";
         position: absolute;
         inset: -20%;
-        color: rgba(255, 255, 255, 0.16);
-        font-family: "Segoe UI", "Inter", system-ui, sans-serif;
-        font-size: 18px;
-        letter-spacing: 1.5px;
-        line-height: 2.6;
+        color: rgba(255, 255, 255, 0.18);
+        font-family: "JetBrains Mono", "Fira Code", "SFMono-Regular", ui-monospace, SFMono-Regular, Menlo, Monaco,
+                Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 17px;
+        letter-spacing: 2px;
+        line-height: 2.4;
         white-space: pre-wrap;
-        opacity: 0.55;
+        opacity: 0.5;
         transform: translate3d(0, 0, 0);
-        animation: tech-text-drift 55s linear infinite;
+        animation: tech-text-drift 80s linear infinite;
 }
 
 .bg-tech-symbols::after {
-        color: rgba(210, 156, 74, 0.12);
-        font-size: 16px;
+        color: rgba(210, 156, 74, 0.16);
+        font-size: 15px;
         opacity: 0.45;
-        animation-duration: 70s;
+        animation-duration: 95s;
         animation-direction: reverse;
 }
 
@@ -317,10 +329,10 @@
 
 @keyframes tech-circuit-drift {
         from {
-                background-position: 0 0, 0 0, 0 0, 0 0;
+                background-position: 0 0, 0 0, 0 0;
         }
         to {
-                background-position: 200px 120px, -180px 180px, 120px -200px, -120px 200px;
+                background-position: 160px -120px, -140px 160px, 120px 200px;
         }
 }
 
