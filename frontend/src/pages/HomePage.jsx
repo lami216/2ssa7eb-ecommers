@@ -2,14 +2,14 @@ import { useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { Briefcase, ChevronDown, MessageSquare, Package } from "lucide-react";
 
-const WHATSAPP_NUMBER = "22231117700";
+const WHATSAPP_NUMBER = "22249823328";
 
 const HomePage = () => {
         const packages = useMemo(
                 () => [
                         {
                                 id: "starter",
-                                name: "باقة الانطلاق",
+                                name: "باقة الإقلاع – Basic",
                                 price: "5000 أوقية قديمة",
                                 monthly: "3000 أوقية قديمة",
                                 badge: "خصم 70%",
@@ -21,7 +21,7 @@ const HomePage = () => {
                         },
                         {
                                 id: "growth",
-                                name: "باقة التوسّع",
+                                name: "باقة النمو – Pro",
                                 price: "10000 أوقية قديمة",
                                 monthly: "5000 أوقية قديمة",
                                 badge: "خصم 55%",
@@ -34,7 +34,7 @@ const HomePage = () => {
                         },
                         {
                                 id: "full",
-                                name: "باقة الحل الكامل",
+                                name: "باقة السيطرة الكاملة – Plus",
                                 price: "20000 أوقية قديمة",
                                 monthly: "7000 أوقية قديمة",
                                 badge: "خصم 40%",
@@ -297,8 +297,8 @@ const HomePage = () => {
                                                                                 حل المشاكل والأعطال غير محدود ضمن الاشتراك الشهري في جميع الباقات.
                                                                         </div>
                                                                         <div className='mt-3 text-sm text-white/70'>
-                                                                                إضافة ميزات جديدة متاحة في باقة التوسّع وباقة الحل الكامل،
-                                                                                مع مرونة أكبر في الحل الكامل.
+                                                                                إضافة ميزات جديدة متاحة في باقة النمو – Pro وباقة السيطرة الكاملة – Plus،
+                                                                                مع مرونة أكبر في باقة السيطرة الكاملة – Plus.
                                                                         </div>
                                                                         {pkg.id === "full" && (
                                                                                 <div className='mt-3 text-sm text-white/70'>
@@ -330,9 +330,9 @@ const HomePage = () => {
                                                                                 <th className='sticky right-0 z-10 border-l border-white/10 bg-payzone-navy/70 px-4 py-3'>
                                                                                         الميزة
                                                                                 </th>
-                                                                                <th className='px-4 py-3'>الانطلاق</th>
-                                                                                <th className='px-4 py-3'>التوسّع</th>
-                                                                                <th className='px-4 py-3'>الحل الكامل</th>
+                                                                                <th className='px-4 py-3'>باقة الإقلاع – Basic</th>
+                                                                                <th className='px-4 py-3'>باقة النمو – Pro</th>
+                                                                                <th className='px-4 py-3'>باقة السيطرة الكاملة – Plus</th>
                                                                         </tr>
                                                                 </thead>
                                                                 <tbody>
@@ -353,9 +353,9 @@ const HomePage = () => {
                                                         <div className='glass-card glass-card--compact flex items-center justify-between gap-3 text-xs text-white/60'>
                                                                 <span className='flex-1 text-right'>الميزة</span>
                                                                 <div className='grid w-[168px] grid-cols-3 gap-2 text-center'>
-                                                                        <span>الانطلاق</span>
-                                                                        <span>التوسّع</span>
-                                                                        <span>الحل الكامل</span>
+                                                                        <span>باقة الإقلاع – Basic</span>
+                                                                        <span>باقة النمو – Pro</span>
+                                                                        <span>باقة السيطرة الكاملة – Plus</span>
                                                                 </div>
                                                         </div>
                                                         {comparisonRows.map((row) => (
