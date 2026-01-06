@@ -9,70 +9,72 @@ const Navbar = () => {
         const { t } = useTranslation();
 
         return (
-                <header className='fixed top-0 right-0 w-full border-b border-payzone-indigo/40 bg-payzone-navy/95 shadow-lg transition-all duration-300 z-40'>
+                <header className='fixed top-0 right-0 w-full border-b border-white/15 shadow-lg transition-all duration-300 z-40'>
                         <div className='container mx-auto px-4 py-3'>
-                                <div className='flex flex-wrap items-center justify-between gap-4'>
-                                        <Link to='/' className='flex items-center gap-3 text-payzone-white'>
-                                                <img
-                                                        src='/logo.png'
-                                                        alt='شعار بايزون'
-                                                        className='h-12 w-12 object-contain drop-shadow-[0_4px_12px_rgba(16,41,84,0.35)]'
-                                                />
-                                                <span className='text-2xl font-semibold uppercase tracking-wide'>{t("common.appName")}</span>
-                                        </Link>
+                                <div className='glass-bar rounded-b-3xl px-4 py-3'>
+                                        <div className='flex flex-wrap items-center justify-between gap-4'>
+                                                <Link to='/' className='flex items-center gap-3 text-payzone-white'>
+                                                        <img
+                                                                src='/logo.png'
+                                                                alt='شعار بايزون'
+                                                                className='h-12 w-12 object-contain drop-shadow-[0_4px_12px_rgba(16,41,84,0.35)]'
+                                                        />
+                                                        <span className='text-2xl font-semibold uppercase tracking-wide'>{t("common.appName")}</span>
+                                                </Link>
 
-                                        <div className='flex flex-wrap items-center gap-4 text-sm font-medium'>
-                                                <nav className='flex items-center gap-4'>
-                                                        <Link
-                                                                to={'/'}
-                                                                className='flex items-center gap-2 rounded-md bg-payzone-gold px-4 py-2 font-semibold text-payzone-navy transition duration-300 ease-in-out hover:bg-[#b8873d]'
-                                                        >
-                                                                {t("nav.home")}
-                                                        </Link>
-                                                        <Link
-                                                                to={'/our-work'}
-                                                                className='flex items-center gap-2 rounded-md bg-payzone-gold px-4 py-2 font-semibold text-payzone-navy transition duration-300 ease-in-out hover:bg-[#b8873d]'
-                                                        >
-                                                                {t("nav.demo")}
-                                                        </Link>
-                                                        {isAdmin && (
+                                                <div className='flex flex-wrap items-center gap-4 text-sm font-medium'>
+                                                        <nav className='flex items-center gap-4'>
                                                                 <Link
-                                                                        className='flex items-center gap-2 rounded-md bg-payzone-indigo px-3 py-1 text-payzone-white transition duration-300 ease-in-out hover:bg-[#3b3ad6]'
-                                                                        to={'/secret-dashboard'}
+                                                                        to={'/'}
+                                                                        className='flex items-center gap-2 rounded-md bg-payzone-gold px-4 py-2 font-semibold text-payzone-navy transition duration-300 ease-in-out hover:bg-[#b8873d]'
                                                                 >
-                                                                        <Lock className='inline-block' size={18} />
-                                                                        <span className='hidden sm:inline'>{t("nav.dashboard")}</span>
+                                                                        {t("nav.home")}
                                                                 </Link>
-                                                        )}
-                                                </nav>
-
-                                                <div className='flex items-center gap-3'>
-                                                        {user ? (
-                                                                <button
-                                                                        className='flex items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-payzone-white transition duration-300 ease-in-out hover:bg-white/20'
-                                                                        onClick={logout}
+                                                                <Link
+                                                                        to={'/our-work'}
+                                                                        className='flex items-center gap-2 rounded-md bg-payzone-gold px-4 py-2 font-semibold text-payzone-navy transition duration-300 ease-in-out hover:bg-[#b8873d]'
                                                                 >
-                                                                        <LogOut size={18} />
-                                                                        <span className='hidden sm:inline'>{t("nav.logout")}</span>
-                                                                </button>
-                                                        ) : (
-                                                                <>
+                                                                        {t("nav.demo")}
+                                                                </Link>
+                                                                {isAdmin && (
                                                                         <Link
-                                                                                to={'/signup'}
-                                                                                className='flex items-center gap-2 rounded-md bg-payzone-gold px-4 py-2 font-semibold text-payzone-navy transition duration-300 ease-in-out hover:bg-[#b8873d]'
+                                                                                className='flex items-center gap-2 rounded-md bg-payzone-indigo px-3 py-1 text-payzone-white transition duration-300 ease-in-out hover:bg-[#3b3ad6]'
+                                                                                to={'/secret-dashboard'}
                                                                         >
-                                                                                <UserPlus size={18} />
-                                                                                {t("nav.signup")}
+                                                                                <Lock className='inline-block' size={18} />
+                                                                                <span className='hidden sm:inline'>{t("nav.dashboard")}</span>
                                                                         </Link>
-                                                                        <Link
-                                                                                to={'/login'}
-                                                                                className='flex items-center gap-2 rounded-md bg-payzone-indigo px-4 py-2 text-payzone-white transition duration-300 ease-in-out hover:bg-[#3b3ad6]'
+                                                                )}
+                                                        </nav>
+
+                                                        <div className='flex items-center gap-3'>
+                                                                {user ? (
+                                                                        <button
+                                                                                className='flex items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-payzone-white transition duration-300 ease-in-out hover:bg-white/20'
+                                                                                onClick={logout}
                                                                         >
-                                                                                <LogIn size={18} />
-                                                                                {t("nav.login")}
-                                                                        </Link>
-                                                                </>
-                                                        )}
+                                                                                <LogOut size={18} />
+                                                                                <span className='hidden sm:inline'>{t("nav.logout")}</span>
+                                                                        </button>
+                                                                ) : (
+                                                                        <>
+                                                                                <Link
+                                                                                        to={'/signup'}
+                                                                                        className='flex items-center gap-2 rounded-md bg-payzone-gold px-4 py-2 font-semibold text-payzone-navy transition duration-300 ease-in-out hover:bg-[#b8873d]'
+                                                                                >
+                                                                                        <UserPlus size={18} />
+                                                                                        {t("nav.signup")}
+                                                                                </Link>
+                                                                                <Link
+                                                                                        to={'/login'}
+                                                                                        className='flex items-center gap-2 rounded-md bg-payzone-indigo px-4 py-2 text-payzone-white transition duration-300 ease-in-out hover:bg-[#3b3ad6]'
+                                                                                >
+                                                                                        <LogIn size={18} />
+                                                                                        {t("nav.login")}
+                                                                                </Link>
+                                                                        </>
+                                                                )}
+                                                        </div>
                                                 </div>
                                         </div>
                                 </div>
