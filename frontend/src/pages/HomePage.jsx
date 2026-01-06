@@ -92,27 +92,26 @@ const HomePage = () => {
 
         const qualificationLink = buildWhatsAppLink(qualification.packageName, qualification);
 
-        const ScrollReveal = ({ children, className, direction = "right", offset = ["start 0.85", "end 0.2"] }) => {
+        const ScrollReveal = ({ children, className, direction = "right", offset = ["start 95%", "end 5%"] }) => {
                 const cardRef = useRef(null);
                 const { scrollYProgress } = useScroll({
                         target: cardRef,
                         offset,
                 });
-                const fromX = direction === "right" ? 60 : -60;
-                const x = useTransform(
-                        scrollYProgress,
-                        [0, 1],
-                        shouldReduceMotion ? [0, 0] : [fromX, 0]
-                );
+                const fromX = direction === "right" ? 48 : -48;
+                const shouldBlur = className?.includes("glass-");
+                const x = useTransform(scrollYProgress, [0, 0.6, 1], shouldReduceMotion ? [0, 0, 0] : [fromX, 0, fromX]);
                 const opacity = useTransform(
                         scrollYProgress,
-                        [0, 0.6, 1],
-                        shouldReduceMotion ? [1, 1, 1] : [0, 0.7, 1]
+                        [0, 0.5, 0.6, 1],
+                        shouldReduceMotion ? [1, 1, 1, 1] : [0, 1, 1, 0]
                 );
                 const filter = useTransform(
                         scrollYProgress,
-                        [0, 1],
-                        shouldReduceMotion ? ["blur(0px)", "blur(0px)"] : ["blur(6px)", "blur(0px)"]
+                        [0, 0.6, 1],
+                        shouldReduceMotion || !shouldBlur
+                                ? ["blur(0px)", "blur(0px)", "blur(0px)"]
+                                : ["blur(6px)", "blur(0px)", "blur(6px)"]
                 );
 
                 return (
@@ -121,9 +120,9 @@ const HomePage = () => {
                                 style={{
                                         x,
                                         opacity,
-                                        filter,
-                                        translateZ: 0,
-                                        willChange: "transform, opacity, filter",
+                                        filter: shouldBlur ? filter : "none",
+                                        translateZ: shouldBlur ? 0 : undefined,
+                                        willChange: shouldReduceMotion || !shouldBlur ? "auto" : "transform, opacity, filter",
                                 }}
                                 className={`scroll-reveal ${className ?? ""}`}
                         >
