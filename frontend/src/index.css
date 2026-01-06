@@ -2,6 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body {
+        min-height: 100%;
+}
+
+body {
+        position: relative;
+        background-color: #060f1f;
+        background-image: url("/assets/backgrounds/payzone-store-bg.jpg");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+}
+
+body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(4, 12, 24, 0.35), rgba(4, 12, 24, 0.18));
+        pointer-events: none;
+        z-index: 0;
+}
+
+#root {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+}
+
 .discount-switch {
         position: relative;
         display: inline-flex;
