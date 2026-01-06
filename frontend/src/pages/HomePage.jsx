@@ -128,6 +128,7 @@ const HomePage = () => {
                                 <div className='tech-bg__layer bg-tech-grid' />
                                 <div className='tech-bg__layer bg-tech-circuit' />
                                 <div className='tech-bg__layer bg-tech-symbols' />
+                                <div className='tech-bg__layer bg-tech-glow' />
                         </div>
 
                         <div className='relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8'>
@@ -152,13 +153,17 @@ const HomePage = () => {
                                                                 }}
                                                                 className='btn-primary'
                                                         >
-                                                                عرض الباقات والأسعار
+                                                                ابدأ الآن
                                                         </a>
                                                         <a
-                                                                href='#features'
+                                                                href='#pricing'
+                                                                onClick={(event) => {
+                                                                        event.preventDefault();
+                                                                        document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
+                                                                }}
                                                                 className='btn-secondary'
                                                         >
-                                                                استكشف المزايا
+                                                                استكشف الباقات والأسعار
                                                         </a>
                                                 </div>
                                         </ScrollReveal>
@@ -250,8 +255,8 @@ const HomePage = () => {
                                 </section>
 
                                 <section
-                                        id='packages'
-                                        className='scroll-section mt-20'
+                                        id='pricing'
+                                        className='scroll-section scroll-target mt-20'
                                 >
                                         <ScrollReveal direction='right' className='text-center'>
                                                 <h2 className='text-3xl font-bold text-payzone-gold'>الباقات والأسعار</h2>
@@ -318,7 +323,7 @@ const HomePage = () => {
                                         <ScrollReveal direction='right' className='glass-panel px-6 py-10 sm:px-10'>
                                                 <h2 className='text-3xl font-bold text-payzone-gold'>مقارنة حقيقية بين الباقات</h2>
                                                 <p className='mt-3 text-white/70'>الفرق الأساسي في التصميم ولوحة التحكم ومستوى المرونة.</p>
-                                                <div className='mt-8 overflow-x-auto'>
+                                                <div className='mt-8 hidden md:block'>
                                                         <table className='min-w-[680px] text-right text-sm'>
                                                                 <thead>
                                                                         <tr className='text-white/60'>
@@ -343,6 +348,27 @@ const HomePage = () => {
                                                                         ))}
                                                                 </tbody>
                                                         </table>
+                                                </div>
+                                                <div className='mt-8 space-y-3 md:hidden'>
+                                                        <div className='glass-card glass-card--compact flex items-center justify-between gap-3 text-xs text-white/60'>
+                                                                <span className='flex-1 text-right'>الميزة</span>
+                                                                <div className='grid w-[168px] grid-cols-3 gap-2 text-center'>
+                                                                        <span>الانطلاق</span>
+                                                                        <span>التوسّع</span>
+                                                                        <span>الحل الكامل</span>
+                                                                </div>
+                                                        </div>
+                                                        {comparisonRows.map((row) => (
+                                                                <div
+                                                                        key={row.label}
+                                                                        className='glass-card glass-card--compact grid grid-cols-[minmax(0,1fr)_repeat(3,52px)] items-center gap-2 text-xs text-white/80'
+                                                                >
+                                                                        <span className='text-right'>{row.label}</span>
+                                                                        <span className='text-center text-base'>{row.starter}</span>
+                                                                        <span className='text-center text-base'>{row.growth}</span>
+                                                                        <span className='text-center text-base'>{row.full}</span>
+                                                                </div>
+                                                        ))}
                                                 </div>
                                         </ScrollReveal>
                                 </section>
