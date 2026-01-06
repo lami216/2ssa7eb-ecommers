@@ -252,7 +252,7 @@ const CheckoutPage = () => {
                 <div className='py-10'>
                         <div className='mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 lg:flex-row'>
                                 <motion.section
-                                        className='w-full rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 shadow-lg backdrop-blur-sm'
+                                        className='w-full rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 shadow-lg'
                                         initial={{ opacity: 0, x: -20 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ duration: 0.4 }}
@@ -318,7 +318,7 @@ const CheckoutPage = () => {
                                 </motion.section>
 
                                 <motion.aside
-                                        className='w-full rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 shadow-lg backdrop-blur-sm lg:max-w-sm'
+                                        className='w-full rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 shadow-lg lg:max-w-sm'
                                         initial={{ opacity: 0, x: 20 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ duration: 0.4, delay: 0.1 }}

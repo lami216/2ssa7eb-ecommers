@@ -75,7 +75,7 @@ const FeaturedProducts = ({ featuredProducts }) => {
                                                                 };
                                                                 return (
                                                                         <div key={product._id} className='w-full flex-shrink-0 px-2 sm:w-1/2 lg:w-1/3 xl:w-1/4'>
-                                                                                <div className='group flex h-full flex-col overflow-hidden rounded-xl border border-payzone-indigo/30 bg-white/5 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-payzone-gold/60 hover:shadow-xl'>
+                                                                                <div className='group flex h-full flex-col overflow-hidden rounded-xl border border-payzone-indigo/30 bg-white/5 shadow-lg transition-all duration-300 hover:border-payzone-gold/60 hover:shadow-xl'>
                                                                                         <div className='relative overflow-hidden'>
                                                                                                 {isDiscounted && (
                                                                                                         <span className='absolute right-3 top-3 z-10 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white shadow-lg'>

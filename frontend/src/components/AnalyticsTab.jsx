@@ -75,7 +75,7 @@ const AnalyticsTab = () => {
                                 />
                         </div>
                         <motion.div
-                                className='rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 shadow-lg backdrop-blur-sm'
+                                className='rounded-xl border border-payzone-indigo/40 bg-white/5 p-6 shadow-lg'
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5, delay: 0.25 }}

@@ -30,7 +30,7 @@ const CartItem = ({ item }) => {
 
         return (
                 <article
-                        className='grid grid-cols-[88px_minmax(0,1fr)] items-center gap-4 rounded-2xl border border-white/12 bg-white/5 p-4 text-white shadow-lg shadow-black/20 backdrop-blur-md transition duration-300 hover:border-payzone-gold/70 sm:grid-cols-[96px_minmax(0,1fr)] sm:p-5'
+                        className='grid grid-cols-[88px_minmax(0,1fr)] items-center gap-4 rounded-2xl border border-white/12 bg-white/5 p-4 text-white shadow-lg shadow-black/20 transition duration-300 hover:border-payzone-gold/70 sm:grid-cols-[96px_minmax(0,1fr)] sm:p-5'
                         dir='rtl'
                 >
                         <Link
