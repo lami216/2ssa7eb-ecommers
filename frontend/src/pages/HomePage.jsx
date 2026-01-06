@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { Briefcase, ChevronDown, MessageSquare, Package } from "lucide-react";
 
 const WHATSAPP_NUMBER = "22231117700";
@@ -117,38 +117,40 @@ const HomePage = () => {
 
         const qualificationLink = buildWhatsAppLink(qualification.packageName, qualification);
 
-        const slideInVariant = (direction = "right") => ({
-                hidden: {
-                        opacity: 0,
-                        x: shouldReduceMotion ? 0 : direction === "right" ? 60 : -60,
-                        filter: shouldReduceMotion ? "none" : "blur(10px)",
-                        transition: {
-                                duration: 0.35,
-                                ease: [0.22, 1, 0.36, 1],
-                        },
-                },
-                visible: {
-                        opacity: 1,
-                        x: 0,
-                        filter: "blur(0px)",
-                        transition: {
-                                duration: 0.4,
-                                ease: [0.22, 1, 0.36, 1],
-                        },
-                },
-        });
+        const ScrollReveal = ({ children, className, direction = "right", offset = ["start 0.85", "end 0.2"] }) => {
+                const cardRef = useRef(null);
+                const { scrollYProgress } = useScroll({
+                        target: cardRef,
+                        offset,
+                });
+                const fromX = direction === "right" ? 60 : -60;
+                const x = useTransform(
+                        scrollYProgress,
+                        [0, 1],
+                        shouldReduceMotion ? [0, 0] : [fromX, 0]
+                );
+                const opacity = useTransform(
+                        scrollYProgress,
+                        [0, 0.6, 1],
+                        shouldReduceMotion ? [1, 1, 1] : [0, 0.7, 1]
+                );
+                const filter = useTransform(
+                        scrollYProgress,
+                        [0, 1],
+                        shouldReduceMotion ? ["blur(0px)", "blur(0px)"] : ["blur(8px)", "blur(0px)"]
+                );
 
-        const ScrollReveal = ({ children, className, direction = "right", viewportAmount = 0.3 }) => {
-                const [isVisible, setIsVisible] = useState(false);
                 return (
                         <motion.div
-                                variants={slideInVariant(direction)}
-                                initial='hidden'
-                                animate={isVisible ? "visible" : "hidden"}
-                                onViewportEnter={() => setIsVisible(true)}
-                                onViewportLeave={() => setIsVisible(false)}
-                                viewport={{ amount: viewportAmount }}
-                                className={className}
+                                ref={cardRef}
+                                style={{
+                                        x,
+                                        opacity,
+                                        filter,
+                                        translateZ: 0,
+                                        willChange: "transform, opacity, filter",
+                                }}
+                                className={`scroll-reveal ${className ?? ""}`}
                         >
                                 {children}
                         </motion.div>
