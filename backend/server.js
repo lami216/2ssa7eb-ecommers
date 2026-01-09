@@ -12,6 +12,7 @@ import analyticsRoutes from "./routes/analytics.route.js";
 import categoryRoutes from "./routes/category.route.js";
 import publicConfigRoutes from "./routes/publicConfig.route.js";
 import orderRoutes from "./routes/order.route.js";
+import serviceRoutes from "./routes/service.route.js";
 
 import { connectDB } from "./lib/db.js";
 
@@ -37,6 +38,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/public-config", publicConfigRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/services", serviceRoutes);
 
 /* ----------------- Production static -----------------
    كان يتم بناء المسار كـ "/var/www/shop1/backend/frontend/dist"

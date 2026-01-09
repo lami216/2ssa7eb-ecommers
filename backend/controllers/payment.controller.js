@@ -1,8 +1,190 @@
-const respondWithDeprecatedMessage = async (_req, res) =>
-        res.status(410).json({
-                message: "تم إيقاف التكامل مع Stripe. يرجى استخدام إتمام الطلب عبر واتساب بدلاً من ذلك.",
-        });
+import Service from "../models/service.model.js";
+import ServiceCheckout from "../models/serviceCheckout.model.js";
+import { capturePayPalOrder, createPayPalOrder } from "../lib/paypal.js";
+import { sendServiceRequestEmail, sendTelegramNotification } from "../lib/notifications.js";
 
-export const createCheckoutSession = respondWithDeprecatedMessage;
+const packages = [
+        {
+                id: "starter",
+                name: "باقة الإقلاع – Basic",
+                amount: "5000",
+                currency: "MRU",
+        },
+        {
+                id: "growth",
+                name: "باقة النمو – Pro",
+                amount: "10000",
+                currency: "MRU",
+        },
+        {
+                id: "full",
+                name: "باقة السيطرة الكاملة – Plus",
+                amount: "20000",
+                currency: "MRU",
+        },
+];
 
-export const checkoutSuccess = respondWithDeprecatedMessage;
+const findPackage = (packageId) => packages.find((pkg) => pkg.id === packageId);
+
+const sanitizeText = (value) => (typeof value === "string" ? value.trim() : "");
+
+export const createPayPalCheckout = async (req, res) => {
+        try {
+                const packageId = sanitizeText(req.body.packageId);
+                const name = sanitizeText(req.body.name);
+                const email = sanitizeText(req.body.email).toLowerCase();
+                const whatsapp = sanitizeText(req.body.whatsapp);
+                const alternateEmail = sanitizeText(req.body.alternateEmail).toLowerCase();
+                const idea = sanitizeText(req.body.idea);
+
+                if (!packageId || !name || !email) {
+                        return res.status(400).json({ message: "Missing required fields" });
+                }
+
+                const selectedPackage = findPackage(packageId);
+
+                if (!selectedPackage) {
+                        return res.status(400).json({ message: "Invalid package" });
+                }
+
+                const appUrl = process.env.APP_URL || "http://localhost:5173";
+                const returnUrl = `${appUrl}/services/success`;
+                const cancelUrl = `${appUrl}/services/cancel`;
+
+                const paypalOrder = await createPayPalOrder({
+                        amount: selectedPackage.amount,
+                        currency: selectedPackage.currency,
+                        returnUrl,
+                        cancelUrl,
+                        description: selectedPackage.name,
+                        referenceId: selectedPackage.id,
+                });
+
+                const approveLink = paypalOrder?.links?.find((link) => link.rel === "approve");
+
+                if (!approveLink?.href) {
+                        return res.status(500).json({ message: "Failed to create PayPal approval link" });
+                }
+
+                await ServiceCheckout.create({
+                        orderId: paypalOrder.id,
+                        packageId: selectedPackage.id,
+                        packageName: selectedPackage.name,
+                        name,
+                        email,
+                        whatsapp,
+                        alternateEmail,
+                        idea,
+                });
+
+                return res.json({
+                        orderId: paypalOrder.id,
+                        approveUrl: approveLink.href,
+                });
+        } catch (error) {
+                console.log("Error creating PayPal checkout", error.message);
+                return res.status(500).json({ message: "Unable to create PayPal checkout" });
+        }
+};
+
+const buildNotificationMessage = ({ name, email, whatsapp, idea, paymentId, packageName }) => {
+        const lines = [
+                `طلب جديد لخدمة Payzone`,
+                `الاسم: ${name}`,
+                `البريد الإلكتروني: ${email}`,
+                `وسيلة التواصل (واتساب): ${whatsapp || "غير محدد"}`,
+                `فكرة أو اسم الموقع: ${idea || "غير محدد"}`,
+                `الباقة: ${packageName}`,
+                `Payment ID: ${paymentId}`,
+        ];
+
+        return lines.join("\n");
+};
+
+export const capturePayPalCheckout = async (req, res) => {
+        try {
+                const orderId = sanitizeText(req.body.orderId || req.query.orderId);
+
+                if (!orderId) {
+                        return res.status(400).json({ message: "Missing order id" });
+                }
+
+                const checkout = await ServiceCheckout.findOne({ orderId });
+
+                if (!checkout) {
+                        return res.status(404).json({ message: "Checkout not found" });
+                }
+
+                if (checkout.status === "captured") {
+                        return res.json({
+                                serviceAlreadyCreated: true,
+                                contact: {
+                                        email: checkout.email,
+                                        whatsapp: checkout.whatsapp,
+                                },
+                        });
+                }
+
+                const captureResult = await capturePayPalOrder(orderId);
+                const captureStatus = captureResult?.status;
+
+                if (captureStatus !== "COMPLETED") {
+                        return res.status(400).json({ message: "Payment not completed" });
+                }
+
+                const captureId =
+                        captureResult?.purchase_units?.[0]?.payments?.captures?.[0]?.id || orderId;
+
+                const service = await Service.create({
+                        email: checkout.email,
+                        domain: "",
+                        packageId: checkout.packageId,
+                        packageName: checkout.packageName,
+                        status: "Pending",
+                        paymentId: captureId,
+                        provider: "paypal",
+                        subscriptionId: "",
+                        trialStartAt: null,
+                        lastPaymentAt: new Date(),
+                });
+
+                checkout.status = "captured";
+                checkout.captureId = captureId;
+                await checkout.save();
+
+                const message = buildNotificationMessage({
+                        name: checkout.name,
+                        email: checkout.email,
+                        whatsapp: checkout.whatsapp,
+                        idea: checkout.idea,
+                        paymentId: captureId,
+                        packageName: checkout.packageName,
+                });
+
+                await sendServiceRequestEmail({
+                        subject: "طلب خدمة جديد بعد دفع PayPal",
+                        text: message,
+                });
+
+                try {
+                        await sendTelegramNotification(message);
+                } catch (notifyError) {
+                        console.log("Telegram notification failed", notifyError.message);
+                }
+
+                return res.json({
+                        serviceId: service._id,
+                        contact: {
+                                email: checkout.email,
+                                whatsapp: checkout.whatsapp,
+                        },
+                });
+        } catch (error) {
+                console.log("Error capturing PayPal checkout", error.message);
+                return res.status(500).json({ message: "Unable to capture PayPal payment" });
+        }
+};
+
+export const listPackages = async (_req, res) => {
+        return res.json(packages);
+};
