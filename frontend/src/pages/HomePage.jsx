@@ -2,15 +2,20 @@ import { useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { ChevronDown, Mail, MessageSquare, Package, Phone, User } from "lucide-react";
 import apiClient from "../lib/apiClient";
+import { DEFAULT_CURRENCY, SERVICE_PACKAGES } from "../../../shared/servicePackages.js";
 
 const HomePage = () => {
-        const packages = useMemo(
-                () => [
-                        {
-                                id: "starter",
-                                name: "باقة الإقلاع – Basic",
-                                price: "5000 أوقية قديمة",
-                                monthly: "3000 أوقية قديمة",
+        const formatPackagePrice = (amount, currency) => {
+                const normalized = Number(amount);
+                if (!Number.isFinite(normalized)) {
+                        return "";
+                }
+                return `${normalized.toFixed(0)} ${currency}`;
+        };
+
+        const packageDetails = useMemo(
+                () => ({
+                        starter: {
                                 badge: "خصم 70%",
                                 details: [
                                         "قالب جاهز نغيّر الاسم والألوان فقط.",
@@ -18,11 +23,7 @@ const HomePage = () => {
                                         "مدة التنفيذ من 24 إلى 48 ساعة.",
                                 ],
                         },
-                        {
-                                id: "growth",
-                                name: "باقة النمو – Pro",
-                                price: "10000 أوقية قديمة",
-                                monthly: "5000 أوقية قديمة",
+                        growth: {
                                 badge: "خصم 55%",
                                 details: [
                                         "القالب كأساس مع تخصيص كامل لأي جزء.",
@@ -31,11 +32,7 @@ const HomePage = () => {
                                         "مدة التنفيذ من يومين إلى 3 أيام حسب التعديلات.",
                                 ],
                         },
-                        {
-                                id: "full",
-                                name: "باقة السيطرة الكاملة – Plus",
-                                price: "20000 أوقية قديمة",
-                                monthly: "7000 أوقية قديمة",
+                        full: {
                                 badge: "خصم 40%",
                                 details: [
                                         "بناء من الصفر بدون قالب.",
@@ -44,9 +41,21 @@ const HomePage = () => {
                                         "المدة حسب حجم المتطلبات بدون رقم ثابت.",
                                 ],
                         },
-                ],
+                }),
                 []
         );
+        const packages = useMemo(() => {
+                return SERVICE_PACKAGES.map((pkg) => {
+                        const details = packageDetails[pkg.id] || {};
+                        return {
+                                ...pkg,
+                                currency: DEFAULT_CURRENCY,
+                                ...details,
+                                priceLabel: formatPackagePrice(pkg.oneTimePrice, DEFAULT_CURRENCY),
+                                monthlyLabel: formatPackagePrice(pkg.monthlyPrice, DEFAULT_CURRENCY),
+                        };
+                });
+        }, [packageDetails]);
 
         const comparisonRows = useMemo(
                 () => [
@@ -67,7 +76,7 @@ const HomePage = () => {
         );
 
         const [checkoutInfo, setCheckoutInfo] = useState({
-                packageId: packages[0].id,
+                packageId: packages[0]?.id || "",
                 name: "",
                 email: "",
                 whatsapp: "",
@@ -294,8 +303,10 @@ const HomePage = () => {
                                                                                         {pkg.badge}
                                                                                 </span>
                                                                         </div>
-                                                                        <div className='mt-4 text-3xl font-bold text-payzone-gold'>{pkg.price}</div>
-                                                                        <div className='mt-2 text-sm text-white/70'>اشتراك شهري: {pkg.monthly}</div>
+                                                                        <div className='mt-4 text-3xl font-bold text-payzone-gold'>{pkg.priceLabel}</div>
+                                                                        <div className='mt-2 text-sm text-white/70'>
+                                                                                اشتراك شهري: {pkg.monthlyLabel}
+                                                                        </div>
                                                                         <ul className='mt-6 space-y-3 text-white/80'>
                                                                                 {pkg.details.map((detail) => (
                                                                                         <li key={detail} className='flex items-start gap-2'>
@@ -313,7 +324,7 @@ const HomePage = () => {
                                                                         </div>
                                                                         {pkg.id === "full" && (
                                                                                 <div className='mt-3 text-sm text-white/70'>
-                                                                                        السورس كود متاح فقط في هذه الباقة بقيمة 5000 أوقية قديمة عند الطلب.
+                                                                                        السورس كود متاح فقط في هذه الباقة بقيمة إضافية تُحدد عند الطلب.
                                                                                 </div>
                                                                         )}
                                                                         <a
@@ -560,7 +571,9 @@ const HomePage = () => {
                                                                 >
                                                                         <div className='text-4xl font-bold text-payzone-gold'>{pkg.badge}</div>
                                                                         <div className='mt-3 text-lg font-semibold text-white'>{pkg.name}</div>
-                                                                        <div className='mt-2 text-sm text-white/70'>السعر بعد الخصم: {pkg.price}</div>
+                                                                        <div className='mt-2 text-sm text-white/70'>
+                                                                                السعر بعد الخصم: {pkg.priceLabel}
+                                                                        </div>
                                                                 </ScrollReveal>
                                                         ))}
                                                 </div>
