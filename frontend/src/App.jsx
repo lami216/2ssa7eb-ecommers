@@ -8,6 +8,8 @@ import DemoPage from "./pages/DemoPage";
 import ServicesPage from "./pages/ServicesPage";
 import ServiceSuccessPage from "./pages/ServiceSuccessPage";
 import ServiceCancelPage from "./pages/ServiceCancelPage";
+import SubscriptionSuccessPage from "./pages/SubscriptionSuccessPage";
+import SubscriptionCancelPage from "./pages/SubscriptionCancelPage";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -44,6 +46,8 @@ function App() {
                                         <Route path='/our-work' element={<DemoPage />} />
                                         <Route path='/services/success' element={<ServiceSuccessPage />} />
                                         <Route path='/services/cancel' element={<ServiceCancelPage />} />
+                                        <Route path='/subscription/success' element={<SubscriptionSuccessPage />} />
+                                        <Route path='/subscription/cancel' element={<SubscriptionCancelPage />} />
                                         <Route path='/signup' element={!user ? <SignUpPage /> : <Navigate to='/' />} />
                                         <Route path='/login' element={!user ? <LoginPage /> : <Navigate to='/' />} />
                                         <Route path='/my-services' element={servicesRoute} />
