@@ -4,7 +4,9 @@ import {
         activateTrial,
         adminListServices,
         cancelService,
+        cancelServiceSubscription,
         getMyServices,
+        startServiceSubscription,
         suspendService,
         updateService,
 } from "../controllers/service.controller.js";
@@ -18,5 +20,7 @@ router.patch("/:id", protectRoute, adminRoute, updateService);
 router.post("/:id/activate-trial", protectRoute, adminRoute, activateTrial);
 router.post("/:id/suspend", protectRoute, adminRoute, suspendService);
 router.post("/:id/cancel", protectRoute, adminRoute, cancelService);
+router.post("/:id/subscription/start", protectRoute, startServiceSubscription);
+router.post("/:id/subscription/cancel", protectRoute, cancelServiceSubscription);
 
 export default router;

@@ -1,6 +1,10 @@
+import mongoose from "mongoose";
 import Service from "../models/service.model.js";
-import { createPayPalSubscription, getPayPalSubscriptionDetails } from "../lib/paypal.js";
-import { SERVICE_PACKAGES } from "../../shared/servicePackages.js";
+import {
+        cancelPayPalSubscription,
+        createPayPalSubscription,
+        getPayPalSubscriptionDetails,
+} from "../lib/paypal.js";
 
 const sanitizeText = (value) => (typeof value === "string" ? value.trim() : "");
 
@@ -123,17 +127,40 @@ const resolveFrontendBaseUrl = () =>
         process.env.APP_URL ||
         "http://localhost:5173";
 
-const resolveSubscriptionPlanId = (packageId) => {
-        const planIds = [
-                process.env.PAYPAL_PLAN_BASIC,
-                process.env.PAYPAL_PLAN_PLUS,
-                process.env.PAYPAL_PLAN_PRO,
-        ];
-        const packageIndex = SERVICE_PACKAGES.findIndex((pkg) => pkg.id === packageId);
-        if (packageIndex === -1) {
-                return "";
+const resolveSubscriptionPlanId = () => process.env.PAYPAL_PLAN_BASIC || "";
+
+const resolveServiceForSubscription = async ({ subscription, fallbackSubscriptionId }) => {
+        const customId = sanitizeText(subscription?.custom_id);
+        if (customId && mongoose.Types.ObjectId.isValid(customId)) {
+                const serviceByCustomId = await Service.findById(customId);
+                if (serviceByCustomId) {
+                        return serviceByCustomId;
+                }
         }
-        return planIds[packageIndex] || "";
+
+        const lookupId = sanitizeText(subscription?.id || fallbackSubscriptionId);
+        if (!lookupId) {
+                return null;
+        }
+        return Service.findOne({ subscriptionId: lookupId });
+};
+
+const applySubscriptionStatusUpdate = ({ service, subscription }) => {
+        const status = sanitizeText(subscription?.status);
+        const now = new Date();
+        const updates = {
+                subscriptionId: subscription?.id || service.subscriptionId,
+                subscriptionStatus: status === "ACTIVE" ? "ACTIVE" : "APPROVAL_PENDING",
+                subscriptionApproveUrl: "",
+        };
+
+        if (status === "ACTIVE") {
+                updates.trialStartAt = now;
+                updates.trialEndAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+                updates.status = "Trialing";
+        }
+
+        return updates;
 };
 
 export const createServiceSubscription = async (req, res) => {
@@ -145,21 +172,23 @@ export const createServiceSubscription = async (req, res) => {
                         return res.status(404).json({ message: "Service not found" });
                 }
 
-                const planId = resolveSubscriptionPlanId(service.packageId);
+                const planId = resolveSubscriptionPlanId();
 
                 if (!planId) {
-                        return res.status(400).json({ message: "Missing PayPal plan id for package" });
+                        return res.status(400).json({ message: "Missing PAYPAL_PLAN_BASIC configuration" });
                 }
 
                 const frontendBase = resolveFrontendBaseUrl();
-                const returnUrl = `${frontendBase}/api/paypal/subscription/return`;
-                const cancelUrl = `${frontendBase}/subscription/cancel`;
+                const serviceParam = encodeURIComponent(service._id.toString());
+                const returnUrl = `${frontendBase}/subscription/success?serviceId=${serviceParam}`;
+                const cancelUrl = `${frontendBase}/subscription/cancel?serviceId=${serviceParam}`;
 
                 const subscription = await createPayPalSubscription({
                         planId,
                         returnUrl,
                         cancelUrl,
                         trialDays: 30,
+                        customId: service._id.toString(),
                 });
 
                 const approveLink = subscription?.links?.find((link) => link.rel === "approve");
@@ -169,8 +198,9 @@ export const createServiceSubscription = async (req, res) => {
                 }
 
                 service.subscriptionId = subscription.id;
-                service.subscriptionStatus = "PendingApproval";
+                service.subscriptionStatus = "APPROVAL_PENDING";
                 service.subscriptionApproveUrl = approveLink.href;
+                service.subscriptionCreatedAt = new Date();
                 await service.save();
 
                 return res.json({
@@ -220,30 +250,162 @@ export const handlePayPalSubscriptionReturn = async (req, res) => {
                 }
 
                 const subscription = await getPayPalSubscriptionDetails(subscriptionId);
-                const status = subscription?.status;
+                const service = await resolveServiceForSubscription({
+                        subscription,
+                        fallbackSubscriptionId: subscriptionId,
+                });
 
-                if (!status || !["ACTIVE", "APPROVAL_PENDING"].includes(status)) {
-                        await Service.findOneAndUpdate(
-                                { subscriptionId },
-                                { subscriptionStatus: status || "UNKNOWN" },
-                                { new: true }
-                        );
+                if (!service) {
                         return res.redirect(`${frontendBase}/subscription/cancel`);
                 }
 
-                await Service.findOneAndUpdate(
-                        { subscriptionId },
-                        {
-                                subscriptionStatus: status,
-                                subscriptionApproveUrl: "",
-                        },
-                        { new: true }
-                );
+                const updates = applySubscriptionStatusUpdate({ service, subscription });
+                await Service.findByIdAndUpdate(service._id, updates, { new: true });
 
-                return res.redirect(`${frontendBase}/subscription/success`);
+                return res.redirect(
+                        `${frontendBase}${updates.subscriptionStatus === "ACTIVE" ? "/subscription/success" : "/subscription/cancel"}`
+                );
         } catch (error) {
                 console.log("Error handling PayPal subscription return", error.message);
                 const frontendBase = resolveFrontendBaseUrl();
                 return res.redirect(`${frontendBase}/subscription/cancel`);
+        }
+};
+
+export const startServiceSubscription = async (req, res) => {
+        try {
+                const email = req.user?.email?.toLowerCase();
+                const serviceId = req.params.id;
+
+                if (!email) {
+                        return res.status(400).json({ message: "Email not found" });
+                }
+
+                const service = await Service.findOne({ _id: serviceId, email });
+
+                if (!service) {
+                        return res.status(404).json({ message: "Service not found" });
+                }
+
+                if (service.subscriptionStatus === "ACTIVE" || service.subscriptionStatus === "TRIALING") {
+                        return res.status(400).json({ message: "الاشتراك مفعل بالفعل" });
+                }
+
+                const pendingStatuses = ["NONE", "PENDING", "APPROVAL_PENDING", ""];
+                if (!pendingStatuses.includes(service.subscriptionStatus || "")) {
+                        return res.status(400).json({ message: "لا يمكن تفعيل الاشتراك في الحالة الحالية" });
+                }
+
+                if (service.subscriptionStatus === "APPROVAL_PENDING" && service.subscriptionApproveUrl) {
+                        return res.json({ approve_url: service.subscriptionApproveUrl });
+                }
+
+                const planId = resolveSubscriptionPlanId();
+
+                if (!planId) {
+                        return res.status(400).json({ message: "Missing PAYPAL_PLAN_BASIC configuration" });
+                }
+
+                const frontendBase = resolveFrontendBaseUrl();
+                const serviceParam = encodeURIComponent(service._id.toString());
+                const returnUrl = `${frontendBase}/subscription/success?serviceId=${serviceParam}`;
+                const cancelUrl = `${frontendBase}/subscription/cancel?serviceId=${serviceParam}`;
+
+                const subscription = await createPayPalSubscription({
+                        planId,
+                        returnUrl,
+                        cancelUrl,
+                        trialDays: 30,
+                        customId: service._id.toString(),
+                });
+
+                const approveLink = subscription?.links?.find((link) => link.rel === "approve");
+
+                if (!approveLink?.href || !subscription?.id) {
+                        return res.status(500).json({ message: "Failed to create PayPal subscription approval link" });
+                }
+
+                service.subscriptionId = subscription.id;
+                service.subscriptionStatus = "APPROVAL_PENDING";
+                service.subscriptionApproveUrl = approveLink.href;
+                service.subscriptionCreatedAt = new Date();
+                await service.save();
+
+                return res.json({ approve_url: approveLink.href });
+        } catch (error) {
+                console.log("Error starting PayPal subscription", error.message);
+                return res.status(500).json({ message: "Unable to create PayPal subscription" });
+        }
+};
+
+export const completePayPalSubscription = async (req, res) => {
+        const frontendBase = resolveFrontendBaseUrl();
+        try {
+                const serviceId = sanitizeText(req.query.serviceId);
+                const token = sanitizeText(req.query.subscription_id || req.query.token || req.query.ba_token);
+                const wasCanceled = String(req.query.canceled || "").toLowerCase() === "1";
+
+                if (!serviceId || !mongoose.Types.ObjectId.isValid(serviceId)) {
+                        return res.redirect(`${frontendBase}/my-services?success=0`);
+                }
+
+                const service = await Service.findById(serviceId);
+
+                if (!service) {
+                        return res.redirect(`${frontendBase}/my-services?success=0`);
+                }
+
+                if (!token) {
+                        const redirectParam = wasCanceled ? "subCanceled=1" : "pending=1";
+                        return res.redirect(`${frontendBase}/my-services?${redirectParam}`);
+                }
+
+                const subscription = await getPayPalSubscriptionDetails(token);
+
+                const updates = applySubscriptionStatusUpdate({ service, subscription });
+                await Service.findByIdAndUpdate(service._id, updates, { new: true });
+
+                if (updates.subscriptionStatus === "ACTIVE") {
+                        return res.redirect(`${frontendBase}/my-services?success=1`);
+                }
+
+                const pendingParam = wasCanceled ? "subCanceled=1" : "pending=1";
+                return res.redirect(`${frontendBase}/my-services?${pendingParam}`);
+        } catch (error) {
+                console.log("Error completing PayPal subscription", error.message);
+                return res.redirect(`${frontendBase}/my-services?success=0`);
+        }
+};
+
+export const cancelServiceSubscription = async (req, res) => {
+        try {
+                const email = req.user?.email?.toLowerCase();
+                const serviceId = req.params.id;
+
+                if (!email) {
+                        return res.status(400).json({ message: "Email not found" });
+                }
+
+                const service = await Service.findOne({ _id: serviceId, email });
+
+                if (!service) {
+                        return res.status(404).json({ message: "Service not found" });
+                }
+
+                if (!service.subscriptionId) {
+                        return res.status(400).json({ message: "لا يوجد اشتراك لإلغائه" });
+                }
+
+                await cancelPayPalSubscription(service.subscriptionId);
+
+                service.subscriptionStatus = "CANCELED";
+                service.canceledAt = new Date();
+                service.status = "Canceled";
+                await service.save();
+
+                return res.json(service);
+        } catch (error) {
+                console.log("Error canceling PayPal subscription", error.message);
+                return res.status(500).json({ message: "Unable to cancel subscription" });
         }
 };

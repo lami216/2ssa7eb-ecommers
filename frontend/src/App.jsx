@@ -10,6 +10,7 @@ import ServiceSuccessPage from "./pages/ServiceSuccessPage";
 import ServiceCancelPage from "./pages/ServiceCancelPage";
 import SubscriptionSuccessPage from "./pages/SubscriptionSuccessPage";
 import SubscriptionCancelPage from "./pages/SubscriptionCancelPage";
+import SubscriptionManagePage from "./pages/SubscriptionManagePage";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -36,6 +37,11 @@ function App() {
                         ? <ServicesPage />
                         : <Navigate to='/' />
                 : <Navigate to='/login' />;
+        const manageSubscriptionRoute = user
+                ? user.hasServices
+                        ? <SubscriptionManagePage />
+                        : <Navigate to='/' />
+                : <Navigate to='/login' />;
 
         return (
                 <div className='relative min-h-screen text-payzone-white'>
@@ -48,6 +54,7 @@ function App() {
                                         <Route path='/services/cancel' element={<ServiceCancelPage />} />
                                         <Route path='/subscription/success' element={<SubscriptionSuccessPage />} />
                                         <Route path='/subscription/cancel' element={<SubscriptionCancelPage />} />
+                                        <Route path='/subscription/manage/:serviceId' element={manageSubscriptionRoute} />
                                         <Route path='/signup' element={!user ? <SignUpPage /> : <Navigate to='/' />} />
                                         <Route path='/login' element={!user ? <LoginPage /> : <Navigate to='/' />} />
                                         <Route path='/my-services' element={servicesRoute} />

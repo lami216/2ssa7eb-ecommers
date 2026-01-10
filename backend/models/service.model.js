@@ -43,20 +43,39 @@ const serviceSchema = new mongoose.Schema(
                         type: String,
                         default: "",
                         trim: true,
+                        alias: "subscription_id",
                 },
                 subscriptionStatus: {
                         type: String,
-                        default: "",
+                        default: "NONE",
                         trim: true,
+                        alias: "subscription_status",
                 },
                 subscriptionApproveUrl: {
                         type: String,
                         default: "",
                         trim: true,
+                        alias: "subscription_approve_url",
+                },
+                subscriptionCreatedAt: {
+                        type: Date,
+                        default: null,
+                        alias: "subscription_created_at",
                 },
                 trialStartAt: {
                         type: Date,
                         default: null,
+                        alias: "trial_start_at",
+                },
+                trialEndAt: {
+                        type: Date,
+                        default: null,
+                        alias: "trial_end_at",
+                },
+                canceledAt: {
+                        type: Date,
+                        default: null,
+                        alias: "canceled_at",
                 },
                 lastPaymentAt: {
                         type: Date,
