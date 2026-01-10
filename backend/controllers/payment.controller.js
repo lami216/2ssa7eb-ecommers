@@ -39,10 +39,9 @@ export const createPayPalCheckout = async (req, res) => {
                         return res.status(400).json({ message: "Invalid package" });
                 }
 
-                const frontendBase =
-                        process.env.FRONTEND_URL || process.env.APP_URL || "http://localhost:5173";
-                const returnUrl = `${frontendBase}/services/success`;
-                const cancelUrl = `${frontendBase}/services/cancel`;
+                const appUrl = process.env.APP_URL || "http://localhost:5173";
+                const returnUrl = `${appUrl}/services/success`;
+                const cancelUrl = `${appUrl}/services/cancel`;
 
                 const paypalOrder = await createPayPalOrder({
                         amount: formatPayPalAmount(selectedPackage.oneTimePrice),
