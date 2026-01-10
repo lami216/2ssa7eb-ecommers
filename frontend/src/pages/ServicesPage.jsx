@@ -73,7 +73,10 @@ const ServicesPage = () => {
                 setError("");
                 setActionServiceId(serviceId);
                 try {
-                        const response = await apiClient.post(`/services/${serviceId}/subscription/start`);
+                        const safeServiceId = encodeURIComponent(serviceId);
+                        const response = await apiClient.post(
+                                `/services/${safeServiceId}/subscription/start`
+                        );
                         if (response?.approve_url) {
                                 window.location.href = response.approve_url;
                         } else {
@@ -145,7 +148,9 @@ const ServicesPage = () => {
                                                                                 <td className='px-6 py-4'>
                                                                                         {isSubscriptionActive(service) && !shouldShowActivate(service) ? (
                                                                                                 <Link
-                                                                                                        to={`/subscription/manage/${service._id}`}
+                                                                                                        to={`/subscription/manage/${encodeURIComponent(
+                                                                                                                service._id
+                                                                                                        )}`}
                                                                                                         className='inline-flex items-center justify-center rounded-full bg-payzone-gold px-4 py-2 text-xs font-semibold text-payzone-navy transition hover:bg-[#b8873d]'
                                                                                                 >
                                                                                                         إدارة اشتراكي

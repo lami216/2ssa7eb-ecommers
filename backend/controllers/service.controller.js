@@ -165,11 +165,29 @@ const applySubscriptionStatusUpdate = ({ service, subscription }) => {
 
 export const createServiceSubscription = async (req, res) => {
         try {
-                const serviceId = req.params.id;
-                const service = await Service.findById(serviceId);
+                const serviceId = String(req.params.id || "").trim();
+
+                if (!serviceId || !mongoose.Types.ObjectId.isValid(serviceId)) {
+                        return res.status(400).json({ message: "Invalid service id" });
+                }
+
+                const serviceObjectId = new mongoose.Types.ObjectId(serviceId.toString());
+                const service = await Service.findById(serviceObjectId);
 
                 if (!service) {
                         return res.status(404).json({ message: "Service not found" });
+                }
+
+                const existingStatus = sanitizeText(service.subscriptionStatus || "").toUpperCase();
+                const blockedStatuses = ["APPROVAL_PENDING", "ACTIVE", "TRIALING"];
+                if (service.subscriptionId || blockedStatuses.includes(existingStatus)) {
+                        if (existingStatus === "APPROVAL_PENDING" && service.subscriptionApproveUrl) {
+                                return res.json({
+                                        service,
+                                        approve_url: service.subscriptionApproveUrl,
+                                });
+                        }
+                        return res.status(400).json({ message: "Subscription already exists for this service" });
                 }
 
                 const planId = resolveSubscriptionPlanId();
