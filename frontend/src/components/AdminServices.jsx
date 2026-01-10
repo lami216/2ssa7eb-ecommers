@@ -40,59 +40,37 @@ const AdminServices = () => {
 
         const updateService = async (serviceId, payload) => {
                 try {
-                        const updated = await apiClient.patch(`/services/${serviceId}`, payload);
+                        const safeServiceId = encodeURIComponent(serviceId);
+                        const updated = await apiClient.patch(`/services/${safeServiceId}`, payload);
                         setServices((prev) => prev.map((service) => (service._id === serviceId ? updated : service)));
                 } catch (err) {
                         setError(err.response?.data?.message || "تعذر تحديث الخدمة.");
                 }
         };
 
-        const runAction = async (serviceId, action) => {
-                try {
-                        const updated = await apiClient.post(`/services/${serviceId}/${action}`);
-                        setServices((prev) => prev.map((service) => (service._id === serviceId ? updated : service)));
-                } catch (err) {
-                        setError(err.response?.data?.message || "تعذر تنفيذ الإجراء.");
-                }
-        };
-
-        const createSubscription = async (serviceId) => {
+        const createSubscription = async (service) => {
                 setError("");
+                const hasSubscription =
+                        Boolean(service.subscriptionId) ||
+                        ["APPROVAL_PENDING", "ACTIVE", "TRIALING"].includes(service.subscriptionStatus || "");
+                if (hasSubscription) {
+                        setError("الاشتراك موجود بالفعل ولا يمكن إنشاء اشتراك جديد.");
+                        return;
+                }
                 try {
-                        const response = await apiClient.post(`/admin/services/${serviceId}/subscription/create`);
+                        const safeServiceId = encodeURIComponent(service._id);
+                        const response = await apiClient.post(
+                                `/admin/services/${safeServiceId}/subscription/create`
+                        );
                         if (response?.service) {
                                 setServices((prev) =>
                                         prev.map((service) =>
-                                                service._id === serviceId ? response.service : service
+                                                service._id === response.service._id ? response.service : service
                                         )
                                 );
                         }
                 } catch (err) {
                         setError(err.response?.data?.message || "تعذر إنشاء الاشتراك.");
-                }
-        };
-
-        const markTrialStarted = async (service) => {
-                setError("");
-                let force = false;
-                if (service.subscriptionStatus !== "ACTIVE") {
-                        force = window.confirm(
-                                "الاشتراك غير نشط بعد. هل تؤكد أن العميل وافق على PayPal لبدء التجربة؟"
-                        );
-                        if (!force) {
-                                return;
-                        }
-                }
-                try {
-                        const updated = await apiClient.post(
-                                `/admin/services/${service._id}/subscription/trial-start`,
-                                { force }
-                        );
-                        setServices((prev) =>
-                                prev.map((item) => (item._id === service._id ? updated : item))
-                        );
-                } catch (err) {
-                        setError(err.response?.data?.message || "تعذر بدء التجربة.");
                 }
         };
 
@@ -155,8 +133,17 @@ const AdminServices = () => {
                                                 </tr>
                                         </thead>
                                         <tbody>
-                                                {services.map((service) => (
-                                                        <tr key={service._id} className='border-t border-white/10 text-white/80'>
+                                                {services.map((service) => {
+                                                        const hasSubscription =
+                                                                Boolean(service.subscriptionId) ||
+                                                                ["APPROVAL_PENDING", "ACTIVE", "TRIALING"].includes(
+                                                                        service.subscriptionStatus || ""
+                                                                );
+                                                        return (
+                                                                <tr
+                                                                        key={service._id}
+                                                                        className='border-t border-white/10 text-white/80'
+                                                                >
                                                                 <td className='px-4 py-3'>{service.email}</td>
                                                                 <td className='px-4 py-3'>{service.packageName}</td>
                                                                 <td className='px-4 py-3'>
@@ -222,43 +209,22 @@ const AdminServices = () => {
                                                                         <div className='flex flex-wrap gap-2'>
                                                                                 <button
                                                                                         type='button'
-                                                                                        onClick={() => createSubscription(service._id)}
-                                                                                        className='rounded-full bg-payzone-indigo/60 px-3 py-1 text-xs font-semibold text-white transition hover:bg-payzone-indigo/80'
+                                                                                        onClick={() => createSubscription(service)}
+                                                                                        className='rounded-full bg-payzone-indigo/60 px-3 py-1 text-xs font-semibold text-white transition hover:bg-payzone-indigo/80 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/50'
+                                                                                        disabled={hasSubscription}
                                                                                 >
                                                                                         Create Subscription
                                                                                 </button>
-                                                                                <button
-                                                                                        type='button'
-                                                                                        onClick={() => markTrialStarted(service)}
-                                                                                        className='rounded-full bg-payzone-gold px-3 py-1 text-xs font-semibold text-payzone-navy transition hover:bg-[#b8873d]'
-                                                                                >
-                                                                                        Mark Trial Started
-                                                                                </button>
-                                                                                <button
-                                                                                        type='button'
-                                                                                        onClick={() => runAction(service._id, "activate-trial")}
-                                                                                        className='rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/20'
-                                                                                >
-                                                                                        Activate & Start Trial
-                                                                                </button>
-                                                                                <button
-                                                                                        type='button'
-                                                                                        onClick={() => runAction(service._id, "suspend")}
-                                                                                        className='rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/20'
-                                                                                >
-                                                                                        Suspend
-                                                                                </button>
-                                                                                <button
-                                                                                        type='button'
-                                                                                        onClick={() => runAction(service._id, "cancel")}
-                                                                                        className='rounded-full bg-red-500/20 px-3 py-1 text-xs font-semibold text-red-200 transition hover:bg-red-500/30'
-                                                                                >
-                                                                                        Cancel
-                                                                                </button>
+                                                                                {hasSubscription && (
+                                                                                        <span className='text-xs text-white/60'>
+                                                                                                الاشتراك موجود بالفعل.
+                                                                                        </span>
+                                                                                )}
                                                                         </div>
                                                                 </td>
                                                         </tr>
-                                                ))}
+                                                        );
+                                                })}
                                         </tbody>
                                 </table>
                         </div>

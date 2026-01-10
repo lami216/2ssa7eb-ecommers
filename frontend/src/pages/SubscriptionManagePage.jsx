@@ -48,7 +48,10 @@ const SubscriptionManagePage = () => {
                 setSuccessMessage("");
                 setIsCanceling(true);
                 try {
-                        const updated = await apiClient.post(`/services/${service._id}/subscription/cancel`);
+                        const safeServiceId = encodeURIComponent(service._id);
+                        const updated = await apiClient.post(
+                                `/services/${safeServiceId}/subscription/cancel`
+                        );
                         setService(updated);
                         setSuccessMessage("تم إلغاء تفعيل الاشتراك.");
                 } catch (err) {
