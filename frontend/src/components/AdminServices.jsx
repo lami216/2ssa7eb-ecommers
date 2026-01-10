@@ -56,6 +56,57 @@ const AdminServices = () => {
                 }
         };
 
+        const createSubscription = async (serviceId) => {
+                setError("");
+                try {
+                        const response = await apiClient.post(`/admin/services/${serviceId}/subscription/create`);
+                        if (response?.service) {
+                                setServices((prev) =>
+                                        prev.map((service) =>
+                                                service._id === serviceId ? response.service : service
+                                        )
+                                );
+                        }
+                } catch (err) {
+                        setError(err.response?.data?.message || "تعذر إنشاء الاشتراك.");
+                }
+        };
+
+        const markTrialStarted = async (service) => {
+                setError("");
+                let force = false;
+                if (service.subscriptionStatus !== "ACTIVE") {
+                        force = window.confirm(
+                                "الاشتراك غير نشط بعد. هل تؤكد أن العميل وافق على PayPal لبدء التجربة؟"
+                        );
+                        if (!force) {
+                                return;
+                        }
+                }
+                try {
+                        const updated = await apiClient.post(
+                                `/admin/services/${service._id}/subscription/trial-start`,
+                                { force }
+                        );
+                        setServices((prev) =>
+                                prev.map((item) => (item._id === service._id ? updated : item))
+                        );
+                } catch (err) {
+                        setError(err.response?.data?.message || "تعذر بدء التجربة.");
+                }
+        };
+
+        const copyApproveLink = async (link) => {
+                if (!link) {
+                        return;
+                }
+                try {
+                        await navigator.clipboard.writeText(link);
+                } catch {
+                        window.prompt("انسخ الرابط:", link);
+                }
+        };
+
         return (
                 <div className='rounded-3xl border border-white/10 bg-payzone-navy/70 p-6 text-white'>
                         <div className='flex flex-col gap-4 md:flex-row md:items-center md:justify-between'>
@@ -98,6 +149,8 @@ const AdminServices = () => {
                                                         <th className='px-4 py-3 text-right'>بدء التجربة</th>
                                                         <th className='px-4 py-3 text-right'>آخر دفع</th>
                                                         <th className='px-4 py-3 text-right'>Subscription ID</th>
+                                                        <th className='px-4 py-3 text-right'>Subscription Status</th>
+                                                        <th className='px-4 py-3 text-right'>Approve URL</th>
                                                         <th className='px-4 py-3 text-right'>إجراءات</th>
                                                 </tr>
                                         </thead>
@@ -137,12 +190,54 @@ const AdminServices = () => {
                                                                                 className='w-40 rounded-md border border-white/15 bg-payzone-navy/70 px-2 py-1 text-xs text-white focus:border-payzone-gold focus:outline-none'
                                                                         />
                                                                 </td>
+                                                                <td className='px-4 py-3 text-xs'>
+                                                                        {service.subscriptionStatus || "-"}
+                                                                </td>
+                                                                <td className='px-4 py-3'>
+                                                                        {service.subscriptionApproveUrl ? (
+                                                                                <div className='flex flex-col gap-2'>
+                                                                                        <input
+                                                                                                type='text'
+                                                                                                readOnly
+                                                                                                value={service.subscriptionApproveUrl}
+                                                                                                className='w-64 rounded-md border border-white/15 bg-payzone-navy/70 px-2 py-1 text-[11px] text-white focus:border-payzone-gold focus:outline-none'
+                                                                                        />
+                                                                                        <button
+                                                                                                type='button'
+                                                                                                onClick={() =>
+                                                                                                        copyApproveLink(
+                                                                                                                service.subscriptionApproveUrl
+                                                                                                        )
+                                                                                                }
+                                                                                                className='rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/20'
+                                                                                        >
+                                                                                                Copy Link
+                                                                                        </button>
+                                                                                </div>
+                                                                        ) : (
+                                                                                <span className='text-xs text-white/50'>-</span>
+                                                                        )}
+                                                                </td>
                                                                 <td className='px-4 py-3'>
                                                                         <div className='flex flex-wrap gap-2'>
                                                                                 <button
                                                                                         type='button'
-                                                                                        onClick={() => runAction(service._id, "activate-trial")}
+                                                                                        onClick={() => createSubscription(service._id)}
+                                                                                        className='rounded-full bg-payzone-indigo/60 px-3 py-1 text-xs font-semibold text-white transition hover:bg-payzone-indigo/80'
+                                                                                >
+                                                                                        Create Subscription
+                                                                                </button>
+                                                                                <button
+                                                                                        type='button'
+                                                                                        onClick={() => markTrialStarted(service)}
                                                                                         className='rounded-full bg-payzone-gold px-3 py-1 text-xs font-semibold text-payzone-navy transition hover:bg-[#b8873d]'
+                                                                                >
+                                                                                        Mark Trial Started
+                                                                                </button>
+                                                                                <button
+                                                                                        type='button'
+                                                                                        onClick={() => runAction(service._id, "activate-trial")}
+                                                                                        className='rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/20'
                                                                                 >
                                                                                         Activate & Start Trial
                                                                                 </button>

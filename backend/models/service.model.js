@@ -44,6 +44,16 @@ const serviceSchema = new mongoose.Schema(
                         default: "",
                         trim: true,
                 },
+                subscriptionStatus: {
+                        type: String,
+                        default: "",
+                        trim: true,
+                },
+                subscriptionApproveUrl: {
+                        type: String,
+                        default: "",
+                        trim: true,
+                },
                 trialStartAt: {
                         type: Date,
                         default: null,

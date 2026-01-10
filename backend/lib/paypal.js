@@ -91,3 +91,61 @@ export const capturePayPalOrder = async (orderId) => {
 
         return response.json();
 };
+
+export const createPayPalSubscription = async ({
+        planId,
+        returnUrl,
+        cancelUrl,
+        trialDays = 30,
+}) => {
+        const baseUrl = resolvePayPalBaseUrl();
+        const accessToken = await getPayPalAccessToken();
+        const startTime = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString();
+
+        const response = await fetch(`${baseUrl}/v1/billing/subscriptions`, {
+                method: "POST",
+                headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                        plan_id: planId,
+                        start_time: startTime,
+                        application_context: {
+                                return_url: returnUrl,
+                                cancel_url: cancelUrl,
+                                user_action: "SUBSCRIBE_NOW",
+                        },
+                }),
+        });
+
+        if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`PayPal subscription request failed: ${errorText}`);
+        }
+
+        return response.json();
+};
+
+export const getPayPalSubscriptionDetails = async (subscriptionId) => {
+        const baseUrl = resolvePayPalBaseUrl();
+        const accessToken = await getPayPalAccessToken();
+        const safeSubscriptionId = encodeURIComponent(subscriptionId);
+        const response = await fetch(
+                `${baseUrl}/v1/billing/subscriptions/${safeSubscriptionId}`,
+                {
+                        method: "GET",
+                        headers: {
+                                Authorization: `Bearer ${accessToken}`,
+                                "Content-Type": "application/json",
+                        },
+                }
+        );
+
+        if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`PayPal subscription fetch failed: ${errorText}`);
+        }
+
+        return response.json();
+};
