@@ -2,29 +2,20 @@ import Service from "../models/service.model.js";
 import ServiceCheckout from "../models/serviceCheckout.model.js";
 import { capturePayPalOrder, createPayPalOrder } from "../lib/paypal.js";
 import { sendServiceRequestEmail, sendTelegramNotification } from "../lib/notifications.js";
+import { DEFAULT_CURRENCY, buildServicePackages } from "../../shared/servicePackages.js";
 
-const packages = [
-        {
-                id: "starter",
-                name: "باقة الإقلاع – Basic",
-                amount: "5000",
-                currency: "MRU",
-        },
-        {
-                id: "growth",
-                name: "باقة النمو – Pro",
-                amount: "10000",
-                currency: "MRU",
-        },
-        {
-                id: "full",
-                name: "باقة السيطرة الكاملة – Plus",
-                amount: "20000",
-                currency: "MRU",
-        },
-];
+const resolvePayPalCurrency = () => (process.env.PAYPAL_CURRENCY || DEFAULT_CURRENCY).toUpperCase();
+const PAYPAL_CURRENCY = resolvePayPalCurrency();
+const packages = buildServicePackages(PAYPAL_CURRENCY);
 
 const findPackage = (packageId) => packages.find((pkg) => pkg.id === packageId);
+const formatPayPalAmount = (amount) => {
+        const normalized = Number(amount);
+        if (!Number.isFinite(normalized)) {
+                return "0.00";
+        }
+        return normalized.toFixed(2);
+};
 
 const sanitizeText = (value) => (typeof value === "string" ? value.trim() : "");
 const isValidOrderId = (value) => /^[A-Za-z0-9-]{10,40}$/.test(value);
@@ -53,8 +44,8 @@ export const createPayPalCheckout = async (req, res) => {
                 const cancelUrl = `${appUrl}/services/cancel`;
 
                 const paypalOrder = await createPayPalOrder({
-                        amount: selectedPackage.amount,
-                        currency: selectedPackage.currency,
+                        amount: formatPayPalAmount(selectedPackage.oneTimePrice),
+                        currency: PAYPAL_CURRENCY,
                         returnUrl,
                         cancelUrl,
                         description: selectedPackage.name,
