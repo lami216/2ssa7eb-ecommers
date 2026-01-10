@@ -29,6 +29,12 @@ function App() {
                 return <LoadingSpinner />;
         }
 
+        const servicesRoute = user
+                ? user.hasServices
+                        ? <ServicesPage />
+                        : <Navigate to='/' />
+                : <Navigate to='/login' />;
+
         return (
                 <div className='relative min-h-screen text-payzone-white'>
                         <div className='relative z-50 pt-20'>
@@ -40,20 +46,7 @@ function App() {
                                         <Route path='/services/cancel' element={<ServiceCancelPage />} />
                                         <Route path='/signup' element={!user ? <SignUpPage /> : <Navigate to='/' />} />
                                         <Route path='/login' element={!user ? <LoginPage /> : <Navigate to='/' />} />
-                                        <Route
-                                                path='/my-services'
-                                                element={
-                                                        user ? (
-                                                                user.hasServices ? (
-                                                                        <ServicesPage />
-                                                                ) : (
-                                                                        <Navigate to='/' />
-                                                                )
-                                                        ) : (
-                                                                <Navigate to='/login' />
-                                                        )
-                                                }
-                                        />
+                                        <Route path='/my-services' element={servicesRoute} />
                                         <Route
                                                 path='/secret-dashboard'
                                                 element={user?.role === "admin" ? <AdminPage /> : <Navigate to='/login' />}

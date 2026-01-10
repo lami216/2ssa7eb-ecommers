@@ -92,7 +92,7 @@ const HomePage = () => {
                         setCheckoutLoading(true);
                         const data = await apiClient.post("/payments/paypal/create-order", checkoutInfo);
                         if (data?.approveUrl) {
-                                window.location.href = data.approveUrl;
+                                globalThis.location.href = data.approveUrl;
                         } else {
                                 setCheckoutError("تعذر تجهيز الدفع عبر باي بال الآن.");
                         }
@@ -317,9 +317,11 @@ const HomePage = () => {
                                                                                 </div>
                                                                         )}
                                                                         <a
-                                                                                href={buildWhatsAppLink(pkg.name)}
-                                                                                target='_blank'
-                                                                                rel='noreferrer'
+                                                                                href='#qualification'
+                                                                                onClick={(event) => {
+                                                                                        event.preventDefault();
+                                                                                        document.getElementById("qualification")?.scrollIntoView({ behavior: "smooth" });
+                                                                                }}
                                                                                 className='btn-primary mt-8'
                                                                         >
                                                                                 اطلب باقتك الآن

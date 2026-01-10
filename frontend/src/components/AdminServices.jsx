@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import apiClient from "../lib/apiClient";
 
 const statusOptions = ["Pending", "Trialing", "Suspended", "Canceled"];
@@ -20,7 +20,7 @@ const AdminServices = () => {
         const [loading, setLoading] = useState(false);
         const [error, setError] = useState("");
 
-        const fetchServices = async () => {
+        const fetchServices = useCallback(async () => {
                 setLoading(true);
                 setError("");
                 try {
@@ -32,11 +32,11 @@ const AdminServices = () => {
                 } finally {
                         setLoading(false);
                 }
-        };
+        }, [searchEmail]);
 
         useEffect(() => {
                 fetchServices();
-        }, []);
+        }, [fetchServices]);
 
         const updateService = async (serviceId, payload) => {
                 try {

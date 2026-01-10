@@ -27,6 +27,7 @@ const packages = [
 const findPackage = (packageId) => packages.find((pkg) => pkg.id === packageId);
 
 const sanitizeText = (value) => (typeof value === "string" ? value.trim() : "");
+const isValidOrderId = (value) => /^[A-Za-z0-9-]{10,40}$/.test(value);
 
 export const createPayPalCheckout = async (req, res) => {
         try {
@@ -105,8 +106,8 @@ export const capturePayPalCheckout = async (req, res) => {
         try {
                 const orderId = sanitizeText(req.body.orderId || req.query.orderId);
 
-                if (!orderId) {
-                        return res.status(400).json({ message: "Missing order id" });
+                if (!orderId || !isValidOrderId(orderId)) {
+                        return res.status(400).json({ message: "Invalid order id" });
                 }
 
                 const checkout = await ServiceCheckout.findOne({ orderId });

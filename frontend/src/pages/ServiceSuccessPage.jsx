@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import apiClient from "../lib/apiClient";
 
 const buildWhatsAppLink = (number) => {
-        const trimmed = number.replace(/\s+/g, "");
+        const trimmed = number.replaceAll(/\s+/g, "");
         return `https://wa.me/${trimmed}`;
 };
 

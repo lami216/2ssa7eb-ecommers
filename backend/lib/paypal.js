@@ -74,7 +74,9 @@ export const createPayPalOrder = async ({ amount, currency, returnUrl, cancelUrl
 export const capturePayPalOrder = async (orderId) => {
         const baseUrl = resolvePayPalBaseUrl();
         const accessToken = await getPayPalAccessToken();
-        const response = await fetch(`${baseUrl}/v2/checkout/orders/${orderId}/capture`, {
+        const safeOrderId = encodeURIComponent(orderId);
+        const url = new URL(`/v2/checkout/orders/${safeOrderId}/capture`, baseUrl);
+        const response = await fetch(url.toString(), {
                 method: "POST",
                 headers: {
                         Authorization: `Bearer ${accessToken}`,

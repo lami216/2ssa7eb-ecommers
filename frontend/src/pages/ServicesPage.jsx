@@ -15,6 +15,7 @@ const formatDate = (value) => {
 const ServicesPage = () => {
         const [services, setServices] = useState([]);
         const [loading, setLoading] = useState(true);
+        const [error, setError] = useState("");
 
         useEffect(() => {
                 let isMounted = true;
@@ -26,8 +27,10 @@ const ServicesPage = () => {
                                         setServices(Array.isArray(data) ? data : []);
                                 }
                         } catch (error) {
+                                console.error("Failed to load services", error);
                                 if (isMounted) {
                                         setServices([]);
+                                        setError("تعذر تحميل الخدمات حالياً.");
                                 }
                         } finally {
                                 if (isMounted) {
@@ -60,6 +63,11 @@ const ServicesPage = () => {
                                         <h1 className='text-3xl font-bold text-payzone-gold'>خدماتي</h1>
                                         <p className='mt-2 text-white/70'>إدارة خدماتك الحالية من مكان واحد.</p>
                                 </div>
+                                {error && (
+                                        <div className='mb-6 rounded-2xl border border-red-400/30 bg-red-500/10 px-6 py-4 text-sm text-red-200'>
+                                                {error}
+                                        </div>
+                                )}
 
                                 <div className='overflow-hidden rounded-3xl border border-white/10 bg-payzone-navy/70'>
                                         <div className='overflow-x-auto'>
