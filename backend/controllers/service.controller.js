@@ -275,13 +275,18 @@ export const handlePayPalSubscriptionReturn = async (req, res) => {
 export const startServiceSubscription = async (req, res) => {
         try {
                 const email = req.user?.email?.toLowerCase();
-                const serviceId = req.params.id;
+                const serviceId = String(req.params.id || "").trim();
 
                 if (!email) {
                         return res.status(400).json({ message: "Email not found" });
                 }
 
-                const service = await Service.findOne({ _id: serviceId, email });
+                if (!mongoose.Types.ObjectId.isValid(serviceId)) {
+                        return res.status(400).json({ message: "Invalid service id" });
+                }
+
+                const serviceObjectId = new mongoose.Types.ObjectId(serviceId);
+                const service = await Service.findOne({ _id: serviceObjectId, email });
 
                 if (!service) {
                         return res.status(404).json({ message: "Service not found" });
@@ -380,13 +385,18 @@ export const completePayPalSubscription = async (req, res) => {
 export const cancelServiceSubscription = async (req, res) => {
         try {
                 const email = req.user?.email?.toLowerCase();
-                const serviceId = req.params.id;
+                const serviceId = String(req.params.id || "").trim();
 
                 if (!email) {
                         return res.status(400).json({ message: "Email not found" });
                 }
 
-                const service = await Service.findOne({ _id: serviceId, email });
+                if (!mongoose.Types.ObjectId.isValid(serviceId)) {
+                        return res.status(400).json({ message: "Invalid service id" });
+                }
+
+                const serviceObjectId = new mongoose.Types.ObjectId(serviceId);
+                const service = await Service.findOne({ _id: serviceObjectId, email });
 
                 if (!service) {
                         return res.status(404).json({ message: "Service not found" });
