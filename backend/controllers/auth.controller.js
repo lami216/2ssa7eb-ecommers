@@ -1,5 +1,6 @@
 import { redis } from "../lib/redis.js";
 import User from "../models/user.model.js";
+import Service from "../models/service.model.js";
 import jwt from "jsonwebtoken";
 
 const generateTokens = (userId) => {
@@ -58,6 +59,7 @@ export const signup = async (req, res) => {
 			name: user.name,
 			email: user.email,
 			role: user.role,
+			hasServices: false,
 		});
 	} catch (error) {
 		console.log("Error in signup controller", error.message);
@@ -76,6 +78,7 @@ export const login = async (req, res) => {
                 const user = await User.findOne({ email });
 
 		if (user && (await user.comparePassword(password))) {
+			const hasServices = await Service.exists({ email: user.email });
 			const { accessToken, refreshToken } = generateTokens(user._id);
 			await storeRefreshToken(user._id, refreshToken);
 			setCookies(res, accessToken, refreshToken);
@@ -85,6 +88,7 @@ export const login = async (req, res) => {
 				name: user.name,
 				email: user.email,
 				role: user.role,
+				hasServices: Boolean(hasServices),
 			});
 		} else {
 			res.status(400).json({ message: "Invalid email or password" });
@@ -146,7 +150,11 @@ export const refreshToken = async (req, res) => {
 
 export const getProfile = async (req, res) => {
 	try {
-		res.json(req.user);
+		const hasServices = await Service.exists({ email: req.user.email });
+		res.json({
+			...req.user.toObject(),
+			hasServices: Boolean(hasServices),
+		});
 	} catch (error) {
 		res.status(500).json({ message: "Server error", error: error.message });
 	}

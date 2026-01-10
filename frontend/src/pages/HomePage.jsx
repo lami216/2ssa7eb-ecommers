@@ -1,8 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import { Briefcase, ChevronDown, MessageSquare, Package } from "lucide-react";
-
-const WHATSAPP_NUMBER = "22249823328";
+import { ChevronDown, Mail, MessageSquare, Package, Phone, User } from "lucide-react";
+import apiClient from "../lib/apiClient";
 
 const HomePage = () => {
         const packages = useMemo(
@@ -67,30 +66,42 @@ const HomePage = () => {
                 []
         );
 
-        const [qualification, setQualification] = useState({
-                packageName: packages[0].name,
-                businessType: "شركة",
-                notes: "",
+        const [checkoutInfo, setCheckoutInfo] = useState({
+                packageId: packages[0].id,
+                name: "",
+                email: "",
+                whatsapp: "",
+                alternateEmail: "",
+                idea: "",
         });
+        const [checkoutLoading, setCheckoutLoading] = useState(false);
+        const [checkoutError, setCheckoutError] = useState("");
 
         const shouldReduceMotion = useReducedMotion();
-        const buildWhatsAppLink = (packageName, extra) => {
-                const lines = [
-                        "السلام عليكم، أرغب بالبدء مع Payzone بايزوون.",
-                        `الباقة المختارة: ${packageName}.`,
-                ];
-                if (extra?.businessType) {
-                        lines.push(`نوع النشاط: ${extra.businessType}.`);
-                }
-                if (extra?.notes) {
-                        lines.push(`تفاصيل مختصرة: ${extra.notes}.`);
-                }
-                lines.push("أرجو تزويدي بخطوات البدء.");
-                const message = lines.join("\n");
-                return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-        };
 
-        const qualificationLink = buildWhatsAppLink(qualification.packageName, qualification);
+        const handleCheckout = async (event) => {
+                event.preventDefault();
+                setCheckoutError("");
+
+                if (!checkoutInfo.packageId || !checkoutInfo.name.trim() || !checkoutInfo.email.trim()) {
+                        setCheckoutError("يرجى إدخال الاسم والبريد الإلكتروني واختيار الباقة.");
+                        return;
+                }
+
+                try {
+                        setCheckoutLoading(true);
+                        const data = await apiClient.post("/payments/paypal/create-order", checkoutInfo);
+                        if (data?.approveUrl) {
+                                globalThis.location.href = data.approveUrl;
+                        } else {
+                                setCheckoutError("تعذر تجهيز الدفع عبر باي بال الآن.");
+                        }
+                } catch (error) {
+                        setCheckoutError(error.response?.data?.message || "تعذر تجهيز الدفع عبر باي بال الآن.");
+                } finally {
+                        setCheckoutLoading(false);
+                }
+        };
 
         const ScrollReveal = ({ children, className, direction = "right", offset = ["start 90%", "start 55%"] }) => {
                 const cardRef = useRef(null);
@@ -306,9 +317,11 @@ const HomePage = () => {
                                                                                 </div>
                                                                         )}
                                                                         <a
-                                                                                href={buildWhatsAppLink(pkg.name)}
-                                                                                target='_blank'
-                                                                                rel='noreferrer'
+                                                                                href='#qualification'
+                                                                                onClick={(event) => {
+                                                                                        event.preventDefault();
+                                                                                        document.getElementById("qualification")?.scrollIntoView({ behavior: "smooth" });
+                                                                                }}
                                                                                 className='btn-primary mt-8'
                                                                         >
                                                                                 اطلب باقتك الآن
@@ -378,28 +391,28 @@ const HomePage = () => {
                                         className='scroll-section mt-20 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]'
                                 >
                                         <ScrollReveal direction='right' className='glass-panel px-6 py-10 sm:px-10'>
-                                                <h2 className='text-3xl font-bold text-payzone-gold'>نموذج تأهيل سريع قبل واتساب</h2>
+                                                <h2 className='text-3xl font-bold text-payzone-gold'>نموذج طلب الباقة والدفع عبر PayPal</h2>
                                                 <p className='mt-3 text-white/70'>
-                                                        ساعدنا في تصفية طلبك حتى نوجّهك مباشرةً للخيار الأنسب قبل التواصل عبر واتساب.
+                                                        أدخل معلوماتك الأساسية ثم تابع الدفع عبر PayPal لتأكيد طلبك مباشرة.
                                                 </p>
-                                                <form className='mt-6 grid gap-4'>
+                                                <form className='mt-6 grid gap-4' onSubmit={handleCheckout}>
                                                         <label className='text-sm text-white/70'>
                                                                 الباقة المختارة
                                                                 <div className='relative mt-2'>
                                                                         <Package className='absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
                                                                         <ChevronDown className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
                                                                         <select
-                                                                                value={qualification.packageName}
+                                                                                value={checkoutInfo.packageId}
                                                                                 onChange={(event) =>
-                                                                                        setQualification((prev) => ({
+                                                                                        setCheckoutInfo((prev) => ({
                                                                                                 ...prev,
-                                                                                                packageName: event.target.value,
+                                                                                                packageId: event.target.value,
                                                                                         }))
                                                                                 }
                                                                                 className='glass-input w-full appearance-none pr-12 pl-12'
                                                                         >
                                                                                 {packages.map((pkg) => (
-                                                                                        <option key={pkg.id} value={pkg.name}>
+                                                                                        <option key={pkg.id} value={pkg.id}>
                                                                                                 {pkg.name}
                                                                                         </option>
                                                                                 ))}
@@ -407,53 +420,109 @@ const HomePage = () => {
                                                                 </div>
                                                         </label>
                                                         <label className='text-sm text-white/70'>
-                                                                نوع النشاط
+                                                                الاسم الكامل
                                                                 <div className='relative mt-2'>
-                                                                        <Briefcase className='absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
-                                                                        <ChevronDown className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
-                                                                        <select
-                                                                                value={qualification.businessType}
+                                                                        <User className='absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
+                                                                        <input
+                                                                                type='text'
+                                                                                value={checkoutInfo.name}
                                                                                 onChange={(event) =>
-                                                                                        setQualification((prev) => ({
+                                                                                        setCheckoutInfo((prev) => ({
                                                                                                 ...prev,
-                                                                                                businessType: event.target.value,
+                                                                                                name: event.target.value,
                                                                                         }))
                                                                                 }
-                                                                                className='glass-input w-full appearance-none pr-12 pl-12'
-                                                                        >
-                                                                                <option>شركة</option>
-                                                                                <option>تاجر</option>
-                                                                                <option>منصة/فكرة</option>
-                                                                                <option>فرد</option>
-                                                                        </select>
+                                                                                className='glass-input w-full pr-12'
+                                                                                placeholder='اكتب الاسم'
+                                                                                required
+                                                                        />
                                                                 </div>
                                                         </label>
                                                         <label className='text-sm text-white/70'>
-                                                                تفاصيل مختصرة
+                                                                البريد الإلكتروني
+                                                                <div className='relative mt-2'>
+                                                                        <Mail className='absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
+                                                                        <input
+                                                                                type='email'
+                                                                                value={checkoutInfo.email}
+                                                                                onChange={(event) =>
+                                                                                        setCheckoutInfo((prev) => ({
+                                                                                                ...prev,
+                                                                                                email: event.target.value,
+                                                                                        }))
+                                                                                }
+                                                                                className='glass-input w-full pr-12'
+                                                                                placeholder='name@example.com'
+                                                                                required
+                                                                        />
+                                                                </div>
+                                                        </label>
+                                                        <label className='text-sm text-white/70'>
+                                                                رقم واتساب (اختياري)
+                                                                <div className='relative mt-2'>
+                                                                        <Phone className='absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
+                                                                        <input
+                                                                                type='tel'
+                                                                                value={checkoutInfo.whatsapp}
+                                                                                onChange={(event) =>
+                                                                                        setCheckoutInfo((prev) => ({
+                                                                                                ...prev,
+                                                                                                whatsapp: event.target.value,
+                                                                                        }))
+                                                                                }
+                                                                                className='glass-input w-full pr-12'
+                                                                                placeholder='مثال: 22200000000'
+                                                                        />
+                                                                </div>
+                                                        </label>
+                                                        <label className='text-sm text-white/70'>
+                                                                بريد بديل (اختياري)
+                                                                <div className='relative mt-2'>
+                                                                        <Mail className='absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
+                                                                        <input
+                                                                                type='email'
+                                                                                value={checkoutInfo.alternateEmail}
+                                                                                onChange={(event) =>
+                                                                                        setCheckoutInfo((prev) => ({
+                                                                                                ...prev,
+                                                                                                alternateEmail: event.target.value,
+                                                                                        }))
+                                                                                }
+                                                                                className='glass-input w-full pr-12'
+                                                                                placeholder='alternative@example.com'
+                                                                        />
+                                                                </div>
+                                                        </label>
+                                                        <label className='text-sm text-white/70'>
+                                                                فكرة أو اسم الموقع (اختياري)
                                                                 <div className='relative mt-2'>
                                                                         <MessageSquare className='absolute right-4 top-4 h-4 w-4 text-white/40' />
                                                                         <textarea
-                                                                                value={qualification.notes}
+                                                                                value={checkoutInfo.idea}
                                                                                 onChange={(event) =>
-                                                                                        setQualification((prev) => ({
+                                                                                        setCheckoutInfo((prev) => ({
                                                                                                 ...prev,
-                                                                                                notes: event.target.value,
+                                                                                                idea: event.target.value,
                                                                                         }))
                                                                                 }
                                                                                 rows={3}
                                                                                 className='glass-input w-full resize-none pr-12'
-                                                                                placeholder='صف متطلباتك بسرعة (اختياري)'
+                                                                                placeholder='اشرح الفكرة باختصار'
                                                                         />
                                                                 </div>
                                                         </label>
-                                                        <a
-                                                                href={qualificationLink}
-                                                                target='_blank'
-                                                                rel='noreferrer'
-                                                                className='btn-primary'
+                                                        {checkoutError && (
+                                                                <div className='rounded-lg border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200'>
+                                                                        {checkoutError}
+                                                                </div>
+                                                        )}
+                                                        <button
+                                                                type='submit'
+                                                                className='btn-primary disabled:cursor-not-allowed disabled:opacity-60'
+                                                                disabled={checkoutLoading}
                                                         >
-                                                                انتقل لواتساب برسالة جاهزة
-                                                        </a>
+                                                                {checkoutLoading ? "جاري تجهيز الدفع..." : "متابعة الدفع عبر PayPal"}
+                                                        </button>
                                                 </form>
                                         </ScrollReveal>
                                         <ScrollReveal direction='left' className='glass-panel px-6 py-10 sm:px-10'>

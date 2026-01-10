@@ -1,10 +1,11 @@
-import { PlusCircle, FolderKanban } from "lucide-react";
+import { FolderKanban, PlusCircle, Server } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import useTranslation from "../hooks/useTranslation";
 
 import CreateProductForm from "../components/CreateProductForm";
 import ProductsList from "../components/ProductsList";
+import AdminServices from "../components/AdminServices";
 import { useProductStore } from "../stores/useProductStore";
 
 const AdminPage = () => {
@@ -20,6 +21,7 @@ const AdminPage = () => {
                 () => [
                         { id: "create", label: t("admin.tabs.create"), icon: PlusCircle },
                         { id: "products", label: t("admin.tabs.products"), icon: FolderKanban },
+                        { id: "services", label: "إدارة الخدمات", icon: Server },
                 ],
                 [t]
         );
@@ -56,6 +58,7 @@ const AdminPage = () => {
                                 </div>
                                 {activeTab === "create" && <CreateProductForm />}
                                 {activeTab === "products" && <ProductsList onEdit={() => setActiveTab("create")} />}
+                                {activeTab === "services" && <AdminServices />}
                         </div>
                 </div>
         );

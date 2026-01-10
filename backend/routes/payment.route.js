@@ -1,10 +1,10 @@
 import express from "express";
-import { protectRoute } from "../middleware/auth.middleware.js";
-import { checkoutSuccess, createCheckoutSession } from "../controllers/payment.controller.js";
+import { capturePayPalCheckout, createPayPalCheckout, listPackages } from "../controllers/payment.controller.js";
 
 const router = express.Router();
 
-router.post("/create-checkout-session", protectRoute, createCheckoutSession);
-router.post("/checkout-success", protectRoute, checkoutSuccess);
+router.get("/packages", listPackages);
+router.post("/paypal/create-order", createPayPalCheckout);
+router.post("/paypal/capture", capturePayPalCheckout);
 
 export default router;
