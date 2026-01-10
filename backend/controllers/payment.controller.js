@@ -1,7 +1,11 @@
 import Service from "../models/service.model.js";
 import ServiceCheckout from "../models/serviceCheckout.model.js";
 import { capturePayPalOrder, createPayPalOrder } from "../lib/paypal.js";
-import { sendServiceRequestEmail, sendTelegramNotification } from "../lib/notifications.js";
+import {
+        isServiceRequestEmailConfigured,
+        sendServiceRequestEmail,
+        sendTelegramNotification,
+} from "../lib/notifications.js";
 import { DEFAULT_CURRENCY, buildServicePackages } from "../../shared/servicePackages.js";
 
 const resolvePayPalCurrency = () => (process.env.PAYPAL_CURRENCY || DEFAULT_CURRENCY).toUpperCase();
@@ -154,15 +158,21 @@ export const capturePayPalCheckout = async (req, res) => {
                         packageName: checkout.packageName,
                 });
 
-                await sendServiceRequestEmail({
-                        subject: "طلب خدمة جديد بعد دفع PayPal",
-                        text: message,
-                });
-
                 try {
                         await sendTelegramNotification(message);
                 } catch (notifyError) {
-                        console.log("Telegram notification failed", notifyError.message);
+                        console.warn("Telegram notification failed", notifyError.message);
+                }
+
+                if (isServiceRequestEmailConfigured()) {
+                        try {
+                                await sendServiceRequestEmail({
+                                        subject: "طلب خدمة جديد بعد دفع PayPal",
+                                        text: message,
+                                });
+                        } catch (emailError) {
+                                console.warn("Service request email failed", emailError.message);
+                        }
                 }
 
                 return res.json({
