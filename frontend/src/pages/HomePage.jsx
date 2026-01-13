@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import { Lock, MessageCircle } from "lucide-react";
+import { ChevronDown, Lock, Mail, MessageCircle, MessageSquare, Package, Phone, User } from "lucide-react";
 import apiClient from "../lib/apiClient";
 import { DEFAULT_CURRENCY, SERVICE_PACKAGES } from "../../../shared/servicePackages.js";
 import ContactRequestModal from "../components/ContactRequestModal";
@@ -76,6 +76,16 @@ const HomePage = () => {
                 []
         );
 
+        const [checkoutInfo, setCheckoutInfo] = useState({
+                packageId: packages[0]?.id || "",
+                name: "",
+                email: "",
+                whatsapp: "",
+                alternateEmail: "",
+                idea: "",
+        });
+        const [checkoutLoading, setCheckoutLoading] = useState(false);
+        const [checkoutError, setCheckoutError] = useState("");
         const [contactModalOpen, setContactModalOpen] = useState(false);
         const [selectedPlan, setSelectedPlan] = useState(null);
         const [paidContactRequest, setPaidContactRequest] = useState(null);
@@ -136,7 +146,31 @@ const HomePage = () => {
                 const message = buildContactMessage(request);
                 const url = new URL(`https://wa.me/${ownerPhone.replaceAll(/\s+/g, "")}`);
                 url.searchParams.set("text", message);
-                globalThis.location.href = url.toString();
+                globalThis.open(url.toString(), "_blank", "noreferrer");
+        };
+
+        const handleCheckout = async (event) => {
+                event.preventDefault();
+                setCheckoutError("");
+
+                if (!checkoutInfo.packageId || !checkoutInfo.name.trim() || !checkoutInfo.email.trim()) {
+                        setCheckoutError("يرجى إدخال الاسم والبريد الإلكتروني واختيار الباقة.");
+                        return;
+                }
+
+                try {
+                        setCheckoutLoading(true);
+                        const data = await apiClient.post("/payments/paypal/create-order", checkoutInfo);
+                        if (data?.approveUrl) {
+                                globalThis.location.href = data.approveUrl;
+                        } else {
+                                setCheckoutError("تعذر تجهيز الدفع عبر باي بال الآن.");
+                        }
+                } catch (error) {
+                        setCheckoutError(error.response?.data?.message || "تعذر تجهيز الدفع عبر باي بال الآن.");
+                } finally {
+                        setCheckoutLoading(false);
+                }
         };
 
         const ScrollReveal = ({ children, className, direction = "right", offset = ["start 90%", "start 55%"] }) => {
@@ -171,15 +205,15 @@ const HomePage = () => {
 
         return (
                 <>
-                        <div className='relative min-h-screen overflow-hidden text-payzone-white'>
-                                <div className='tech-bg'>
-                                        <div className='tech-bg__layer bg-tech-grid' />
-                                        <div className='tech-bg__layer bg-tech-circuit' />
-                                        <div className='tech-bg__layer bg-tech-symbols' />
-                                        <div className='tech-bg__layer bg-tech-glow' />
-                                </div>
+                <div className='relative min-h-screen overflow-hidden text-payzone-white'>
+                        <div className='tech-bg'>
+                                <div className='tech-bg__layer bg-tech-grid' />
+                                <div className='tech-bg__layer bg-tech-circuit' />
+                                <div className='tech-bg__layer bg-tech-symbols' />
+                                <div className='tech-bg__layer bg-tech-glow' />
+                        </div>
 
-                                <div className='relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8'>
+                        <div className='relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8'>
                                 <section className='text-center'>
                                         <ScrollReveal direction='right' className='glass-hero px-6 py-10 sm:px-10 sm:py-12 lg:px-14'>
                                                 <span className='inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-payzone-gold'>
@@ -194,14 +228,14 @@ const HomePage = () => {
                                                 </p>
                                                 <div className='mt-8 flex flex-wrap justify-center gap-4'>
                                                         <a
-                                                                href='#pricing'
+                                                                href='#qualification'
                                                                 onClick={(event) => {
                                                                         event.preventDefault();
-                                                                        document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
+                                                                        document.getElementById("qualification")?.scrollIntoView({ behavior: "smooth" });
                                                                 }}
                                                                 className='btn-primary'
                                                         >
-                                                                ابدأ طلب التواصل
+                                                                ابدأ الآن
                                                         </a>
                                                         <a
                                                                 href='#pricing'
@@ -382,6 +416,16 @@ const HomePage = () => {
                                                                                                 : "تواصل عبر واتساب (مغلق)"}
                                                                                 </button>
                                                                         </div>
+                                                                        <a
+                                                                                href='#qualification'
+                                                                                onClick={(event) => {
+                                                                                        event.preventDefault();
+                                                                                        document.getElementById("qualification")?.scrollIntoView({ behavior: "smooth" });
+                                                                                }}
+                                                                                className='btn-primary mt-8'
+                                                                        >
+                                                                                اطلب باقتك الآن
+                                                                        </a>
                                                                 </ScrollReveal>
                                                         );
                                                 })}
@@ -442,34 +486,144 @@ const HomePage = () => {
                                         </ScrollReveal>
                                 </section>
 
-                                <section className='scroll-section mt-20 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]'>
+                                <section
+                                        id='qualification'
+                                        className='scroll-section mt-20 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]'
+                                >
                                         <ScrollReveal direction='right' className='glass-panel px-6 py-10 sm:px-10'>
-                                                <h2 className='text-3xl font-bold text-payzone-gold'>طلب تواصل عبر واتساب</h2>
+                                                <h2 className='text-3xl font-bold text-payzone-gold'>نموذج طلب الباقة والدفع عبر PayPal</h2>
                                                 <p className='mt-3 text-white/70'>
-                                                        اختر الباقة المناسبة من الأعلى ثم افتح نموذج طلب التواصل. رسوم التواصل ثابتة 5$
-                                                        لفتح المحادثة ومناقشة التفاصيل.
+                                                        أدخل معلوماتك الأساسية ثم تابع الدفع عبر PayPal لتأكيد طلبك مباشرة.
                                                 </p>
-                                                <div className='mt-6 flex flex-wrap items-center gap-3'>
+                                                <form className='mt-6 grid gap-4' onSubmit={handleCheckout}>
+                                                        <label className='text-sm text-white/70'>
+                                                                الباقة المختارة
+                                                                <div className='relative mt-2'>
+                                                                        <Package className='absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
+                                                                        <ChevronDown className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
+                                                                        <select
+                                                                                value={checkoutInfo.packageId}
+                                                                                onChange={(event) =>
+                                                                                        setCheckoutInfo((prev) => ({
+                                                                                                ...prev,
+                                                                                                packageId: event.target.value,
+                                                                                        }))
+                                                                                }
+                                                                                className='glass-input w-full appearance-none pr-12 pl-12'
+                                                                        >
+                                                                                {packages.map((pkg) => (
+                                                                                        <option key={pkg.id} value={pkg.id}>
+                                                                                                {pkg.name}
+                                                                                        </option>
+                                                                                ))}
+                                                                        </select>
+                                                                </div>
+                                                        </label>
+                                                        <label className='text-sm text-white/70'>
+                                                                الاسم الكامل
+                                                                <div className='relative mt-2'>
+                                                                        <User className='absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
+                                                                        <input
+                                                                                type='text'
+                                                                                value={checkoutInfo.name}
+                                                                                onChange={(event) =>
+                                                                                        setCheckoutInfo((prev) => ({
+                                                                                                ...prev,
+                                                                                                name: event.target.value,
+                                                                                        }))
+                                                                                }
+                                                                                className='glass-input w-full pr-12'
+                                                                                placeholder='اكتب الاسم'
+                                                                                required
+                                                                        />
+                                                                </div>
+                                                        </label>
+                                                        <label className='text-sm text-white/70'>
+                                                                البريد الإلكتروني
+                                                                <div className='relative mt-2'>
+                                                                        <Mail className='absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
+                                                                        <input
+                                                                                type='email'
+                                                                                value={checkoutInfo.email}
+                                                                                onChange={(event) =>
+                                                                                        setCheckoutInfo((prev) => ({
+                                                                                                ...prev,
+                                                                                                email: event.target.value,
+                                                                                        }))
+                                                                                }
+                                                                                className='glass-input w-full pr-12'
+                                                                                placeholder='name@example.com'
+                                                                                required
+                                                                        />
+                                                                </div>
+                                                        </label>
+                                                        <label className='text-sm text-white/70'>
+                                                                رقم واتساب (اختياري)
+                                                                <div className='relative mt-2'>
+                                                                        <Phone className='absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
+                                                                        <input
+                                                                                type='tel'
+                                                                                value={checkoutInfo.whatsapp}
+                                                                                onChange={(event) =>
+                                                                                        setCheckoutInfo((prev) => ({
+                                                                                                ...prev,
+                                                                                                whatsapp: event.target.value,
+                                                                                        }))
+                                                                                }
+                                                                                className='glass-input w-full pr-12'
+                                                                                placeholder='مثال: 22200000000'
+                                                                        />
+                                                                </div>
+                                                        </label>
+                                                        <label className='text-sm text-white/70'>
+                                                                بريد بديل (اختياري)
+                                                                <div className='relative mt-2'>
+                                                                        <Mail className='absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
+                                                                        <input
+                                                                                type='email'
+                                                                                value={checkoutInfo.alternateEmail}
+                                                                                onChange={(event) =>
+                                                                                        setCheckoutInfo((prev) => ({
+                                                                                                ...prev,
+                                                                                                alternateEmail: event.target.value,
+                                                                                        }))
+                                                                                }
+                                                                                className='glass-input w-full pr-12'
+                                                                                placeholder='alternative@example.com'
+                                                                        />
+                                                                </div>
+                                                        </label>
+                                                        <label className='text-sm text-white/70'>
+                                                                فكرة أو اسم الموقع (اختياري)
+                                                                <div className='relative mt-2'>
+                                                                        <MessageSquare className='absolute right-4 top-4 h-4 w-4 text-white/40' />
+                                                                        <textarea
+                                                                                value={checkoutInfo.idea}
+                                                                                onChange={(event) =>
+                                                                                        setCheckoutInfo((prev) => ({
+                                                                                                ...prev,
+                                                                                                idea: event.target.value,
+                                                                                        }))
+                                                                                }
+                                                                                rows={3}
+                                                                                className='glass-input w-full resize-none pr-12'
+                                                                                placeholder='اشرح الفكرة باختصار'
+                                                                        />
+                                                                </div>
+                                                        </label>
+                                                        {checkoutError && (
+                                                                <div className='rounded-lg border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200'>
+                                                                        {checkoutError}
+                                                                </div>
+                                                        )}
                                                         <button
-                                                                type='button'
-                                                                onClick={() => {
-                                                                        setSelectedPlan(packages[0]);
-                                                                        setContactModalOpen(true);
-                                                                }}
-                                                                className='btn-primary'
+                                                                type='submit'
+                                                                className='btn-primary disabled:cursor-not-allowed disabled:opacity-60'
+                                                                disabled={checkoutLoading}
                                                         >
-                                                                طلب تواصل عبر واتساب
+                                                                {checkoutLoading ? "جاري تجهيز الدفع..." : "متابعة الدفع عبر PayPal"}
                                                         </button>
-                                                        <button
-                                                                type='button'
-                                                                onClick={() =>
-                                                                        document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })
-                                                                }
-                                                                className='btn-secondary'
-                                                        >
-                                                                اختر الباقة أولاً
-                                                        </button>
-                                                </div>
+                                                </form>
                                         </ScrollReveal>
                                         <ScrollReveal direction='left' className='glass-panel px-6 py-10 sm:px-10'>
                                                 <h2 className='text-2xl font-bold text-payzone-gold'>لمن هذه الخدمة؟</h2>
@@ -486,7 +640,7 @@ const HomePage = () => {
                                                                         </span>
                                                                         {item}
                                                                 </li>
-                                                        ))}
+                                                                ))}
                                                 </ol>
                                         </ScrollReveal>
                                 </section>
@@ -514,8 +668,8 @@ const HomePage = () => {
                                                 </div>
                                         </ScrollReveal>
                                 </section>
-                                </div>
                         </div>
+                </div>
                         <ContactRequestModal
                                 open={contactModalOpen}
                                 onClose={() => setContactModalOpen(false)}
