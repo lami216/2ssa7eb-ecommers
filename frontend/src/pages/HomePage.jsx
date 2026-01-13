@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import { ChevronDown, Mail, MessageSquare, Package, Phone, User } from "lucide-react";
+import { ChevronDown, Lock, Mail, MessageCircle, MessageSquare, Package, Phone, User } from "lucide-react";
 import apiClient from "../lib/apiClient";
 import { DEFAULT_CURRENCY, SERVICE_PACKAGES } from "../../../shared/servicePackages.js";
+import ContactRequestModal from "../components/ContactRequestModal";
 
 const HomePage = () => {
         const formatPackagePrice = (amount, currency) => {
@@ -85,8 +86,68 @@ const HomePage = () => {
         });
         const [checkoutLoading, setCheckoutLoading] = useState(false);
         const [checkoutError, setCheckoutError] = useState("");
+        const [contactModalOpen, setContactModalOpen] = useState(false);
+        const [selectedPlan, setSelectedPlan] = useState(null);
+        const [paidContactRequest, setPaidContactRequest] = useState(null);
+        const [ownerPhone, setOwnerPhone] = useState("");
 
         const shouldReduceMotion = useReducedMotion();
+
+        useEffect(() => {
+                let isMounted = true;
+                apiClient
+                        .get("/public-config")
+                        .then((data) => {
+                                if (isMounted) {
+                                        setOwnerPhone(data?.whatsappOwnerPhone || "");
+                                }
+                        })
+                        .catch(() => null);
+                return () => {
+                        isMounted = false;
+                };
+        }, []);
+
+        useEffect(() => {
+                let isMounted = true;
+                const requestId = localStorage.getItem("contactFeeRequestId");
+                if (!requestId) return undefined;
+
+                apiClient
+                        .get(`/contact-requests/${requestId}`)
+                        .then((data) => {
+                                if (isMounted && data?.paid) {
+                                        setPaidContactRequest(data);
+                                }
+                        })
+                        .catch(() => null);
+
+                return () => {
+                        isMounted = false;
+                };
+        }, []);
+
+        const buildContactMessage = (request) => {
+                if (!request) return "";
+                const lines = [
+                        "طلب تواصل - Payzone",
+                        `الاسم: ${request.fullName}`,
+                        `البريد الإلكتروني: ${request.email}`,
+                        `الباقة: ${request.planName}`,
+                        `الوصف: ${request.needDescription}`,
+                        `رقم الطلب: ${request.id || request._id}`,
+                        `رقم الدفع: ${request.paypalOrderId || ""}`,
+                ];
+                return lines.filter(Boolean).join("\n");
+        };
+
+        const handleOpenWhatsApp = (request) => {
+                if (!ownerPhone || !request) return;
+                const message = buildContactMessage(request);
+                const url = new URL(`https://wa.me/${ownerPhone.replaceAll(/\s+/g, "")}`);
+                url.searchParams.set("text", message);
+                globalThis.open(url.toString(), "_blank", "noreferrer");
+        };
 
         const handleCheckout = async (event) => {
                 event.preventDefault();
@@ -143,6 +204,7 @@ const HomePage = () => {
         };
 
         return (
+                <>
                 <div className='relative min-h-screen overflow-hidden text-payzone-white'>
                         <div className='tech-bg'>
                                 <div className='tech-bg__layer bg-tech-grid' />
@@ -327,6 +389,33 @@ const HomePage = () => {
                                                                                         السورس كود متاح فقط في هذه الباقة بقيمة إضافية تُحدد عند الطلب.
                                                                                 </div>
                                                                         )}
+                                                                        <div className='mt-6'>
+                                                                                <button
+                                                                                        type='button'
+                                                                                        onClick={() => {
+                                                                                                if (paidContactRequest?.planId === pkg.id) {
+                                                                                                        handleOpenWhatsApp(paidContactRequest);
+                                                                                                } else {
+                                                                                                        setSelectedPlan(pkg);
+                                                                                                        setContactModalOpen(true);
+                                                                                                }
+                                                                                        }}
+                                                                                        className={`flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition ${
+                                                                                                paidContactRequest?.planId === pkg.id
+                                                                                                        ? "bg-emerald-500 text-payzone-navy hover:bg-emerald-400"
+                                                                                                        : "border border-white/20 text-white/80 hover:border-payzone-gold/60"
+                                                                                        }`}
+                                                                                >
+                                                                                        {paidContactRequest?.planId === pkg.id ? (
+                                                                                                <MessageCircle className='h-4 w-4' />
+                                                                                        ) : (
+                                                                                                <Lock className='h-4 w-4' />
+                                                                                        )}
+                                                                                        {paidContactRequest?.planId === pkg.id
+                                                                                                ? "فتح واتساب الآن"
+                                                                                                : "تواصل عبر واتساب (مغلق)"}
+                                                                                </button>
+                                                                        </div>
                                                                         <a
                                                                                 href='#qualification'
                                                                                 onClick={(event) => {
@@ -581,6 +670,12 @@ const HomePage = () => {
                                 </section>
                         </div>
                 </div>
+                        <ContactRequestModal
+                                open={contactModalOpen}
+                                onClose={() => setContactModalOpen(false)}
+                                selectedPlan={selectedPlan}
+                        />
+                </>
         );
 };
 export default HomePage;

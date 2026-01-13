@@ -49,9 +49,53 @@ export const getPayPalAccessToken = async () => {
         return data.access_token;
 };
 
-export const createPayPalOrder = async ({ amount, currency, returnUrl, cancelUrl, description, referenceId }) => {
+export const createPayPalOrder = async ({
+        amount,
+        currency,
+        returnUrl,
+        cancelUrl,
+        description,
+        referenceId,
+        customId,
+        itemName,
+}) => {
         const baseUrl = resolvePayPalBaseUrl();
         const accessToken = await getPayPalAccessToken();
+        const purchaseUnit = {
+                reference_id: referenceId,
+                description,
+                amount: {
+                        currency_code: currency,
+                        value: amount,
+                },
+        };
+
+        if (customId) {
+                purchaseUnit.custom_id = customId;
+        }
+
+        if (itemName) {
+                purchaseUnit.items = [
+                        {
+                                name: itemName,
+                                quantity: "1",
+                                unit_amount: {
+                                        currency_code: currency,
+                                        value: amount,
+                                },
+                        },
+                ];
+                purchaseUnit.amount = {
+                        currency_code: currency,
+                        value: amount,
+                        breakdown: {
+                                item_total: {
+                                        currency_code: currency,
+                                        value: amount,
+                                },
+                        },
+                };
+        }
         const response = await fetch(`${baseUrl}/v2/checkout/orders`, {
                 method: "POST",
                 headers: {
@@ -60,16 +104,7 @@ export const createPayPalOrder = async ({ amount, currency, returnUrl, cancelUrl
                 },
                 body: JSON.stringify({
                         intent: "CAPTURE",
-                        purchase_units: [
-                                {
-                                        reference_id: referenceId,
-                                        description,
-                                        amount: {
-                                                currency_code: currency,
-                                                value: amount,
-                                        },
-                                },
-                        ],
+                        purchase_units: [purchaseUnit],
                         application_context: {
                                 return_url: returnUrl,
                                 cancel_url: cancelUrl,
