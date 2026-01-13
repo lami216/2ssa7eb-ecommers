@@ -2,11 +2,14 @@ import { create } from "zustand";
 import { toast } from "react-hot-toast";
 import apiClient, { registerAuthHandlers } from "../lib/apiClient";
 import { translate } from "../lib/locale";
+import { hasContactFeePaidLead } from "../lib/leadAccess";
 
-export const useUserStore = create((set) => ({
+export const useUserStore = create((set, get) => ({
         user: null,
         loading: false,
         checkingAuth: true,
+        checkingContactFee: false,
+        contactFeePaid: false,
 
         signup: async ({ name, email, password, confirmPassword }) => {
                 set({ loading: true });
@@ -40,7 +43,7 @@ export const useUserStore = create((set) => ({
         logout: async () => {
                 try {
                         await apiClient.post("/auth/logout");
-                        set({ user: null });
+                        set({ user: null, contactFeePaid: false, checkingContactFee: false });
                 } catch (error) {
                         toast.error(error.response?.data?.message || translate("toast.logoutError"));
                 }
@@ -53,7 +56,25 @@ export const useUserStore = create((set) => ({
                         set({ user: data, checkingAuth: false });
                 } catch (error) {
                         console.log(error.message);
-                        set({ checkingAuth: false, user: null });
+                        set({ checkingAuth: false, user: null, contactFeePaid: false, checkingContactFee: false });
+                }
+        },
+        fetchContactFeeStatus: async () => {
+                const user = get().user;
+                if (!user) {
+                        set({ contactFeePaid: false, checkingContactFee: false });
+                        return;
+                }
+
+                set({ checkingContactFee: true });
+                try {
+                        const lead = await apiClient.get("/leads/me");
+                        set({
+                                contactFeePaid: hasContactFeePaidLead(lead),
+                                checkingContactFee: false,
+                        });
+                } catch {
+                        set({ contactFeePaid: false, checkingContactFee: false });
                 }
         },
 
@@ -74,5 +95,11 @@ export const useUserStore = create((set) => ({
 
 registerAuthHandlers({
         onRefresh: () => useUserStore.getState().refreshToken(),
-        onLogout: () => useUserStore.setState({ user: null, checkingAuth: false }),
+        onLogout: () =>
+                useUserStore.setState({
+                        user: null,
+                        checkingAuth: false,
+                        contactFeePaid: false,
+                        checkingContactFee: false,
+                }),
 });

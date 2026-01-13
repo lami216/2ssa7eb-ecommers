@@ -7,6 +7,7 @@ const Navbar = () => {
         const { user, logout } = useUserStore();
         const isAdmin = user?.role === "admin";
         const hasServices = Boolean(user?.hasServices);
+        const contactFeePaid = useUserStore((state) => state.contactFeePaid);
         const { t } = useTranslation();
 
         return (
@@ -46,7 +47,7 @@ const Navbar = () => {
                                                                                 <span className='hidden sm:inline'>{t("nav.dashboard")}</span>
                                                                         </Link>
                                                                 )}
-                                                                {user && hasServices && (
+                                                                {user && (hasServices || contactFeePaid) && (
                                                                         <Link
                                                                                 to={'/my-services'}
                                                                                 className='flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-payzone-white transition duration-300 ease-in-out hover:bg-white/20'
