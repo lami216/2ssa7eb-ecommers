@@ -42,6 +42,40 @@ const resolveContactFeeAmount = () => {
         return envAmount;
 };
 
+const findPaidLeadForUser = async ({ user, email }) => {
+        const normalizedEmail = sanitizeEmail(email);
+        if (user?._id) {
+                return Lead.findOne({
+                        contactFeePaid: true,
+                        $or: [{ userId: user._id }, { email: normalizedEmail }],
+                }).sort({ createdAt: -1 });
+        }
+        if (normalizedEmail) {
+                return Lead.findOne({ contactFeePaid: true, email: normalizedEmail }).sort({ createdAt: -1 });
+        }
+        return null;
+};
+
+const syncContactFeeUnlock = async (lead, user) => {
+        if (!lead) {
+                return null;
+        }
+        if (lead.contactFeePaid) {
+                lead.whatsappUnlocked = true;
+                return lead;
+        }
+        const paidLead = await findPaidLeadForUser({ user, email: lead.email || user?.email });
+        if (!paidLead) {
+                return lead;
+        }
+        lead.contactFeePaid = true;
+        lead.contactFeePaidAt = paidLead.contactFeePaidAt || new Date();
+        lead.whatsappUnlocked = true;
+        lead.status = computeLeadStatus(lead);
+        await lead.save();
+        return lead;
+};
+
 const computeLeadStatus = (lead) => {
         if (lead.planPaid) {
                 return "PLAN_PAID";
@@ -88,7 +122,8 @@ export const createLead = async (req, res) => {
                         status: "NEW",
                 });
 
-                return res.status(201).json(lead);
+                const syncedLead = await syncContactFeeUnlock(lead, req.user);
+                return res.status(201).json(syncedLead);
         } catch (error) {
                 console.log("Error creating lead", error.message);
                 return res.status(500).json({ message: "Unable to create lead" });
@@ -107,8 +142,16 @@ export const getMyLeads = async (req, res) => {
                         ? { $or: [{ userId: user._id }, { email }] }
                         : { email };
 
-                const leads = await Lead.find(filter).sort({ createdAt: -1 }).lean();
-                return res.json(leads);
+                const lead = await Lead.findOne(filter).sort({ createdAt: -1 });
+                if (!lead) {
+                        return res.json(null);
+                }
+                const syncedLead = await syncContactFeeUnlock(lead, user);
+                const leadData = syncedLead.toObject();
+                return res.json({
+                        ...leadData,
+                        whatsappUnlocked: Boolean(leadData.contactFeePaid),
+                });
         } catch (error) {
                 console.log("Error fetching leads", error.message);
                 return res.status(500).json({ message: "Unable to fetch leads" });
@@ -132,8 +175,9 @@ export const createContactFeeOrder = async (req, res) => {
                         return res.status(403).json({ message: "Not authorized to access this lead" });
                 }
 
-                if (lead.contactFeePaid) {
-                        return res.status(400).json({ message: "Contact fee already paid" });
+                const syncedLead = await syncContactFeeUnlock(lead, req.user);
+                if (syncedLead.contactFeePaid) {
+                        return res.json({ alreadyPaid: true, lead: syncedLead });
                 }
 
                 const frontendBase = resolveFrontendBaseUrl();
