@@ -143,6 +143,11 @@ const ContactFeeSuccessPage = () => {
 
         const whatsappLink = ownerPhone ? buildWhatsAppLink(ownerPhone, message) : "";
 
+        const handleOpenWhatsApp = () => {
+                if (!whatsappLink) return;
+                globalThis.location.href = whatsappLink;
+        };
+
         return (
                 <div className='min-h-screen bg-payzone-navy px-4 py-16 text-white' dir='rtl'>
                         <div className='container mx-auto max-w-3xl rounded-3xl border border-white/10 bg-payzone-navy/70 p-10 text-center'>
@@ -154,15 +159,15 @@ const ContactFeeSuccessPage = () => {
                                         الآن يمكنك التواصل مباشرة عبر واتساب باستخدام الرسالة الجاهزة.
                                 </p>
                                 <div className='mt-6 flex flex-wrap justify-center gap-3'>
-                                        <a
-                                                href={whatsappLink || "#"}
-                                                className='inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-payzone-navy transition hover:bg-emerald-400'
-                                                target={whatsappLink ? "_blank" : undefined}
-                                                rel={whatsappLink ? "noreferrer" : undefined}
+                                        <button
+                                                type='button'
+                                                onClick={handleOpenWhatsApp}
+                                                disabled={!whatsappLink}
+                                                className='inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-payzone-navy transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60'
                                         >
                                                 <MessageCircle className='h-4 w-4' />
                                                 فتح واتساب الآن
-                                        </a>
+                                        </button>
                                         <button
                                                 type='button'
                                                 onClick={handleCopy}
