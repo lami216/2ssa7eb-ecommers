@@ -38,6 +38,26 @@ export const protectRoute = async (req, res, next) => {
         }
 };
 
+export const optionalAuth = async (req, res, next) => {
+        const accessToken = req.cookies.accessToken;
+
+        if (!accessToken) {
+                return next();
+        }
+
+        try {
+                const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
+                const user = await User.findById(decoded.userId).select("-password");
+                if (user) {
+                        req.user = user;
+                }
+        } catch (error) {
+                console.log("Optional auth failed", error.message);
+        }
+
+        return next();
+};
+
 export const adminRoute = (req, res, next) => {
         const adminEmails = resolveAdminEmails();
         const emailMatch = req.user?.email ? adminEmails.includes(req.user.email.toLowerCase()) : false;

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import apiClient from "../lib/apiClient";
+import { buildWhatsAppLink } from "../lib/whatsapp";
 
 const formatDate = (value) => {
         if (!value) return "-";
@@ -18,6 +19,10 @@ const ServicesPage = () => {
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState("");
         const [actionServiceId, setActionServiceId] = useState("");
+        const [lead, setLead] = useState(null);
+        const [leadLoading, setLeadLoading] = useState(true);
+        const [planPaymentLoading, setPlanPaymentLoading] = useState(false);
+        const [whatsappUrl, setWhatsappUrl] = useState("");
         const location = useLocation();
 
         const successMessage = useMemo(() => {
@@ -62,7 +67,39 @@ const ServicesPage = () => {
                         }
                 };
 
+                const fetchLead = async () => {
+                        try {
+                                const data = await apiClient.get("/leads/me");
+                                if (isMounted) {
+                                        setLead(Array.isArray(data) ? data[0] : null);
+                                }
+                        } catch (error) {
+                                if (isMounted) {
+                                        setLead(null);
+                                }
+                        } finally {
+                                if (isMounted) {
+                                        setLeadLoading(false);
+                                }
+                        }
+                };
+
+                const fetchWhatsApp = async () => {
+                        try {
+                                const config = await apiClient.get("/public-config");
+                                if (isMounted) {
+                                        setWhatsappUrl(config?.whatsapp || "");
+                                }
+                        } catch (error) {
+                                if (isMounted) {
+                                        setWhatsappUrl("");
+                                }
+                        }
+                };
+
                 fetchServices();
+                fetchLead();
+                fetchWhatsApp();
 
                 return () => {
                         isMounted = false;
@@ -89,6 +126,43 @@ const ServicesPage = () => {
                         setActionServiceId("");
                 }
         };
+
+        const handlePlanPayment = async () => {
+                if (!lead?._id) return;
+                setError("");
+                setPlanPaymentLoading(true);
+                try {
+                        const response = await apiClient.post(
+                                `/leads/${encodeURIComponent(lead._id)}/pay-plan/create-order`
+                        );
+                        if (response?.approveUrl) {
+                                window.location.href = response.approveUrl;
+                        } else {
+                                setError("تعذر إنشاء رابط الدفع للباقة.");
+                        }
+                } catch (error) {
+                        setError(error.response?.data?.message || "تعذر إنشاء رابط الدفع للباقة.");
+                } finally {
+                        setPlanPaymentLoading(false);
+                }
+        };
+
+        const statusLabels = {
+                NEW: "بانتظار دفع رسوم التواصل",
+                CONTACT_FEE_PAID: "تم دفع رسوم التواصل",
+                CHECKOUT_ENABLED: "تم تفعيل الدفع للباقة",
+                PLAN_PAID: "تم دفع الباقة",
+        };
+
+        const leadStatusLabel = lead?.status ? statusLabels[lead.status] || lead.status : "";
+        const leadWhatsAppLink = lead?.contactFeePaid
+                ? buildWhatsAppLink({
+                          whatsappUrl,
+                          message: `السلام عليكم، أنا ${lead.fullName} بريدي ${lead.email}. مهتم بباقة ${
+                                  lead.selectedPlan
+                          }. تفاصيل: ${lead.idea || "بدون تفاصيل"}. رقم الطلب: ${lead._id}`,
+                  })
+                : "";
 
         const isSubscriptionActive = (service) =>
                 ["ACTIVE", "TRIALING"].includes(service.subscriptionStatus);
@@ -125,6 +199,59 @@ const ServicesPage = () => {
                                                 {successMessage}
                                         </div>
                                 )}
+
+                                <div className='mb-8 rounded-3xl border border-white/10 bg-payzone-navy/70 p-8'>
+                                        <h2 className='text-2xl font-bold text-payzone-gold'>طلب التواصل الخاص بك</h2>
+                                        {leadLoading ? (
+                                                <p className='mt-3 text-white/70'>جاري تحميل تفاصيل الطلب...</p>
+                                        ) : lead ? (
+                                                <div className='mt-4 space-y-3 text-white/80'>
+                                                        <div className='flex flex-wrap items-center gap-4 text-sm'>
+                                                                <span>الاسم: {lead.fullName}</span>
+                                                                <span>الباقة: {lead.selectedPlan}</span>
+                                                                <span>الحالة: {leadStatusLabel}</span>
+                                                        </div>
+                                                        <div className='flex flex-wrap items-center gap-3'>
+                                                                {lead.contactFeePaid && leadWhatsAppLink && (
+                                                                        <a
+                                                                                href={leadWhatsAppLink}
+                                                                                target='_blank'
+                                                                                rel='noreferrer'
+                                                                                className='inline-flex items-center justify-center rounded-full bg-payzone-gold px-4 py-2 text-xs font-semibold text-payzone-navy transition hover:bg-[#b8873d]'
+                                                                        >
+                                                                                فتح واتساب
+                                                                        </a>
+                                                                )}
+                                                                {lead.checkoutEnabled && !lead.planPaid && (
+                                                                        <button
+                                                                                type='button'
+                                                                                onClick={handlePlanPayment}
+                                                                                className='inline-flex items-center justify-center rounded-full bg-payzone-gold px-4 py-2 text-xs font-semibold text-payzone-navy transition hover:bg-[#b8873d]'
+                                                                                disabled={planPaymentLoading}
+                                                                        >
+                                                                                {planPaymentLoading
+                                                                                        ? "جاري تجهيز الدفع..."
+                                                                                        : `دفع الباقة ${lead.finalPrice} USD`}
+                                                                        </button>
+                                                                )}
+                                                                {lead.planPaid && (
+                                                                        <span className='text-xs text-emerald-200'>
+                                                                                تم دفع الباقة بنجاح
+                                                                        </span>
+                                                                )}
+                                                        </div>
+                                                        {!lead.checkoutEnabled && (
+                                                                <p className='text-sm text-white/60'>
+                                                                        سيتم تفعيل الدفع للباقة بعد الاتفاق عبر واتساب.
+                                                                </p>
+                                                        )}
+                                                </div>
+                                        ) : (
+                                                <p className='mt-3 text-white/70'>
+                                                        لا يوجد طلب تواصل حالياً. يمكنك تقديم طلب من الصفحة الرئيسية.
+                                                </p>
+                                        )}
+                                </div>
 
                                 <div className='overflow-hidden rounded-3xl border border-white/10 bg-payzone-navy/70'>
                                         <div className='overflow-x-auto'>

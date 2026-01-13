@@ -1,10 +1,13 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import { ChevronDown, Mail, MessageSquare, Package, Phone, User } from "lucide-react";
+import { ChevronDown, Lock, Mail, MessageSquare, Package, User } from "lucide-react";
 import apiClient from "../lib/apiClient";
 import { DEFAULT_CURRENCY, SERVICE_PACKAGES } from "../../../shared/servicePackages.js";
+import { useUserStore } from "../stores/useUserStore";
+import { buildWhatsAppLink } from "../lib/whatsapp";
 
 const HomePage = () => {
+        const user = useUserStore((state) => state.user);
         const formatPackagePrice = (amount, currency) => {
                 const normalized = Number(amount);
                 if (!Number.isFinite(normalized)) {
@@ -57,6 +60,26 @@ const HomePage = () => {
                 });
         }, [packageDetails]);
 
+        const planLabels = useMemo(
+                () => ({
+                        starter: "Basic",
+                        growth: "Pro",
+                        full: "Plus",
+                        Basic: "Basic",
+                        Pro: "Pro",
+                        Plus: "Plus",
+                }),
+                []
+        );
+        const planToPackageId = useMemo(
+                () => ({
+                        Basic: "starter",
+                        Pro: "growth",
+                        Plus: "full",
+                }),
+                []
+        );
+
         const comparisonRows = useMemo(
                 () => [
                         { label: "تشغيل سريع", starter: "✅", growth: "✅", full: "✅" },
@@ -79,12 +102,72 @@ const HomePage = () => {
                 packageId: packages[0]?.id || "",
                 name: "",
                 email: "",
-                whatsapp: "",
-                alternateEmail: "",
                 idea: "",
         });
         const [checkoutLoading, setCheckoutLoading] = useState(false);
         const [checkoutError, setCheckoutError] = useState("");
+        const [lead, setLead] = useState(null);
+        const [leadLoading, setLeadLoading] = useState(false);
+        const [whatsappUrl, setWhatsappUrl] = useState("");
+
+        useEffect(() => {
+                let isMounted = true;
+
+                const loadWhatsApp = async () => {
+                        try {
+                                const config = await apiClient.get("/public-config");
+                                if (isMounted) {
+                                        setWhatsappUrl(config?.whatsapp || "");
+                                }
+                        } catch (error) {
+                                if (isMounted) {
+                                        setWhatsappUrl("");
+                                }
+                        }
+                };
+
+                loadWhatsApp();
+
+                return () => {
+                        isMounted = false;
+                };
+        }, []);
+
+        useEffect(() => {
+                let isMounted = true;
+
+                const loadLead = async () => {
+                        if (!user) {
+                                if (isMounted) {
+                                        setLead(null);
+                                        setLeadLoading(false);
+                                }
+                                return;
+                        }
+
+                        try {
+                                setLeadLoading(true);
+                                const data = await apiClient.get("/leads/me");
+                                if (isMounted) {
+                                        setLead(Array.isArray(data) ? data[0] : null);
+                                }
+                        } catch (error) {
+                                if (isMounted) {
+                                        setLead(null);
+                                }
+                        } finally {
+                                if (isMounted) {
+                                        setLeadLoading(false);
+                                }
+                        }
+                };
+
+                loadLead();
+
+                return () => {
+                        isMounted = false;
+                };
+        }, [user]);
 
         const shouldReduceMotion = useReducedMotion();
 
@@ -99,18 +182,52 @@ const HomePage = () => {
 
                 try {
                         setCheckoutLoading(true);
-                        const data = await apiClient.post("/payments/paypal/create-order", checkoutInfo);
+                        const leadData = await apiClient.post("/leads", {
+                                selectedPlan: checkoutInfo.packageId,
+                                fullName: checkoutInfo.name,
+                                email: checkoutInfo.email,
+                                idea: checkoutInfo.idea,
+                        });
+
+                        if (!leadData?._id) {
+                                setCheckoutError("تعذر إنشاء طلب التواصل حالياً.");
+                                return;
+                        }
+
+                        const data = await apiClient.post(
+                                `/leads/${encodeURIComponent(leadData._id)}/pay-contact-fee/create-order`
+                        );
                         if (data?.approveUrl) {
                                 globalThis.location.href = data.approveUrl;
                         } else {
-                                setCheckoutError("تعذر تجهيز الدفع عبر باي بال الآن.");
+                                setCheckoutError("تعذر تجهيز دفع رسوم التواصل عبر باي بال الآن.");
                         }
                 } catch (error) {
-                        setCheckoutError(error.response?.data?.message || "تعذر تجهيز الدفع عبر باي بال الآن.");
+                        setCheckoutError(
+                                error.response?.data?.message || "تعذر تجهيز دفع رسوم التواصل عبر باي بال الآن."
+                        );
                 } finally {
                         setCheckoutLoading(false);
                 }
         };
+
+        const buildLeadWhatsAppMessage = (leadData) => {
+                if (!leadData) return "";
+                const planLabel = planLabels[leadData.selectedPlan] || leadData.selectedPlan;
+                return `السلام عليكم، أنا ${leadData.fullName} بريدي ${leadData.email}. مهتم بباقة ${planLabel}. تفاصيل: ${
+                        leadData.idea || "بدون تفاصيل"
+                }. رقم الطلب: ${leadData._id}`;
+        };
+
+        const leadPackageId = lead?.selectedPlan ? planToPackageId[lead.selectedPlan] : "";
+        const leadWhatsAppLink =
+                lead?.contactFeePaid && whatsappUrl
+                        ? buildWhatsAppLink({
+                                  whatsappUrl,
+                                  message: buildLeadWhatsAppMessage(lead),
+                          })
+                        : "";
+        const contactFeeAmountLabel = lead?.contactFeeAmount ? Number(lead.contactFeeAmount).toFixed(0) : "5";
 
         const ScrollReveal = ({ children, className, direction = "right", offset = ["start 90%", "start 55%"] }) => {
                 const cardRef = useRef(null);
@@ -287,6 +404,8 @@ const HomePage = () => {
                                         <div className='mt-10 grid gap-8 lg:grid-cols-3'>
                                                 {packages.map((pkg) => {
                                                         const isHighlighted = pkg.id === "growth";
+                                                        const hasUnlockedWhatsApp =
+                                                                lead?.contactFeePaid && leadPackageId === pkg.id;
                                                         return (
                                                                 <ScrollReveal
                                                                         key={pkg.id}
@@ -327,16 +446,43 @@ const HomePage = () => {
                                                                                         السورس كود متاح فقط في هذه الباقة بقيمة إضافية تُحدد عند الطلب.
                                                                                 </div>
                                                                         )}
-                                                                        <a
-                                                                                href='#qualification'
-                                                                                onClick={(event) => {
-                                                                                        event.preventDefault();
-                                                                                        document.getElementById("qualification")?.scrollIntoView({ behavior: "smooth" });
-                                                                                }}
-                                                                                className='btn-primary mt-8'
-                                                                        >
-                                                                                اطلب باقتك الآن
-                                                                        </a>
+                                                                        {hasUnlockedWhatsApp ? (
+                                                                                leadWhatsAppLink ? (
+                                                                                        <a
+                                                                                                href={leadWhatsAppLink}
+                                                                                                target='_blank'
+                                                                                                rel='noreferrer'
+                                                                                                className='btn-primary mt-8'
+                                                                                        >
+                                                                                                فتح واتساب
+                                                                                        </a>
+                                                                                ) : (
+                                                                                        <button
+                                                                                                type='button'
+                                                                                                className='btn-primary mt-8 opacity-60'
+                                                                                                disabled
+                                                                                        >
+                                                                                                واتساب غير متاح
+                                                                                        </button>
+                                                                                )
+                                                                        ) : (
+                                                                                <button
+                                                                                        type='button'
+                                                                                        onClick={() => {
+                                                                                                setCheckoutInfo((prev) => ({
+                                                                                                        ...prev,
+                                                                                                        packageId: pkg.id,
+                                                                                                }));
+                                                                                                document
+                                                                                                        .getElementById("qualification")
+                                                                                                        ?.scrollIntoView({ behavior: "smooth" });
+                                                                                        }}
+                                                                                        className='btn-primary mt-8 inline-flex items-center justify-center gap-2'
+                                                                                >
+                                                                                        <Lock className='h-4 w-4' />
+                                                                                        ابدأ التواصل (${contactFeeAmountLabel})
+                                                                                </button>
+                                                                        )}
                                                                 </ScrollReveal>
                                                         );
                                                 })}
@@ -402,9 +548,10 @@ const HomePage = () => {
                                         className='scroll-section mt-20 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]'
                                 >
                                         <ScrollReveal direction='right' className='glass-panel px-6 py-10 sm:px-10'>
-                                                <h2 className='text-3xl font-bold text-payzone-gold'>نموذج طلب الباقة والدفع عبر PayPal</h2>
+                                                <h2 className='text-3xl font-bold text-payzone-gold'>نموذج طلب التواصل والدفع الرمزي</h2>
                                                 <p className='mt-3 text-white/70'>
-                                                        أدخل معلوماتك الأساسية ثم تابع الدفع عبر PayPal لتأكيد طلبك مباشرة.
+                                                        أدخل معلوماتك ثم ادفع رسوم التواصل الرمزية لتفعيل زر واتساب وبدء النقاش حول
+                                                        التفاصيل.
                                                 </p>
                                                 <form className='mt-6 grid gap-4' onSubmit={handleCheckout}>
                                                         <label className='text-sm text-white/70'>
@@ -469,42 +616,6 @@ const HomePage = () => {
                                                                 </div>
                                                         </label>
                                                         <label className='text-sm text-white/70'>
-                                                                رقم واتساب (اختياري)
-                                                                <div className='relative mt-2'>
-                                                                        <Phone className='absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
-                                                                        <input
-                                                                                type='tel'
-                                                                                value={checkoutInfo.whatsapp}
-                                                                                onChange={(event) =>
-                                                                                        setCheckoutInfo((prev) => ({
-                                                                                                ...prev,
-                                                                                                whatsapp: event.target.value,
-                                                                                        }))
-                                                                                }
-                                                                                className='glass-input w-full pr-12'
-                                                                                placeholder='مثال: 22200000000'
-                                                                        />
-                                                                </div>
-                                                        </label>
-                                                        <label className='text-sm text-white/70'>
-                                                                بريد بديل (اختياري)
-                                                                <div className='relative mt-2'>
-                                                                        <Mail className='absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40' />
-                                                                        <input
-                                                                                type='email'
-                                                                                value={checkoutInfo.alternateEmail}
-                                                                                onChange={(event) =>
-                                                                                        setCheckoutInfo((prev) => ({
-                                                                                                ...prev,
-                                                                                                alternateEmail: event.target.value,
-                                                                                        }))
-                                                                                }
-                                                                                className='glass-input w-full pr-12'
-                                                                                placeholder='alternative@example.com'
-                                                                        />
-                                                                </div>
-                                                        </label>
-                                                        <label className='text-sm text-white/70'>
                                                                 فكرة أو اسم الموقع (اختياري)
                                                                 <div className='relative mt-2'>
                                                                         <MessageSquare className='absolute right-4 top-4 h-4 w-4 text-white/40' />
@@ -532,9 +643,22 @@ const HomePage = () => {
                                                                 className='btn-primary disabled:cursor-not-allowed disabled:opacity-60'
                                                                 disabled={checkoutLoading}
                                                         >
-                                                                {checkoutLoading ? "جاري تجهيز الدفع..." : "متابعة الدفع عبر PayPal"}
+                                                                {checkoutLoading
+                                                                        ? "جاري تجهيز الدفع..."
+                                                                        : `دفع رسوم التواصل ${contactFeeAmountLabel} ${DEFAULT_CURRENCY}`}
                                                         </button>
+                                                        <div className='mt-2 flex flex-wrap gap-4 text-xs text-white/60'>
+                                                                <a href='/privacy' className='underline underline-offset-4'>
+                                                                        سياسة الخصوصية
+                                                                </a>
+                                                                <a href='/refund-policy' className='underline underline-offset-4'>
+                                                                        سياسة الاسترجاع
+                                                                </a>
+                                                        </div>
                                                 </form>
+                                                {leadLoading && (
+                                                        <div className='mt-4 text-sm text-white/50'>جاري تحديث حالة التواصل...</div>
+                                                )}
                                         </ScrollReveal>
                                         <ScrollReveal direction='left' className='glass-panel px-6 py-10 sm:px-10'>
                                                 <h2 className='text-2xl font-bold text-payzone-gold'>لمن هذه الخدمة؟</h2>
