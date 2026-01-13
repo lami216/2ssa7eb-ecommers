@@ -1,11 +1,11 @@
 import Service from "../models/service.model.js";
 import ServiceCheckout from "../models/serviceCheckout.model.js";
-import { createPayPalOrder } from "./paypal.js";
+import { createPayPalOrder } from "../lib/paypal.js";
 import {
         isServiceRequestEmailConfigured,
         sendServiceRequestEmail,
         sendTelegramNotification,
-} from "./notifications.js";
+} from "../lib/notifications.js";
 import { DEFAULT_CURRENCY, buildServicePackages } from "../../shared/servicePackages.js";
 
 const resolvePayPalCurrency = () => (process.env.PAYPAL_CURRENCY || DEFAULT_CURRENCY).toUpperCase();

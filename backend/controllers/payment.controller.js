@@ -1,6 +1,6 @@
 import ServiceCheckout from "../models/serviceCheckout.model.js";
 import { capturePayPalOrder } from "../lib/paypal.js";
-import { createServiceCheckoutOrder, fulfillServiceCheckout } from "../lib/serviceCheckout.js";
+import { createServiceCheckoutOrder, fulfillServiceCheckout } from "../services/serviceCheckout.service.js";
 import { DEFAULT_CURRENCY, buildServicePackages } from "../../shared/servicePackages.js";
 
 const sanitizeText = (value) => (typeof value === "string" ? value.trim() : "");

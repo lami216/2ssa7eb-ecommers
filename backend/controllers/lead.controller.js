@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import Lead from "../models/lead.model.js";
 import ServiceCheckout from "../models/serviceCheckout.model.js";
 import { capturePayPalOrder, createPayPalOrder } from "../lib/paypal.js";
-import { createServiceCheckoutOrder, fulfillServiceCheckout } from "../lib/serviceCheckout.js";
+import { createServiceCheckoutOrder, fulfillServiceCheckout } from "../services/serviceCheckout.service.js";
 import { SERVICE_PACKAGES } from "../../shared/servicePackages.js";
 
 const sanitizeText = (value) => (typeof value === "string" ? value.trim() : "");
