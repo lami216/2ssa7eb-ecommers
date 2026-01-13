@@ -1,6 +1,5 @@
 import Service from "../models/service.model.js";
 import ServiceCheckout from "../models/serviceCheckout.model.js";
-import ContactRequest from "../models/contactRequest.model.js";
 import { capturePayPalOrder, createPayPalOrder } from "../lib/paypal.js";
 import {
         isServiceRequestEmailConfigured,
@@ -24,8 +23,6 @@ const formatPayPalAmount = (amount) => {
 
 const sanitizeText = (value) => (typeof value === "string" ? value.trim() : "");
 const isValidOrderId = (value) => /^[A-Za-z0-9-]{10,40}$/.test(value);
-const CONTACT_FEE_AMOUNT = "5.00";
-const CONTACT_FEE_CURRENCY = "USD";
 
 export const createPayPalCheckout = async (req, res) => {
         try {
@@ -193,126 +190,4 @@ export const capturePayPalCheckout = async (req, res) => {
 
 export const listPackages = async (_req, res) => {
         return res.json(packages);
-};
-
-export const createContactFeeOrder = async (req, res) => {
-        try {
-                const contactRequestId = sanitizeText(req.body.contactRequestId);
-
-                if (!contactRequestId) {
-                        return res.status(400).json({ message: "Missing contact request id" });
-                }
-
-                const contactRequest = await ContactRequest.findById(contactRequestId);
-
-                if (!contactRequest) {
-                        return res.status(404).json({ message: "Contact request not found" });
-                }
-
-                if (contactRequest.paid) {
-                        return res.status(400).json({ message: "Contact request already paid" });
-                }
-
-                const frontendBase =
-                        process.env.FRONTEND_URL || process.env.APP_URL || "http://localhost:5173";
-                const returnUrl = `${frontendBase}/payment/success?contactRequestId=${contactRequest._id}`;
-                const cancelUrl = `${frontendBase}/payment/cancel?contactRequestId=${contactRequest._id}`;
-                const customId = `${contactRequest._id}:${contactRequest.planId || "plan"}:${contactRequest.planName}`;
-
-                const paypalOrder = await createPayPalOrder({
-                        amount: CONTACT_FEE_AMOUNT,
-                        currency: CONTACT_FEE_CURRENCY,
-                        returnUrl,
-                        cancelUrl,
-                        description: "Contact Fee - Payzone",
-                        referenceId: "contact-fee",
-                        customId,
-                        itemName: "Contact Fee - Payzone",
-                });
-
-                const approveLink = paypalOrder?.links?.find((link) => link.rel === "approve");
-
-                if (!approveLink?.href) {
-                        return res.status(500).json({ message: "Failed to create PayPal approval link" });
-                }
-
-                contactRequest.paypalOrderId = paypalOrder.id;
-                contactRequest.paypalStatus = paypalOrder.status || "CREATED";
-                await contactRequest.save();
-
-                return res.json({
-                        orderId: paypalOrder.id,
-                        approveUrl: approveLink.href,
-                });
-        } catch (error) {
-                console.log("Error creating contact fee PayPal order", error.message);
-                return res.status(500).json({ message: "Unable to create PayPal order" });
-        }
-};
-
-export const captureContactFeeOrder = async (req, res) => {
-        try {
-                const orderId = sanitizeText(req.body.orderId || req.query.orderId);
-                const contactRequestId = sanitizeText(req.body.contactRequestId || req.query.contactRequestId);
-
-                if (!orderId || !isValidOrderId(orderId)) {
-                        return res.status(400).json({ message: "Invalid order id" });
-                }
-
-                if (!contactRequestId) {
-                        return res.status(400).json({ message: "Missing contact request id" });
-                }
-
-                const contactRequest = await ContactRequest.findById(contactRequestId);
-
-                if (!contactRequest) {
-                        return res.status(404).json({ message: "Contact request not found" });
-                }
-
-                if (contactRequest.paid) {
-                        return res.json({
-                                paid: true,
-                                contactRequest: {
-                                        id: contactRequest._id,
-                                        fullName: contactRequest.fullName,
-                                        email: contactRequest.email,
-                                        needDescription: contactRequest.needDescription,
-                                        planId: contactRequest.planId,
-                                        planName: contactRequest.planName,
-                                        paypalOrderId: contactRequest.paypalOrderId,
-                                },
-                        });
-                }
-
-                const captureResult = await capturePayPalOrder(orderId);
-                const captureStatus = captureResult?.status;
-
-                if (captureStatus !== "COMPLETED") {
-                        return res.status(400).json({ message: "Payment not completed" });
-                }
-
-                contactRequest.paid = true;
-                contactRequest.paidAt = new Date();
-                contactRequest.paypalOrderId = orderId;
-                contactRequest.paypalStatus = captureStatus;
-                contactRequest.payerEmail = captureResult?.payer?.email_address || "";
-                await contactRequest.save();
-
-                return res.json({
-                        paid: true,
-                        contactRequest: {
-                                id: contactRequest._id,
-                                fullName: contactRequest.fullName,
-                                email: contactRequest.email,
-                                needDescription: contactRequest.needDescription,
-                                planId: contactRequest.planId,
-                                planName: contactRequest.planName,
-                                paypalOrderId: orderId,
-                        },
-                        payerEmail: contactRequest.payerEmail,
-                });
-        } catch (error) {
-                console.log("Error capturing contact fee order", error.message);
-                return res.status(500).json({ message: "Unable to capture PayPal payment" });
-        }
 };

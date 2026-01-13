@@ -8,10 +8,6 @@ import DemoPage from "./pages/DemoPage";
 import ServicesPage from "./pages/ServicesPage";
 import ServiceSuccessPage from "./pages/ServiceSuccessPage";
 import ServiceCancelPage from "./pages/ServiceCancelPage";
-import ContactFeeSuccessPage from "./pages/ContactFeeSuccessPage";
-import ContactFeeCancelPage from "./pages/ContactFeeCancelPage";
-import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
-import RefundPolicyPage from "./pages/RefundPolicyPage";
 import SubscriptionSuccessPage from "./pages/SubscriptionSuccessPage";
 import SubscriptionCancelPage from "./pages/SubscriptionCancelPage";
 import SubscriptionManagePage from "./pages/SubscriptionManagePage";
@@ -56,10 +52,6 @@ function App() {
                                         <Route path='/our-work' element={<DemoPage />} />
                                         <Route path='/services/success' element={<ServiceSuccessPage />} />
                                         <Route path='/services/cancel' element={<ServiceCancelPage />} />
-                                        <Route path='/payment/success' element={<ContactFeeSuccessPage />} />
-                                        <Route path='/payment/cancel' element={<ContactFeeCancelPage />} />
-                                        <Route path='/privacy' element={<PrivacyPolicyPage />} />
-                                        <Route path='/refund-policy' element={<RefundPolicyPage />} />
                                         <Route path='/subscription/success' element={<SubscriptionSuccessPage />} />
                                         <Route path='/subscription/cancel' element={<SubscriptionCancelPage />} />
                                         <Route path='/subscription/manage/:serviceId' element={manageSubscriptionRoute} />
