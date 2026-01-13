@@ -10,11 +10,13 @@ const ContactRequestModal = ({ open, onClose, selectedPlan }) => {
         });
         const [submitting, setSubmitting] = useState(false);
         const [error, setError] = useState("");
+        const [acceptedPolicies, setAcceptedPolicies] = useState(false);
 
         useEffect(() => {
                 if (!open) {
                         setFormData({ fullName: "", email: "", needDescription: "" });
                         setError("");
+                        setAcceptedPolicies(false);
                 }
         }, [open]);
 
@@ -67,7 +69,7 @@ const ContactRequestModal = ({ open, onClose, selectedPlan }) => {
                 <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-8' dir='rtl'>
                         <div className='glass-panel w-full max-w-lg rounded-3xl border border-white/10 bg-payzone-navy/90 p-6 text-right text-white shadow-2xl'>
                                 <div className='flex items-center justify-between'>
-                                        <h2 className='text-2xl font-bold text-payzone-gold'>طلب تواصل</h2>
+                                        <h2 className='text-2xl font-bold text-payzone-gold'>طلب تواصل عبر واتساب</h2>
                                         <button
                                                 type='button'
                                                 onClick={onClose}
@@ -77,9 +79,7 @@ const ContactRequestModal = ({ open, onClose, selectedPlan }) => {
                                                 <X className='h-5 w-5' />
                                         </button>
                                 </div>
-                                <p className='mt-2 text-sm text-white/70'>
-                                        افتح واتساب بعد دفع رسوم التواصل لمرة واحدة بقيمة 5$.
-                                </p>
+                                <p className='mt-2 text-sm text-white/70'>رسوم التواصل 5$ لفتح واتساب لمرة واحدة.</p>
                                 <form className='mt-6 grid gap-4' onSubmit={handleSubmit}>
                                         <label className='text-sm text-white/70'>
                                                 الاسم الكامل
@@ -158,26 +158,37 @@ const ContactRequestModal = ({ open, onClose, selectedPlan }) => {
                                         <button
                                                 type='submit'
                                                 className='btn-primary flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60'
-                                                disabled={submitting}
+                                                disabled={submitting || !acceptedPolicies}
                                         >
                                                 <Lock className='h-4 w-4' />
                                                 {submitting ? "جاري تحويلك إلى الدفع..." : "ادفع 5$ لفتح واتساب"}
                                         </button>
-                                        <p className='text-xs text-white/60'>
-                                                رسوم التواصل 5$ لفتح واتساب. قد تُخصم من قيمة الباقة عند الاتفاق. الاسترجاع وفق
-                                                سياسة الاسترجاع.
-                                        </p>
-                                        <p className='text-xs text-white/50'>
-                                                بالمتابعة أنت توافق على{" "}
-                                                <a className='text-payzone-gold underline' href='/privacy'>
-                                                        سياسة الخصوصية
-                                                </a>{" "}
-                                                و{" "}
-                                                <a className='text-payzone-gold underline' href='/refund-policy'>
-                                                        سياسة الاسترجاع
-                                                </a>
-                                                .
-                                        </p>
+                                        <div className='rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/70'>
+                                                <p>
+                                                        رسوم التواصل 5$ تفتح واتساب مباشرة. قد تُخصم من قيمة الباقة عند الاتفاق.
+                                                </p>
+                                                <p className='mt-2'>
+                                                        اطّلع على{" "}
+                                                        <a className='text-payzone-gold underline' href='/privacy'>
+                                                                سياسة الخصوصية
+                                                        </a>{" "}
+                                                        و{" "}
+                                                        <a className='text-payzone-gold underline' href='/refund-policy'>
+                                                                سياسة الاسترجاع
+                                                        </a>
+                                                        .
+                                                </p>
+                                        </div>
+                                        <label className='flex items-start gap-2 text-xs text-white/70'>
+                                                <input
+                                                        type='checkbox'
+                                                        className='mt-1'
+                                                        checked={acceptedPolicies}
+                                                        onChange={(event) => setAcceptedPolicies(event.target.checked)}
+                                                        required
+                                                />
+                                                أوافق على سياسة الخصوصية وسياسة الاسترجاع.
+                                        </label>
                                 </form>
                         </div>
                 </div>
