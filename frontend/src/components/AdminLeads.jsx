@@ -31,7 +31,7 @@ const AdminLeads = () => {
         const [error, setError] = useState("");
         const [selectedLead, setSelectedLead] = useState(null);
         const [agreedPlan, setAgreedPlan] = useState("Basic");
-        const [discountAmount, setDiscountAmount] = useState(5);
+        const [discountAmount, setDiscountAmount] = useState(0);
         const [saving, setSaving] = useState(false);
 
         const packageById = useMemo(() => {
@@ -50,7 +50,7 @@ const AdminLeads = () => {
                                 if (isMounted) {
                                         setLeads(Array.isArray(data) ? data : []);
                                 }
-                        } catch (err) {
+                        } catch {
                                 if (isMounted) {
                                         setError("تعذر تحميل طلبات التواصل.");
                                 }
@@ -81,7 +81,7 @@ const AdminLeads = () => {
         const openModal = (lead) => {
                 setSelectedLead(lead);
                 setAgreedPlan(lead?.selectedPlan || "Basic");
-                setDiscountAmount(lead?.discountAmount ?? 5);
+                setDiscountAmount(lead?.discountAmount ?? 0);
         };
 
         const closeModal = () => {
@@ -103,8 +103,8 @@ const AdminLeads = () => {
                                 prev.map((lead) => (lead._id === response._id ? response : lead))
                         );
                         closeModal();
-                } catch (err) {
-                        setError(err.response?.data?.message || "تعذر تفعيل الدفع للباقة.");
+                } catch (error) {
+                        setError(error.response?.data?.message || "تعذر تفعيل الدفع للباقة.");
                 } finally {
                         setSaving(false);
                 }
@@ -159,13 +159,14 @@ const AdminLeads = () => {
                                                                         </td>
                                                                         <td className='px-4 py-3'>{formatDate(lead.createdAt)}</td>
                                                                         <td className='px-4 py-3'>
-                                                                                <button
-                                                                                        type='button'
-                                                                                        onClick={() => openModal(lead)}
-                                                                                        className='rounded-full bg-payzone-gold px-4 py-2 text-xs font-semibold text-payzone-navy transition hover:bg-[#b8873d]'
-                                                                                >
-                                                                                        تفعيل دفع الباقة
-                                                                                </button>
+                                                                        <button
+                                                                                type='button'
+                                                                                onClick={() => openModal(lead)}
+                                                                                className='rounded-full bg-payzone-gold px-4 py-2 text-xs font-semibold text-payzone-navy transition hover:bg-[#b8873d] disabled:cursor-not-allowed disabled:opacity-60'
+                                                                                disabled={!lead.contactFeePaid}
+                                                                        >
+                                                                                {lead.checkoutEnabled ? "تعديل دفع الباقة" : "تفعيل دفع الباقة"}
+                                                                        </button>
                                                                         </td>
                                                                 </tr>
                                                         ))}

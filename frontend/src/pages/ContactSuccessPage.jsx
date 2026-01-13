@@ -21,7 +21,7 @@ const ContactSuccessPage = () => {
                                 if (isMounted) {
                                         setWhatsappUrl(config?.whatsapp || "");
                                 }
-                        } catch (err) {
+                        } catch {
                                 if (isMounted) {
                                         setWhatsappUrl("");
                                 }
@@ -71,10 +71,20 @@ const ContactSuccessPage = () => {
                 };
         }, [leadId, orderId]);
 
-        const buildMessage = (leadData) =>
-                `السلام عليكم، أنا ${leadData.fullName} بريدي ${leadData.email}. مهتم بباقة ${
-                        leadData.selectedPlan
-                }. تفاصيل: ${leadData.idea || "بدون تفاصيل"}. رقم الطلب: ${leadData._id}`;
+        const planLabels = {
+                starter: "Basic",
+                growth: "Pro",
+                full: "Plus",
+                Basic: "Basic",
+                Pro: "Pro",
+                Plus: "Plus",
+        };
+        const buildMessage = (leadData) => {
+                const planLabel = planLabels[leadData.selectedPlan] || leadData.selectedPlan;
+                return `السلام عليكم، أنا ${leadData.fullName} بريدي ${leadData.email}. مهتم بباقة ${planLabel}. تفاصيل: ${
+                        leadData.idea || "بدون تفاصيل"
+                }. رقم الطلب: ${leadData._id}`;
+        };
 
         if (loading) {
                 return (

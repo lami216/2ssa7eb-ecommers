@@ -73,7 +73,7 @@ const ServicesPage = () => {
                                 if (isMounted) {
                                         setLead(Array.isArray(data) ? data[0] : null);
                                 }
-                        } catch (error) {
+                        } catch {
                                 if (isMounted) {
                                         setLead(null);
                                 }
@@ -90,7 +90,7 @@ const ServicesPage = () => {
                                 if (isMounted) {
                                         setWhatsappUrl(config?.whatsapp || "");
                                 }
-                        } catch (error) {
+                        } catch {
                                 if (isMounted) {
                                         setWhatsappUrl("");
                                 }
@@ -154,12 +154,20 @@ const ServicesPage = () => {
                 PLAN_PAID: "تم دفع الباقة",
         };
 
+        const planLabels = {
+                starter: "Basic",
+                growth: "Pro",
+                full: "Plus",
+                Basic: "Basic",
+                Pro: "Pro",
+                Plus: "Plus",
+        };
         const leadStatusLabel = lead?.status ? statusLabels[lead.status] || lead.status : "";
         const leadWhatsAppLink = lead?.contactFeePaid
                 ? buildWhatsAppLink({
                           whatsappUrl,
                           message: `السلام عليكم، أنا ${lead.fullName} بريدي ${lead.email}. مهتم بباقة ${
-                                  lead.selectedPlan
+                                  planLabels[lead.selectedPlan] || lead.selectedPlan
                           }. تفاصيل: ${lead.idea || "بدون تفاصيل"}. رقم الطلب: ${lead._id}`,
                   })
                 : "";

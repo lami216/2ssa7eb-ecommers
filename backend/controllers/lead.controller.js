@@ -319,6 +319,14 @@ export const capturePlanPayment = async (req, res) => {
                         return res.json(lead);
                 }
 
+                if (!lead.contactFeePaid) {
+                        return res.status(400).json({ message: "Contact fee not paid" });
+                }
+
+                if (!lead.checkoutEnabled) {
+                        return res.status(400).json({ message: "Checkout not enabled for this lead" });
+                }
+
                 if (lead.planPaypalOrderId && lead.planPaypalOrderId !== orderId) {
                         return res.status(400).json({ message: "Order mismatch for plan payment" });
                 }

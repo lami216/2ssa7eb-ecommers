@@ -119,7 +119,7 @@ const HomePage = () => {
                                 if (isMounted) {
                                         setWhatsappUrl(config?.whatsapp || "");
                                 }
-                        } catch (error) {
+                        } catch {
                                 if (isMounted) {
                                         setWhatsappUrl("");
                                 }
@@ -151,7 +151,7 @@ const HomePage = () => {
                                 if (isMounted) {
                                         setLead(Array.isArray(data) ? data[0] : null);
                                 }
-                        } catch (error) {
+                        } catch {
                                 if (isMounted) {
                                         setLead(null);
                                 }
@@ -214,9 +214,8 @@ const HomePage = () => {
         const buildLeadWhatsAppMessage = (leadData) => {
                 if (!leadData) return "";
                 const planLabel = planLabels[leadData.selectedPlan] || leadData.selectedPlan;
-                return `السلام عليكم، أنا ${leadData.fullName} بريدي ${leadData.email}. مهتم بباقة ${planLabel}. تفاصيل: ${
-                        leadData.idea || "بدون تفاصيل"
-                }. رقم الطلب: ${leadData._id}`;
+                const idea = leadData.idea || "بدون تفاصيل";
+                return `السلام عليكم، أنا ${leadData.fullName} بريدي ${leadData.email}. مهتم بباقة ${planLabel}. تفاصيل: ${idea}. رقم الطلب: ${leadData._id}`;
         };
 
         const leadPackageId = lead?.selectedPlan ? planToPackageId[lead.selectedPlan] : "";
@@ -480,7 +479,7 @@ const HomePage = () => {
                                                                                         className='btn-primary mt-8 inline-flex items-center justify-center gap-2'
                                                                                 >
                                                                                         <Lock className='h-4 w-4' />
-                                                                                        ابدأ التواصل (${contactFeeAmountLabel})
+                                                                                        Start Contact ($${contactFeeAmountLabel})
                                                                                 </button>
                                                                         )}
                                                                 </ScrollReveal>
