@@ -29,19 +29,33 @@ function App() {
         const user = useUserStore((state) => state.user);
         const checkAuth = useUserStore((state) => state.checkAuth);
         const checkingAuth = useUserStore((state) => state.checkingAuth);
+        const contactFeePaid = useUserStore((state) => state.contactFeePaid);
+        const checkingContactFee = useUserStore((state) => state.checkingContactFee);
+        const fetchContactFeeStatus = useUserStore((state) => state.fetchContactFeeStatus);
 
         useEffect(() => {
                 checkAuth();
         }, [checkAuth]);
 
+        useEffect(() => {
+                if (user && !user.hasServices) {
+                        fetchContactFeeStatus();
+                }
+        }, [fetchContactFeeStatus, user]);
+
         if (checkingAuth) {
                 return <LoadingSpinner />;
         }
 
+        const canAccessServices = Boolean(user?.hasServices || contactFeePaid);
         const servicesRoute = user
                 ? user.hasServices
                         ? <ServicesPage />
-                        : <Navigate to='/' />
+                        : checkingContactFee
+                                ? <LoadingSpinner />
+                                : canAccessServices
+                                        ? <ServicesPage />
+                                        : <Navigate to='/' />
                 : <Navigate to='/login' />;
         const manageSubscriptionRoute = user
                 ? user.hasServices
