@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import { ChevronDown, Lock, Mail, MessageSquare, Package, User } from "lucide-react";
+import { ChevronDown, Mail, MessageSquare, Package, User } from "lucide-react";
 import apiClient from "../lib/apiClient";
 import { DEFAULT_CURRENCY, SERVICE_PACKAGES } from "../../../shared/servicePackages.js";
-import { useUserStore } from "../stores/useUserStore";
 import { buildWhatsAppLink } from "../lib/whatsapp";
+import { buildLeadWhatsAppMessage } from "../lib/lead";
+import useLeadStatus from "../hooks/useLeadStatus";
+import WhatsAppButton from "../components/WhatsAppButton";
 
 const HomePage = () => {
-        const user = useUserStore((state) => state.user);
+        const { lead, setLead, isUnlocked, whatsappUrl, whatsappLink, loading: leadLoading } = useLeadStatus();
         const formatPackagePrice = (amount, currency) => {
                 const normalized = Number(amount);
                 if (!Number.isFinite(normalized)) {
@@ -60,26 +62,6 @@ const HomePage = () => {
                 });
         }, [packageDetails]);
 
-        const planLabels = useMemo(
-                () => ({
-                        starter: "Basic",
-                        growth: "Pro",
-                        full: "Plus",
-                        Basic: "Basic",
-                        Pro: "Pro",
-                        Plus: "Plus",
-                }),
-                []
-        );
-        const planToPackageId = useMemo(
-                () => ({
-                        Basic: "starter",
-                        Pro: "growth",
-                        Plus: "full",
-                }),
-                []
-        );
-
         const comparisonRows = useMemo(
                 () => [
                         { label: "تشغيل سريع", starter: "✅", growth: "✅", full: "✅" },
@@ -106,69 +88,6 @@ const HomePage = () => {
         });
         const [checkoutLoading, setCheckoutLoading] = useState(false);
         const [checkoutError, setCheckoutError] = useState("");
-        const [lead, setLead] = useState(null);
-        const [leadLoading, setLeadLoading] = useState(false);
-        const [whatsappUrl, setWhatsappUrl] = useState("");
-
-        useEffect(() => {
-                let isMounted = true;
-
-                const loadWhatsApp = async () => {
-                        try {
-                                const config = await apiClient.get("/public-config");
-                                if (isMounted) {
-                                        setWhatsappUrl(config?.whatsapp || "");
-                                }
-                        } catch {
-                                if (isMounted) {
-                                        setWhatsappUrl("");
-                                }
-                        }
-                };
-
-                loadWhatsApp();
-
-                return () => {
-                        isMounted = false;
-                };
-        }, []);
-
-        useEffect(() => {
-                let isMounted = true;
-
-                const loadLead = async () => {
-                        if (!user) {
-                                if (isMounted) {
-                                        setLead(null);
-                                        setLeadLoading(false);
-                                }
-                                return;
-                        }
-
-                        try {
-                                setLeadLoading(true);
-                                const data = await apiClient.get("/leads/me");
-                                if (isMounted) {
-                                        setLead(Array.isArray(data) ? data[0] : null);
-                                }
-                        } catch {
-                                if (isMounted) {
-                                        setLead(null);
-                                }
-                        } finally {
-                                if (isMounted) {
-                                        setLeadLoading(false);
-                                }
-                        }
-                };
-
-                loadLead();
-
-                return () => {
-                        isMounted = false;
-                };
-        }, [user]);
-
         const shouldReduceMotion = useReducedMotion();
 
         const handleCheckout = async (event) => {
@@ -193,10 +112,22 @@ const HomePage = () => {
                                 setCheckoutError("تعذر إنشاء طلب التواصل حالياً.");
                                 return;
                         }
+                        setLead(leadData);
 
                         const data = await apiClient.post(
                                 `/leads/${encodeURIComponent(leadData._id)}/pay-contact-fee/create-order`
                         );
+                        if (data?.alreadyPaid && data?.lead) {
+                                setLead(data.lead);
+                                const link = buildWhatsAppLink({
+                                        whatsappUrl,
+                                        message: buildLeadWhatsAppMessage(data.lead),
+                                });
+                                if (link) {
+                                        window.open(link, "_blank");
+                                }
+                                return;
+                        }
                         if (data?.approveUrl) {
                                 globalThis.location.href = data.approveUrl;
                         } else {
@@ -211,21 +142,6 @@ const HomePage = () => {
                 }
         };
 
-        const buildLeadWhatsAppMessage = (leadData) => {
-                if (!leadData) return "";
-                const planLabel = planLabels[leadData.selectedPlan] || leadData.selectedPlan;
-                const idea = leadData.idea || "بدون تفاصيل";
-                return `السلام عليكم، أنا ${leadData.fullName} بريدي ${leadData.email}. مهتم بباقة ${planLabel}. تفاصيل: ${idea}. رقم الطلب: ${leadData._id}`;
-        };
-
-        const leadPackageId = lead?.selectedPlan ? planToPackageId[lead.selectedPlan] : "";
-        const leadWhatsAppLink =
-                lead?.contactFeePaid && whatsappUrl
-                        ? buildWhatsAppLink({
-                                  whatsappUrl,
-                                  message: buildLeadWhatsAppMessage(lead),
-                          })
-                        : "";
         const contactFeeAmountLabel = lead?.contactFeeAmount ? Number(lead.contactFeeAmount).toFixed(0) : "5";
 
         const ScrollReveal = ({ children, className, direction = "right", offset = ["start 90%", "start 55%"] }) => {
@@ -403,8 +319,7 @@ const HomePage = () => {
                                         <div className='mt-10 grid gap-8 lg:grid-cols-3'>
                                                 {packages.map((pkg) => {
                                                         const isHighlighted = pkg.id === "growth";
-                                                        const hasUnlockedWhatsApp =
-                                                                lead?.contactFeePaid && leadPackageId === pkg.id;
+                                                        const lockedLabel = `ابدأ التواصل (${contactFeeAmountLabel}$ فقط) 🔒`;
                                                         return (
                                                                 <ScrollReveal
                                                                         key={pkg.id}
@@ -445,43 +360,21 @@ const HomePage = () => {
                                                                                         السورس كود متاح فقط في هذه الباقة بقيمة إضافية تُحدد عند الطلب.
                                                                                 </div>
                                                                         )}
-                                                                        {hasUnlockedWhatsApp ? (
-                                                                                leadWhatsAppLink ? (
-                                                                                        <a
-                                                                                                href={leadWhatsAppLink}
-                                                                                                target='_blank'
-                                                                                                rel='noreferrer'
-                                                                                                className='btn-primary mt-8'
-                                                                                        >
-                                                                                                فتح واتساب
-                                                                                        </a>
-                                                                                ) : (
-                                                                                        <button
-                                                                                                type='button'
-                                                                                                className='btn-primary mt-8 opacity-60'
-                                                                                                disabled
-                                                                                        >
-                                                                                                واتساب غير متاح
-                                                                                        </button>
-                                                                                )
-                                                                        ) : (
-                                                                                <button
-                                                                                        type='button'
-                                                                                        onClick={() => {
-                                                                                                setCheckoutInfo((prev) => ({
-                                                                                                        ...prev,
-                                                                                                        packageId: pkg.id,
-                                                                                                }));
-                                                                                                document
-                                                                                                        .getElementById("qualification")
-                                                                                                        ?.scrollIntoView({ behavior: "smooth" });
-                                                                                        }}
-                                                                                        className='btn-primary mt-8 inline-flex items-center justify-center gap-2'
-                                                                                >
-                                                                                        <Lock className='h-4 w-4' />
-                                                                                        Start Contact ($${contactFeeAmountLabel})
-                                                                                </button>
-                                                                        )}
+                                                                        <WhatsAppButton
+                                                                                isUnlocked={isUnlocked}
+                                                                                whatsappLink={whatsappLink}
+                                                                                lockedLabel={lockedLabel}
+                                                                                className='mt-8'
+                                                                                onLockedClick={() => {
+                                                                                        setCheckoutInfo((prev) => ({
+                                                                                                ...prev,
+                                                                                                packageId: pkg.id,
+                                                                                        }));
+                                                                                        document
+                                                                                                .getElementById("qualification")
+                                                                                                ?.scrollIntoView({ behavior: "smooth" });
+                                                                                }}
+                                                                        />
                                                                 </ScrollReveal>
                                                         );
                                                 })}
@@ -644,7 +537,9 @@ const HomePage = () => {
                                                         >
                                                                 {checkoutLoading
                                                                         ? "جاري تجهيز الدفع..."
-                                                                        : `دفع رسوم التواصل ${contactFeeAmountLabel} ${DEFAULT_CURRENCY}`}
+                                                                        : isUnlocked
+                                                                          ? "تواصل عبر واتساب الآن 💬"
+                                                                          : `دفع رسوم التواصل ${contactFeeAmountLabel} ${DEFAULT_CURRENCY}`}
                                                         </button>
                                                         <div className='mt-2 flex flex-wrap gap-4 text-xs text-white/60'>
                                                                 <a href='/privacy' className='underline underline-offset-4'>
@@ -657,6 +552,15 @@ const HomePage = () => {
                                                 </form>
                                                 {leadLoading && (
                                                         <div className='mt-4 text-sm text-white/50'>جاري تحديث حالة التواصل...</div>
+                                                )}
+                                                {!leadLoading && isUnlocked && whatsappLink && (
+                                                        <div className='mt-4'>
+                                                                <WhatsAppButton
+                                                                        isUnlocked
+                                                                        whatsappLink={whatsappLink}
+                                                                        className='w-full'
+                                                                />
+                                                        </div>
                                                 )}
                                         </ScrollReveal>
                                         <ScrollReveal direction='left' className='glass-panel px-6 py-10 sm:px-10'>

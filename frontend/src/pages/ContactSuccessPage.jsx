@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import apiClient from "../lib/apiClient";
 import { buildWhatsAppLink } from "../lib/whatsapp";
+import { buildLeadWhatsAppMessage } from "../lib/lead";
+import WhatsAppButton from "../components/WhatsAppButton";
 
 const ContactSuccessPage = () => {
         const [searchParams] = useSearchParams();
@@ -71,21 +73,6 @@ const ContactSuccessPage = () => {
                 };
         }, [leadId, orderId]);
 
-        const planLabels = {
-                starter: "Basic",
-                growth: "Pro",
-                full: "Plus",
-                Basic: "Basic",
-                Pro: "Pro",
-                Plus: "Plus",
-        };
-        const buildMessage = (leadData) => {
-                const planLabel = planLabels[leadData.selectedPlan] || leadData.selectedPlan;
-                return `السلام عليكم، أنا ${leadData.fullName} بريدي ${leadData.email}. مهتم بباقة ${planLabel}. تفاصيل: ${
-                        leadData.idea || "بدون تفاصيل"
-                }. رقم الطلب: ${leadData._id}`;
-        };
-
         if (loading) {
                 return (
                         <div className='min-h-screen bg-payzone-navy px-4 py-16 text-white'>
@@ -107,7 +94,7 @@ const ContactSuccessPage = () => {
         }
 
         const whatsappLink = lead
-                ? buildWhatsAppLink({ whatsappUrl, message: buildMessage(lead) })
+                ? buildWhatsAppLink({ whatsappUrl, message: buildLeadWhatsAppMessage(lead) })
                 : "";
 
         return (
@@ -117,20 +104,13 @@ const ContactSuccessPage = () => {
                                 <p className='mt-3 text-white/70'>
                                         شكراً لك. تم فتح زر واتساب وسنرد عليك قريباً لتأكيد المتطلبات.
                                 </p>
-                                {whatsappLink ? (
-                                        <a
-                                                href={whatsappLink}
-                                                className='mt-6 inline-flex items-center justify-center rounded-full bg-payzone-gold px-6 py-3 text-sm font-semibold text-payzone-navy transition hover:bg-[#b8873d]'
-                                                target='_blank'
-                                                rel='noreferrer'
-                                        >
-                                                فتح واتساب الآن
-                                        </a>
-                                ) : (
-                                        <p className='mt-6 text-sm text-white/60'>
-                                                زر واتساب غير متاح حالياً، يرجى التواصل عبر البريد الإلكتروني.
-                                        </p>
-                                )}
+                                <div className='mt-6 flex justify-center'>
+                                        <WhatsAppButton
+                                                isUnlocked
+                                                whatsappLink={whatsappLink}
+                                                className='px-8 py-3 text-sm'
+                                        />
+                                </div>
                                 <p className='mt-6 text-sm text-white/60'>
                                         سيتم تفعيل دفع الباقة بعد الاتفاق النهائي عبر واتساب.
                                 </p>
