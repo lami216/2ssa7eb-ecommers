@@ -175,7 +175,7 @@ const HomePage = () => {
         };
 
         return (
-                <div className='relative min-h-screen overflow-hidden text-payzone-white'>
+                <div className='home-page-bg relative min-h-screen overflow-hidden text-payzone-white'>
                         <div className='tech-bg'>
                                 <div className='tech-bg__layer bg-tech-grid' />
                                 <div className='tech-bg__layer bg-tech-circuit' />
