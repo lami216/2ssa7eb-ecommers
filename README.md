@@ -58,3 +58,20 @@ npm run build
 ```shell
 npm run start
 ```
+
+## Supervisor Orchestrator (Repo 1)
+
+### Import the workflow
+1. In n8n, import `supervisor-workflow.json` from the repo root.
+2. Ensure the workflow uses the `project-registry.json` file from the same directory.
+
+### Required credentials (placeholders)
+Create credentials in n8n for:
+- **LLM provider (OpenAI/Codex via API)**: configure an OpenAI API credential (name used in the workflow: `OpenAI API`).
+- **Telegram trigger** (if you use Telegram as the entrypoint): configure your Telegram credential and connect it to the workflow trigger you use.
+
+### Project registry
+Edit `project-registry.json` to add or update projects. For now the workflow always selects `shop3`, but the registry is ready for future shops.
+
+### PR merge + deployment note
+The workflow creates a PR and waits for manual user merge. Deployment is **not** run from this repo; it will be triggered separately by Repo 3 after the PR is merged.
