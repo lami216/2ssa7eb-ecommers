@@ -1,0 +1,584 @@
+{
+  "name": "Supervisor Orchestrator",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "filePath": "project-registry.json"
+      },
+      "id": "readProjectRegistry",
+      "name": "Read Project Registry",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "binaryToJson",
+        "sourceKey": "data",
+        "destinationKey": "data"
+      },
+      "id": "parseProjectRegistry",
+      "name": "Parse Project Registry",
+      "type": "n8n-nodes-base.moveBinaryData",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "object": [
+            {
+              "name": "project",
+              "value": "={{ $json.data.shop3 }}"
+            }
+          ]
+        }
+      },
+      "id": "selectProject",
+      "name": "Select Project",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "request_id",
+              "value": "={{ $now.toISO() + \"-\" + $randomInt(1000,9999) }}"
+            },
+            {
+              "name": "status",
+              "value": "DISCUSSING"
+            }
+          ],
+          "object": [
+            {
+              "name": "project",
+              "value": "={{ $json.project }}"
+            },
+            {
+              "name": "change_request",
+              "value": "={{ { goal: $json.message || $json.text || $json.body?.message || \"\", details: \"\", scope_files: [], constraints: [] } }}"
+            },
+            {
+              "name": "spec",
+              "value": "={{ { technical_spec: \"\", acceptance_criteria: [], edge_cases: [], non_goals: [] } }}"
+            },
+            {
+              "name": "prompts",
+              "value": "={{ { programmer_prompt: \"\" } }}"
+            },
+            {
+              "name": "code_output",
+              "value": "={{ { patch_diff: \"\", files_changed: [], notes: \"\" } }}"
+            },
+            {
+              "name": "pr",
+              "value": "={{ { branch: \"\", title: \"\", body: \"\", url: \"\", merged: false } }}"
+            },
+            {
+              "name": "logs",
+              "value": "={{ [] }}"
+            }
+          ]
+        }
+      },
+      "id": "initContract",
+      "name": "Init Contract",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "systemMessage": "أنت مشرف محادثة طبيعي. مهمتك فهم طلب المستخدم حول مشروع shop3 فقط. لا تعرض JSON للمستخدم. إذا الطلب غير واضح اسأل سؤال واحد قصير فقط. إذا كان واضحًا قل جملة طبيعية مثل: \"تمام، أبدأ؟\" وانتظر كلمة الموافقة الدقيقة: ابدأ. إذا لم تظهر كلمة ابدأ فلا تنتقل للتنفيذ. أعد مخرجاتك كـ JSON داخلي يحتوي على: response, needs_clarification (true/false), approval_received (true/false), change_request {goal, details, scope_files, constraints}.",
+        "userMessage": "رسالة المستخدم: {{ $json.message || $json.text || $json.body?.message || \"\" }}\nالعقد الحالي: {{ $json }}",
+        "responseFormat": "json"
+      },
+      "id": "supervisor",
+      "name": "Supervisor",
+      "type": "n8n-nodes-base.openAiChat",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        0
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_api",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.approval_received }}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "id": "approvalCheck",
+      "name": "Approval Received?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "user_response",
+              "value": "={{ $json.response }}"
+            }
+          ],
+          "object": [
+            {
+              "name": "change_request",
+              "value": "={{ $json.change_request }}"
+            }
+          ]
+        }
+      },
+      "id": "respondDiscussing",
+      "name": "Respond (Discussing)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "ENGINEERING_PROMPT"
+            }
+          ],
+          "object": [
+            {
+              "name": "change_request",
+              "value": "={{ $json.change_request }}"
+            }
+          ]
+        }
+      },
+      "id": "setEngineeringPrompt",
+      "name": "Set Status ENGINEERING_PROMPT",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "systemMessage": "أنت وكيل هندسة برومبت. اكتب مواصفات تقنية عربية موجزة وقابلة للتنفيذ. المدخل: change_request + project. المخرجات: spec {technical_spec, acceptance_criteria, edge_cases, non_goals} + programmer_prompt. يجب أن يكون programmer_prompt دقيقًا ويطلب أقل تغيير ممكن، بدون إعادة هيكلة إلا للضرورة، وعدم تسريب أسرار، واحترام مجلد frontend. اطلب من المبرمج إنتاج Unified Diff فقط. أعد المخرجات كـ JSON داخلي.",
+        "userMessage": "project: {{ $json.project }}\nchange_request: {{ $json.change_request }}",
+        "responseFormat": "json"
+      },
+      "id": "promptEngineer",
+      "name": "Prompt Engineer Agent",
+      "type": "n8n-nodes-base.openAiChat",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        120
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_api",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "CODING"
+            }
+          ],
+          "object": [
+            {
+              "name": "spec",
+              "value": "={{ $json.spec }}"
+            },
+            {
+              "name": "prompts",
+              "value": "={{ { programmer_prompt: $json.programmer_prompt } }}"
+            }
+          ]
+        }
+      },
+      "id": "setCodingStatus",
+      "name": "Set Status CODING",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "systemMessage": "أنت وكيل برمجة. التزم بتعليمات البرومبت. أخرج JSON داخلي يحتوي على: patch_diff (Unified Diff), files_changed (list), notes (string أو كائن). لا تخترع ملفات غير موجودة. إذا لم تكن متأكدًا من نطاق الملفات أعد notes ككائن: {needs_clarification: true, question: \"سؤال واحد حول scope_files\"} ولا تُنتج patch_diff.",
+        "userMessage": "{{ $json.prompts.programmer_prompt }}",
+        "responseFormat": "json"
+      },
+      "id": "programmerAgent",
+      "name": "Programmer Agent",
+      "type": "n8n-nodes-base.openAiChat",
+      "typeVersion": 1,
+      "position": [
+        2200,
+        120
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_api",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.notes.needs_clarification }}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "id": "needsClarification",
+      "name": "Needs Clarification?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "DISCUSSING"
+            },
+            {
+              "name": "user_response",
+              "value": "={{ $json.notes.question }}"
+            }
+          ]
+        }
+      },
+      "id": "backToDiscussing",
+      "name": "Back to Discussing",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "PR_CREATING"
+            }
+          ],
+          "object": [
+            {
+              "name": "code_output",
+              "value": "={{ { patch_diff: $json.patch_diff, files_changed: $json.files_changed, notes: $json.notes } }}"
+            }
+          ]
+        }
+      },
+      "id": "setPrCreating",
+      "name": "Set Status PR_CREATING",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "github_pr_agent",
+        "options": {}
+      },
+      "id": "callGithubPrAgent",
+      "name": "Call github_pr_agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        2860,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "WAITING_MERGE"
+            },
+            {
+              "name": "user_response",
+              "value": "={{ \"تم إنشاء الـ PR: \" + $json.pr.url + \"\\nلو سمحت راجع وارسل دمج عندما تكون جاهز.\" }}"
+            }
+          ],
+          "object": [
+            {
+              "name": "pr",
+              "value": "={{ $json.pr }}"
+            }
+          ]
+        }
+      },
+      "id": "notifyUser",
+      "name": "Notify User",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        3080,
+        220
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Read Project Registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Project Registry": {
+      "main": [
+        [
+          {
+            "node": "Parse Project Registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Project Registry": {
+      "main": [
+        [
+          {
+            "node": "Select Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Project": {
+      "main": [
+        [
+          {
+            "node": "Init Contract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init Contract": {
+      "main": [
+        [
+          {
+            "node": "Supervisor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supervisor": {
+      "main": [
+        [
+          {
+            "node": "Approval Received?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approval Received?": {
+      "main": [
+        [
+          {
+            "node": "Respond (Discussing)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Status ENGINEERING_PROMPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Status ENGINEERING_PROMPT": {
+      "main": [
+        [
+          {
+            "node": "Prompt Engineer Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prompt Engineer Agent": {
+      "main": [
+        [
+          {
+            "node": "Set Status CODING",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Status CODING": {
+      "main": [
+        [
+          {
+            "node": "Programmer Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Programmer Agent": {
+      "main": [
+        [
+          {
+            "node": "Needs Clarification?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Clarification?": {
+      "main": [
+        [
+          {
+            "node": "Back to Discussing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Status PR_CREATING",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Status PR_CREATING": {
+      "main": [
+        [
+          {
+            "node": "Call github_pr_agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call github_pr_agent": {
+      "main": [
+        [
+          {
+            "node": "Notify User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "00000000-0000-0000-0000-000000000000",
+  "meta": {
+    "instanceId": "supervisor-orchestrator"
+  }
+}

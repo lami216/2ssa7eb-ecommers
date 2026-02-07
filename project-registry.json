@@ -1,0 +1,11 @@
+{
+  "shop3": {
+    "key": "shop3",
+    "repo_owner": "REPLACE_ME",
+    "repo_name": "REPLACE_ME",
+    "base_branch": "main",
+    "server_path": "/var/www/shop3",
+    "pm2_process": "shop3-api",
+    "frontend_folder": "frontend"
+  }
+}
