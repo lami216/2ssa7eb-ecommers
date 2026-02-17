@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import apiClient from "../lib/apiClient";
+import { SERVICE_PACKAGES } from "../../../shared/servicePackages.js";
 
 const formatDate = (value) => {
         if (!value) return "-";
@@ -12,10 +13,33 @@ const formatDate = (value) => {
         });
 };
 
+const PLAN_OPTIONS = [
+        { value: "Basic", label: "Basic" },
+        { value: "Pro", label: "Pro" },
+        { value: "Plus", label: "Plus" },
+];
+
+const PLAN_TO_PACKAGE = {
+        Basic: "starter",
+        Pro: "growth",
+        Plus: "full",
+};
+
 const AdminLeads = () => {
         const [leads, setLeads] = useState([]);
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState("");
+        const [selectedLead, setSelectedLead] = useState(null);
+        const [agreedPlan, setAgreedPlan] = useState("Basic");
+        const [discountAmount, setDiscountAmount] = useState(0);
+        const [saving, setSaving] = useState(false);
+
+        const packageById = useMemo(() => {
+                return SERVICE_PACKAGES.reduce((acc, pkg) => {
+                        acc[pkg.id] = pkg;
+                        return acc;
+                }, {});
+        }, []);
 
         useEffect(() => {
                 let isMounted = true;
@@ -44,6 +68,48 @@ const AdminLeads = () => {
                 };
         }, []);
 
+        const basePrice = useMemo(() => {
+                const packageId = PLAN_TO_PACKAGE[agreedPlan];
+                return packageById[packageId]?.oneTimePrice || 0;
+        }, [agreedPlan, packageById]);
+
+        const finalPrice = useMemo(() => {
+                const discount = Number(discountAmount) || 0;
+                return Math.max(basePrice - discount, 0);
+        }, [basePrice, discountAmount]);
+
+        const openModal = (lead) => {
+                setSelectedLead(lead);
+                setAgreedPlan(lead?.selectedPlan || "Basic");
+                setDiscountAmount(lead?.discountAmount ?? 0);
+        };
+
+        const closeModal = () => {
+                setSelectedLead(null);
+        };
+
+        const handleEnableCheckout = async () => {
+                if (!selectedLead) return;
+                setSaving(true);
+                try {
+                        const response = await apiClient.patch(
+                                `/admin/leads/${encodeURIComponent(selectedLead._id)}/enable-checkout`,
+                                {
+                                        agreedPlan,
+                                        discountAmount: Number(discountAmount) || 0,
+                                }
+                        );
+                        setLeads((prev) =>
+                                prev.map((lead) => (lead._id === response._id ? response : lead))
+                        );
+                        closeModal();
+                } catch (error) {
+                        setError(error.response?.data?.message || "تعذر تفعيل الدفع للباقة.");
+                } finally {
+                        setSaving(false);
+                }
+        };
+
         if (loading) {
                 return (
                         <div className='rounded-3xl border border-white/10 bg-payzone-navy/70 p-8 text-center text-white'>
@@ -68,8 +134,11 @@ const AdminLeads = () => {
                                                                 <th className='px-4 py-3 text-right'>البريد</th>
                                                                 <th className='px-4 py-3 text-right'>الباقة</th>
                                                                 <th className='px-4 py-3 text-right'>الحالة</th>
-                                                                <th className='px-4 py-3 text-right'>التواصل مفعل</th>
-                                                                <th className='px-4 py-3 text-right'>تاريخ الإنشاء</th>
+                                                                <th className='px-4 py-3 text-right'>رسوم التواصل</th>
+                                                                <th className='px-4 py-3 text-right'>الدفع مفعل</th>
+                                                                <th className='px-4 py-3 text-right'>السعر النهائي</th>
+                                                                <th className='px-4 py-3 text-right'>تاريخ الطلب</th>
+                                                                <th className='px-4 py-3 text-right'>الإجراء</th>
                                                         </tr>
                                                 </thead>
                                                 <tbody>
@@ -78,17 +147,99 @@ const AdminLeads = () => {
                                                                         <td className='px-4 py-3'>{lead.fullName}</td>
                                                                         <td className='px-4 py-3'>{lead.email}</td>
                                                                         <td className='px-4 py-3'>{lead.selectedPlan}</td>
-                                                                        <td className='px-4 py-3'>{lead.status || "-"}</td>
+                                                                        <td className='px-4 py-3'>{lead.status}</td>
                                                                         <td className='px-4 py-3'>
-                                                                                {lead.contactFeePaid ? "نعم" : "نعم"}
+                                                                                {lead.contactFeePaid ? "مدفوع" : "غير مدفوع"}
+                                                                        </td>
+                                                                        <td className='px-4 py-3'>
+                                                                                {lead.checkoutEnabled ? "مفعل" : "غير مفعل"}
+                                                                        </td>
+                                                                        <td className='px-4 py-3'>
+                                                                                {lead.finalPrice ?? "-"}
                                                                         </td>
                                                                         <td className='px-4 py-3'>{formatDate(lead.createdAt)}</td>
+                                                                        <td className='px-4 py-3'>
+                                                                        <button
+                                                                                type='button'
+                                                                                onClick={() => openModal(lead)}
+                                                                                className='rounded-full bg-payzone-gold px-4 py-2 text-xs font-semibold text-payzone-navy transition hover:bg-[#b8873d] disabled:cursor-not-allowed disabled:opacity-60'
+                                                                                disabled={!lead.contactFeePaid}
+                                                                        >
+                                                                                {lead.checkoutEnabled ? "تعديل دفع الباقة" : "تفعيل دفع الباقة"}
+                                                                        </button>
+                                                                        </td>
                                                                 </tr>
                                                         ))}
                                                 </tbody>
                                         </table>
                                 </div>
                         </div>
+
+                        {selectedLead && (
+                                <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4'>
+                                        <div className='w-full max-w-lg rounded-3xl border border-white/10 bg-payzone-navy p-8'>
+                                                <h3 className='text-xl font-bold text-payzone-gold'>تفعيل دفع الباقة</h3>
+                                                <p className='mt-2 text-sm text-white/70'>
+                                                        اختر الباقة المتفق عليها وحدد الخصم المناسب.
+                                                </p>
+                                                <div className='mt-6 space-y-4 text-sm'>
+                                                        <label className='block'>
+                                                                الباقة المتفق عليها
+                                                                <select
+                                                                        value={agreedPlan}
+                                                                        onChange={(event) => setAgreedPlan(event.target.value)}
+                                                                        className='mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white'
+                                                                >
+                                                                        {PLAN_OPTIONS.map((plan) => (
+                                                                                <option key={plan.value} value={plan.value}>
+                                                                                        {plan.label}
+                                                                                </option>
+                                                                        ))}
+                                                                </select>
+                                                        </label>
+                                                        <label className='block'>
+                                                                الخصم (USD)
+                                                                <input
+                                                                        type='number'
+                                                                        min='0'
+                                                                        value={discountAmount}
+                                                                        onChange={(event) => setDiscountAmount(event.target.value)}
+                                                                        className='mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white'
+                                                                />
+                                                        </label>
+                                                        <div className='rounded-2xl border border-white/10 bg-white/5 px-4 py-3'>
+                                                                <div className='flex items-center justify-between'>
+                                                                        <span>السعر الأساسي</span>
+                                                                        <span>{basePrice} USD</span>
+                                                                </div>
+                                                                <div className='mt-2 flex items-center justify-between'>
+                                                                        <span>السعر النهائي</span>
+                                                                        <span className='font-semibold text-payzone-gold'>
+                                                                                {finalPrice} USD
+                                                                        </span>
+                                                                </div>
+                                                        </div>
+                                                </div>
+                                                <div className='mt-6 flex flex-wrap justify-end gap-3'>
+                                                        <button
+                                                                type='button'
+                                                                onClick={closeModal}
+                                                                className='rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-white/80'
+                                                        >
+                                                                إلغاء
+                                                        </button>
+                                                        <button
+                                                                type='button'
+                                                                onClick={handleEnableCheckout}
+                                                                className='rounded-full bg-payzone-gold px-4 py-2 text-xs font-semibold text-payzone-navy'
+                                                                disabled={saving}
+                                                        >
+                                                                {saving ? "جاري التفعيل..." : "تأكيد التفعيل"}
+                                                        </button>
+                                                </div>
+                                        </div>
+                                </div>
+                        )}
                 </div>
         );
 };
