@@ -8,7 +8,6 @@ About This Course:
 test
 -   🚀 Project Setup
 -   🗄️ MongoDB & Redis Integration
--   💳 Stripe Payment Setup
 -   🔐 Robust Authentication System
 -   🔑 JWT with Refresh/Access Tokens
 -   📝 User Signup & Login
