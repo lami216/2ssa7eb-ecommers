@@ -9,7 +9,8 @@ import useLeadStatus from "../hooks/useLeadStatus";
 import WhatsAppButton from "../components/WhatsAppButton";
 
 const HomePage = () => {
-        const { lead, setLead, isUnlocked, whatsappUrl, whatsappLink, loading: leadLoading } = useLeadStatus();
+        const SALES_WHATSAPP_URL = "https://wa.me/22249823328";
+        const { setLead, isUnlocked, whatsappLink, loading: leadLoading } = useLeadStatus();
         const formatPackagePrice = (amount, currency) => {
                 const normalized = Number(amount);
                 if (!Number.isFinite(normalized)) {
@@ -24,7 +25,7 @@ const HomePage = () => {
                                 badge: "انطلاقة ذكية",
                                 details: [
                                         "متجر احترافي جاهز بإطلاق سريع خلال 24 إلى 48 ساعة.",
-                                        "بوابات دفع مدمجة: بايبال + سترايب.",
+                                        "تواصل مباشر عبر واتساب لبدء التنفيذ فورًا.",
                                         "لوحة تحكم واضحة مع تخصيص محدود جدًا.",
                                         "إضافة أو إزالة المميزات غير متاحة في هذه الباقة.",
                                 ],
@@ -33,7 +34,7 @@ const HomePage = () => {
                                 badge: "خصم سنوي حتى 40%",
                                 details: [
                                         "واجهة احترافية مع تخصيص أوسع يلائم نمو المشروع.",
-                                        "بوابات دفع مدمجة: بايبال + سترايب.",
+                                        "تواصل مباشر عبر واتساب لبدء التنفيذ فورًا.",
                                         "تخصيص لوحة التحكم ضمن حدود واضحة بحسب الاحتياج.",
                                         "إضافة أو إزالة المميزات بشكل محدود وفق الطلب.",
                                         "مدة التنفيذ من يومين إلى 3 أيام حسب التعديلات.",
@@ -43,7 +44,7 @@ const HomePage = () => {
                                 badge: "خصم سنوي حتى 40%",
                                 details: [
                                         "حل مخصص بالكامل حسب الفكرة أو استنساخ تجربة قائمة.",
-                                        "بوابات دفع مدمجة: بايبال + سترايب.",
+                                        "تواصل مباشر عبر واتساب لبدء التنفيذ فورًا.",
                                         "تخصيص كامل للواجهة ولوحة التحكم حسب الطلب.",
                                         "إضافة أو إزالة المميزات بحرية بحسب المتطلبات.",
                                         "مدة التنفيذ حسب حجم المشروع دون رقم ثابت.",
@@ -68,7 +69,7 @@ const HomePage = () => {
         const comparisonRows = useMemo(
                 () => [
                         { label: "موقع احترافي جاهز", starter: "✅", growth: "✅", full: "✅" },
-                        { label: "بوابة دفع مدمجة (بايبال + سترايب)", starter: "✅", growth: "✅", full: "✅" },
+                        { label: "تواصل مباشر عبر واتساب", starter: "✅", growth: "✅", full: "✅" },
                         { label: "لوحة تحكم سهلة الاستخدام", starter: "✅", growth: "✅", full: "✅" },
                         { label: "إدارة الطلبات", starter: "✅", growth: "✅", full: "✅" },
                         { label: "دعم واتساب", starter: "✅", growth: "✅", full: "✅" },
@@ -76,7 +77,7 @@ const HomePage = () => {
                         { label: "تخصيص واجهة الموقع", starter: "محدود", growth: "أوسع", full: "كامل" },
                         { label: "إضافة وإزالة المميزات", starter: "غير متاح", growth: "محدود", full: "بحرية حسب الطلب" },
                         { label: "قابلية التوسع مستقبلًا", starter: "محدودة", growth: "قابلة للتوسع", full: "مرنة بالكامل" },
-                        { label: "خصم عند الدفع السنوي", starter: "—", growth: "حتى 40%", full: "حتى 40%" },
+                        { label: "بدء التنفيذ مباشرة بعد التواصل", starter: "✅", growth: "✅", full: "✅" },
                 ],
                 []
         );
@@ -115,35 +116,23 @@ const HomePage = () => {
                         }
                         setLead(leadData);
 
-                        const data = await apiClient.post(
-                                `/leads/${encodeURIComponent(leadData._id)}/pay-contact-fee/create-order`
-                        );
-                        if (data?.alreadyPaid && data?.lead) {
-                                setLead(data.lead);
-                                const link = buildWhatsAppLink({
-                                        whatsappUrl,
-                                        message: buildLeadWhatsAppMessage(data.lead),
-                                });
-                                if (link) {
-                                        window.open(link, "_blank");
-                                }
-                                return;
-                        }
-                        if (data?.approveUrl) {
-                                globalThis.location.href = data.approveUrl;
+                        const link = buildWhatsAppLink({
+                                whatsappUrl: SALES_WHATSAPP_URL,
+                                message: buildLeadWhatsAppMessage(leadData),
+                        });
+
+                        if (link) {
+                                window.open(link, "_blank");
                         } else {
-                                setCheckoutError("تعذر تجهيز دفع رسوم التواصل عبر باي بال الآن.");
+                                setCheckoutError("تعذر فتح واتساب حالياً.");
                         }
                 } catch (error) {
-                        setCheckoutError(
-                                error.response?.data?.message || "تعذر تجهيز دفع رسوم التواصل عبر باي بال الآن."
-                        );
+                        setCheckoutError(error.response?.data?.message || "تعذر إرسال طلب التواصل حالياً.");
                 } finally {
                         setCheckoutLoading(false);
                 }
         };
 
-        const contactFeeAmountLabel = lead?.contactFeeAmount ? Number(lead.contactFeeAmount).toFixed(0) : "5";
 
         const ScrollReveal = ({ children, className, direction = "right", offset = ["start 90%", "start 55%"] }) => {
                 const cardRef = useRef(null);
@@ -194,7 +183,7 @@ const HomePage = () => {
                                                         اطلق متجرك الإلكتروني خلال أيام وتحكم بكل شيء من لوحة واحدة ذكية
                                                 </h1>
                                                 <p className='mt-4 text-lg text-white/70'>
-                                                        نبني لك متجر سريع ومستقر مرتبط ببوابات الدفع مثل بايبال وسترايب، مع لوحة تحكم بسيطة
+                                                        نبني لك متجر سريع ومستقر مع لوحة تحكم بسيطة
                                                         تدير منها المنتجات والطلبات والعملاء من أي جهاز ومن أي مكان، مع دعم مباشر عبر واتساب.
                                                 </p>
                                                 <div className='mt-8 flex flex-wrap justify-center gap-4'>
@@ -452,10 +441,10 @@ const HomePage = () => {
                                         className='scroll-section mt-20 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]'
                                 >
                                         <ScrollReveal direction='right' className='glass-panel px-6 py-10 sm:px-10'>
-                                                <h2 className='text-3xl font-bold text-payzone-gold'>ابدأ الآن وفعّل التواصل</h2>
+                                                <h2 className='text-3xl font-bold text-payzone-gold'>ابدأ الآن وتواصل معنا مباشرة</h2>
                                                 <p className='mt-3 text-white/70'>
-                                                        أدخل معلوماتك ثم ادفع الرسوم الرمزية لتفعيل التواصل عبر واتساب وبدء النقاش حول
-                                                        متطلبات مشروعك بشكل واضح ومباشر، بما يساعد على جدية الطلبات وتنظيمها.
+                                                        أدخل معلوماتك وسيتم تجهيز رسالة تلقائية على واتساب تتضمن بياناتك لبدء النقاش حول
+                                                        متطلبات مشروعك بشكل واضح ومباشر.
                                                 </p>
                                                 <form className='mt-6 grid gap-4' onSubmit={handleCheckout}>
                                                         <label className='text-sm text-white/70'>
@@ -547,14 +536,10 @@ const HomePage = () => {
                                                                 className='btn-primary disabled:cursor-not-allowed disabled:opacity-60'
                                                                 disabled={checkoutLoading}
                                                         >
-                                                                {checkoutLoading
-                                                                        ? "جاري تجهيز الدفع..."
-                                                                        : isUnlocked
-                                                                          ? "تواصل عبر واتساب الآن 💬"
-                                                                          : `دفع رسوم التواصل ${contactFeeAmountLabel} ${DEFAULT_CURRENCY}`}
+                                                                {checkoutLoading ? "جاري تجهيز الطلب..." : "تواصل عبر واتساب الآن 💬"}
                                                         </button>
                                                         <p className='text-xs text-white/60'>
-                                                                بعد الدفع يظهر لك زر واتساب برسالة جاهزة لتبدأ معنا مباشرة.
+                                                                بعد الإرسال سيتم توجيهك مباشرة إلى واتساب مع رسالة جاهزة.
                                                         </p>
                                                         <div className='mt-2 flex flex-wrap gap-4 text-xs text-white/60'>
                                                                 <a href='/privacy' className='underline underline-offset-4'>

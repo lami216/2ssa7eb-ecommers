@@ -4,34 +4,12 @@ import { buildWhatsAppLink } from "../lib/whatsapp";
 import { buildLeadWhatsAppMessage } from "../lib/lead";
 import { useUserStore } from "../stores/useUserStore";
 
+const SALES_WHATSAPP_URL = "https://wa.me/22249823328";
+
 const useLeadStatus = () => {
         const user = useUserStore((state) => state.user);
         const [lead, setLead] = useState(null);
         const [loading, setLoading] = useState(true);
-        const [whatsappUrl, setWhatsappUrl] = useState("");
-
-        useEffect(() => {
-                let isMounted = true;
-
-                const loadConfig = async () => {
-                        try {
-                                const config = await apiClient.get("/public-config");
-                                if (isMounted) {
-                                        setWhatsappUrl(config?.whatsapp || "");
-                                }
-                        } catch {
-                                if (isMounted) {
-                                        setWhatsappUrl("");
-                                }
-                        }
-                };
-
-                loadConfig();
-
-                return () => {
-                        isMounted = false;
-                };
-        }, []);
 
         useEffect(() => {
                 let isMounted = true;
@@ -73,18 +51,18 @@ const useLeadStatus = () => {
 
         const isUnlocked = Boolean(lead?.contactFeePaid);
         const whatsappLink = useMemo(() => {
-                if (!lead || !isUnlocked || !whatsappUrl) return "";
+                if (!lead || !isUnlocked) return "";
                 return buildWhatsAppLink({
-                        whatsappUrl,
+                        whatsappUrl: SALES_WHATSAPP_URL,
                         message: buildLeadWhatsAppMessage(lead),
                 });
-        }, [isUnlocked, lead, whatsappUrl]);
+        }, [isUnlocked, lead]);
 
         return {
                 lead,
                 setLead,
                 isUnlocked,
-                whatsappUrl,
+                whatsappUrl: SALES_WHATSAPP_URL,
                 whatsappLink,
                 loading,
                 refreshLead: () => apiClient.get("/leads/me").then((data) => setLead(data || null)),
