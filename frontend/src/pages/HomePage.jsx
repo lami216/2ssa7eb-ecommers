@@ -5,7 +5,7 @@ import { DEFAULT_CURRENCY, SERVICE_PACKAGES } from "../../../shared/servicePacka
 import WhatsAppButton from "../components/WhatsAppButton";
 
 const HomePage = () => {
-        const SALES_WHATSAPP_NUMBER = import.meta.env.VITE_STORE_WHATSAPP_NUMBER || "22241380130";
+        const SALES_WHATSAPP_NUMBER = import.meta.env.VITE_STORE_WHATSAPP_NUMBER || "22249823328";
         const formatPackagePrice = (amount, currency) => {
                 const normalized = Number(amount);
                 if (!Number.isFinite(normalized)) {
