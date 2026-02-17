@@ -24,7 +24,7 @@ test
 -   🔒 Security
 -   🛡️ Data Protection
 -   🚀Caching with Redis
--   ⌛ And a lot more...
+-   ⌛ And a lot more..
 
 ### Setup .env file
 
