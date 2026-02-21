@@ -11,9 +11,9 @@ const Navbar = () => {
         const { t } = useTranslation();
         return (
                 <header className='sticky top-0 right-0 z-40 w-full border-b border-white/15 bg-[#050712]/70 shadow-lg backdrop-blur-xl'>
-                        <div className='container mx-auto px-4 py-3'>
-                                <div className='glass-bar rounded-b-3xl px-4 py-3'>
-                                        <div className='flex flex-wrap items-center justify-between gap-4'>
+                        <div className='container mx-auto px-4 py-2'>
+                                <div className='glass-bar rounded-b-3xl px-4 py-2'>
+                                        <div className='flex flex-wrap items-center justify-between gap-3'>
                                                 <Link to='/' className='flex items-center gap-3 text-payzone-white'>
                                                         <img
                                                                 src='/logo.png'
@@ -23,8 +23,8 @@ const Navbar = () => {
                                                         <span className='text-2xl font-semibold uppercase tracking-wide'>{t("common.appName")}</span>
                                                 </Link>
 
-                                                <div className='flex flex-wrap items-center gap-4 text-sm font-medium'>
-                                                        <nav className='flex items-center gap-4'>
+                                                <div className='flex flex-wrap items-center gap-3 text-sm font-medium'>
+                                                        <nav className='flex flex-wrap items-center gap-3'>
                                                                 <Link
                                                                         to={'/'}
                                                                         className='flex items-center gap-2 rounded-md bg-payzone-gold px-4 py-2 font-semibold text-payzone-navy transition duration-300 ease-in-out hover:bg-[#b8873d]'
@@ -50,7 +50,7 @@ const Navbar = () => {
                                                                 )}
                                                         </nav>
 
-                                                        <div className='flex items-center gap-3'>
+                                                        <div className='flex flex-wrap items-center gap-3'>
                                                                 {user ? (
                                                                         <button
                                                                                 className='flex items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-payzone-white transition duration-300 ease-in-out hover:bg-white/20'
