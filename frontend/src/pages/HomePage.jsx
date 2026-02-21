@@ -1,10 +1,11 @@
 import { useRef } from "react";
-import WhatsAppButton from "../components/WhatsAppButton";
 import { useProductStore } from "../stores/useProductStore";
 import HeroSection from "../components/home/HeroSection";
 import ProjectsSection from "../components/home/ProjectsSection";
 import HowItWorksSection from "../components/home/HowItWorksSection";
 import PricingSection from "../components/home/PricingSection";
+import CompareSection from "../components/home/CompareSection";
+import ContactSection from "../components/home/ContactSection";
 import SupportSection from "../components/home/SupportSection";
 import FAQSection from "../components/home/FAQSection";
 import FinalCTASection from "../components/home/FinalCTASection";
@@ -24,11 +25,12 @@ const HomePage = () => {
                                 <ProjectsSection />
                                 <HowItWorksSection />
                                 <PricingSection pricingRef={pricingRef} />
+                                <CompareSection />
+                                <ContactSection />
                                 <SupportSection />
                                 <FAQSection />
                                 <FinalCTASection onScrollToPricing={scrollToPricing} />
                         </div>
-                        <WhatsAppButton />
                 </div>
         );
 };

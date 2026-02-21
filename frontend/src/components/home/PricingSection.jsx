@@ -9,15 +9,19 @@ const PricingSection = ({ pricingRef }) => {
         const plans = useMemo(
                 () =>
                         SERVICE_PACKAGES.map((plan) => {
-                                const yearlyTotal = (Number(plan.monthlyPrice) || 0) * 12;
+                                const monthlyPrice = Number(plan.monthlyPrice) || 0;
                                 const setupFee = Number(plan.oneTimePrice) || 0;
-                                const monthlyTotalYear = yearlyTotal + setupFee;
-                                const savings = Math.max(monthlyTotalYear - yearlyTotal, 0);
+                                const originalYearly = monthlyPrice * 12;
+                                const discountedYearly = originalYearly * 0.8;
+                                const savedAmount = originalYearly - discountedYearly;
+
                                 return {
                                         ...plan,
-                                        yearlyTotal,
+                                        monthlyPrice,
                                         setupFee,
-                                        savings,
+                                        originalYearly,
+                                        discountedYearly,
+                                        savedAmount,
                                 };
                         }),
                 []
@@ -55,7 +59,7 @@ const PricingSection = ({ pricingRef }) => {
                                         return (
                                                 <article
                                                         key={plan.id}
-                                                        className={`glass-card p-6 ${featured ? "scale-[1.02] border-payzone-gold shadow-lg shadow-payzone-gold/20" : ""}`}
+                                                        className={`glass-card p-6 ${featured ? "scale-[1.03] border-payzone-gold shadow-xl shadow-payzone-gold/30" : ""}`}
                                                 >
                                                         {featured && (
                                                                 <span className='mb-3 inline-flex rounded-full bg-payzone-gold px-3 py-1 text-xs font-bold text-payzone-navy'>
@@ -63,19 +67,19 @@ const PricingSection = ({ pricingRef }) => {
                                                                 </span>
                                                         )}
                                                         <h3 className='text-2xl font-bold text-white'>{plan.name}</h3>
-                                                        <p className='mt-2 text-white/70'>{plan.description}</p>
 
                                                         {billingCycle === "yearly" ? (
                                                                 <div className='mt-6'>
-                                                                        <p className='text-3xl font-black text-payzone-gold'>
-                                                                                {formatPrice(plan.yearlyTotal)}
+                                                                        <p className='text-sm text-white/60 line-through'>
+                                                                                {formatPrice(plan.originalYearly)}
                                                                         </p>
-                                                                        <p className='mt-1 text-sm text-white/70'>إجمالي سنوي — بدون رسوم إعداد</p>
-                                                                        {plan.savings > 0 && (
-                                                                                <span className='mt-3 inline-flex rounded-full border border-emerald-400/50 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300'>
-                                                                                        وفر {formatPrice(plan.savings)}
-                                                                                </span>
-                                                                        )}
+                                                                        <p className='text-3xl font-black text-payzone-gold'>
+                                                                                {formatPrice(plan.discountedYearly)}
+                                                                        </p>
+                                                                        <p className='mt-1 text-sm text-white/70'>بدون رسوم إعداد</p>
+                                                                        <p className='mt-2 text-xs text-emerald-300'>
+                                                                                مقدار التوفير: {formatPrice(plan.savedAmount)}
+                                                                        </p>
                                                                 </div>
                                                         ) : (
                                                                 <div className='mt-6'>
@@ -86,7 +90,9 @@ const PricingSection = ({ pricingRef }) => {
                                                                         <p className='mt-1 text-sm text-white/70'>
                                                                                 رسوم إعداد مرة واحدة: {formatPrice(plan.setupFee)}
                                                                         </p>
-                                                                        <p className='mt-3 text-xs text-payzone-gold'>إعداد احترافي + شهر تشغيل مجاني</p>
+                                                                        <p className='mt-3 text-xs text-payzone-gold'>
+                                                                                إعداد احترافي + أول شهر تشغيل مجاني
+                                                                        </p>
                                                                 </div>
                                                         )}
                                                 </article>
