@@ -1,31 +1,16 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 
 const HeroSection = ({ projectsCount = 0, onScrollToPricing }) => {
-        const [topBarClosed, setTopBarClosed] = useState(false);
-
-        const proofLine = useMemo(() => `تم إطلاق ${projectsCount} متجر حتى الآن`, [projectsCount]);
+        const proofLine = useMemo(() => {
+                if (projectsCount >= 3) {
+                        return `تم إطلاق ${projectsCount} متجر حتى الآن`;
+                }
+                return "نماذج عملية جاهزة للانطلاق يمكنك مشاهدتها الآن";
+        }, [projectsCount]);
 
         return (
-                <section className='relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#070b1a] via-[#11192d] to-[#1b1032] p-6 sm:p-10'>
-                        <div
-                                className={`mb-8 overflow-hidden transition-[max-height,opacity,margin] duration-500 ease-out ${
-                                        topBarClosed ? "max-h-0 opacity-0 mb-0" : "max-h-24 opacity-100"
-                                }`}
-                                aria-hidden={topBarClosed}
-                        >
-                                <div className='flex items-center justify-between gap-3 rounded-xl border border-payzone-gold/30 bg-payzone-gold/10 px-4 py-3 text-sm text-payzone-gold backdrop-blur'>
-                                        <p>خطط مرنة تناسب الجميع — ادفع شهريًا أو سنويًا بدون التزام</p>
-                                        <button
-                                                type='button'
-                                                onClick={() => setTopBarClosed(true)}
-                                                className='rounded-md border border-payzone-gold/40 px-2 py-1 text-xs hover:bg-payzone-gold/20'
-                                        >
-                                                إغلاق
-                                        </button>
-                                </div>
-                        </div>
-
+                <section className='relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#070b1a] via-[#101a30] to-[#1c1035] p-6 sm:p-10'>
                         <motion.div
                                 initial={{ opacity: 0, y: 18 }}
                                 whileInView={{ opacity: 1, y: 0 }}

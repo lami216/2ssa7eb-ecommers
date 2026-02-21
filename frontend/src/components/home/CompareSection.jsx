@@ -1,10 +1,11 @@
 import { useState } from "react";
 
 const rows = [
-        { title: "تصميم احترافي", starter: "✓", growth: "✓", full: "✓" },
-        { title: "لوحة تحكم", starter: "✓", growth: "✓", full: "✓" },
-        { title: "عدد المنتجات", starter: "حتى 50", growth: "حتى 200", full: "غير محدود" },
-        { title: "الدعم الفني", starter: "أساسي", growth: "موسع", full: "أولوية" },
+        { title: "إطلاق خلال 48 ساعة", starter: "✔", growth: "✔", expansion: "✔" },
+        { title: "تخصيص الواجهة", starter: "محدود", growth: "متقدم", expansion: "كامل" },
+        { title: "إدارة الطلبات", starter: "✔", growth: "✔", expansion: "✔" },
+        { title: "قابلية التوسع", starter: "أساسية", growth: "متقدمة", expansion: "كاملة" },
+        { title: "أولوية دعم", starter: "—", growth: "✔", expansion: "✔" },
 ];
 
 const CompareSection = () => {
@@ -28,9 +29,9 @@ const CompareSection = () => {
                                                 <thead>
                                                         <tr className='border-b border-white/15 text-payzone-gold'>
                                                                 <th className='p-3'>الميزة</th>
-                                                                <th className='p-3'>الشرارة</th>
-                                                                <th className='p-3'>القفزة</th>
-                                                                <th className='p-3'>الريادة</th>
+                                                                <th className='p-3'>الانطلاقة</th>
+                                                                <th className='bg-payzone-gold/10 p-3'>النمو</th>
+                                                                <th className='p-3'>التوسع</th>
                                                         </tr>
                                                 </thead>
                                                 <tbody>
@@ -38,8 +39,10 @@ const CompareSection = () => {
                                                                 <tr key={row.title} className='border-b border-white/10'>
                                                                         <td className='p-3'>{row.title}</td>
                                                                         <td className='p-3'>{row.starter}</td>
-                                                                        <td className='p-3'>{row.growth}</td>
-                                                                        <td className='p-3'>{row.full}</td>
+                                                                        <td className='bg-payzone-gold/10 p-3 font-semibold text-payzone-gold'>
+                                                                                {row.growth}
+                                                                        </td>
+                                                                        <td className='p-3'>{row.expansion}</td>
                                                                 </tr>
                                                         ))}
                                                 </tbody>

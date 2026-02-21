@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SERVICE_PACKAGES } from "../../../../shared/servicePackages";
+import { HOME_PLANS } from "./pricingData";
 
 const PAYMENT_OPTIONS = [
         { value: "monthly", label: "شهري" },
@@ -10,7 +10,7 @@ const ContactSection = () => {
         const [formData, setFormData] = useState({
                 name: "",
                 businessType: "",
-                planId: SERVICE_PACKAGES[1]?.id || SERVICE_PACKAGES[0]?.id || "",
+                planId: HOME_PLANS[1]?.id || HOME_PLANS[0]?.id || "",
                 paymentType: "yearly",
                 whatsapp: "",
                 idea: "",
@@ -23,9 +23,18 @@ const ContactSection = () => {
 
         const handleSubmit = (event) => {
                 event.preventDefault();
-                const selectedPlan = SERVICE_PACKAGES.find((plan) => plan.id === formData.planId);
-                const message = `مرحبًا، أرغب في بدء متجر جديد.%0Aالاسم: ${formData.name}%0Aنوع النشاط: ${formData.businessType}%0Aالباقة: ${selectedPlan?.name || "-"}%0Aطريقة الدفع: ${formData.paymentType === "yearly" ? "سنوي" : "شهري"}%0Aرقم واتساب: ${formData.whatsapp}%0Aفكرة المشروع: ${formData.idea || "لا يوجد"}`;
-                window.open(`https://wa.me/?text=${message}`, "_blank", "noopener,noreferrer");
+                const selectedPlan = HOME_PLANS.find((plan) => plan.id === formData.planId);
+                const message = [
+                        "مرحبًا، أرغب في بدء متجر جديد.",
+                        `الاسم: ${formData.name}`,
+                        `نوع النشاط: ${formData.businessType}`,
+                        `الباقة: ${selectedPlan?.name || "-"}`,
+                        `طريقة الدفع: ${formData.paymentType === "yearly" ? "سنوي" : "شهري"}`,
+                        `رقم واتساب: ${formData.whatsapp}`,
+                        `فكرة المشروع: ${formData.idea || "لا يوجد"}`,
+                ].join("\n");
+
+                window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
         };
 
         return (
@@ -35,7 +44,7 @@ const ContactSection = () => {
                                 <input name='name' value={formData.name} onChange={handleChange} required placeholder='الاسم' className='glass-input' />
                                 <input name='businessType' value={formData.businessType} onChange={handleChange} required placeholder='نوع النشاط' className='glass-input' />
                                 <select name='planId' value={formData.planId} onChange={handleChange} className='glass-input' required>
-                                        {SERVICE_PACKAGES.map((plan) => (
+                                        {HOME_PLANS.map((plan) => (
                                                 <option key={plan.id} value={plan.id}>
                                                         {plan.name}
                                                 </option>

@@ -1,7 +1,10 @@
-import { UserPlus, LogIn, LogOut, Lock } from "lucide-react";
+import { useState } from "react";
+import { UserPlus, LogIn, LogOut, Lock, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import useTranslation from "../hooks/useTranslation";
 import { useUserStore } from "../stores/useUserStore";
+
+const TOPBAR_TEXT = "عرض خاص لأول 10 عملاء هذا الشهر — احجز مكانك الآن";
 
 const Navbar = () => {
         const { user, logout } = useUserStore();
@@ -9,10 +12,29 @@ const Navbar = () => {
         const hasServices = Boolean(user?.hasServices);
         const contactFeePaid = useUserStore((state) => state.contactFeePaid);
         const { t } = useTranslation();
+        const [topBarClosed, setTopBarClosed] = useState(false);
 
         return (
                 <header className='fixed top-0 right-0 w-full border-b border-white/15 shadow-lg transition-all duration-300 z-40'>
                         <div className='container mx-auto px-4 py-3'>
+                                <div
+                                        className={`overflow-hidden rounded-2xl border border-payzone-gold/30 bg-payzone-gold/10 transition-[max-height,opacity,margin] duration-500 ${
+                                                topBarClosed ? "mb-0 max-h-0 opacity-0" : "mb-3 max-h-20 opacity-100"
+                                        }`}
+                                >
+                                        <div className='flex items-center justify-between gap-3 px-4 py-2 text-sm text-payzone-gold'>
+                                                <p>{TOPBAR_TEXT}</p>
+                                                <button
+                                                        type='button'
+                                                        onClick={() => setTopBarClosed(true)}
+                                                        className='rounded-md border border-payzone-gold/40 p-1.5 hover:bg-payzone-gold/20'
+                                                        aria-label='إغلاق الشريط العلوي'
+                                                >
+                                                        <X size={14} />
+                                                </button>
+                                        </div>
+                                </div>
+
                                 <div className='glass-bar rounded-b-3xl px-4 py-3'>
                                         <div className='flex flex-wrap items-center justify-between gap-4'>
                                                 <Link to='/' className='flex items-center gap-3 text-payzone-white'>
