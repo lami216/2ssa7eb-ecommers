@@ -15,7 +15,7 @@ const ProjectCard = ({ project }) => (
                                         href={project.link}
                                         target='_blank'
                                         rel='noopener noreferrer'
-                                        className='btn-secondary mt-4 w-full text-sm'
+                                        className='mt-4 inline-flex w-full items-center justify-center rounded-xl border border-white/20 bg-[#0b1120] px-4 py-2.5 text-sm font-medium text-white/90 transition hover:border-payzone-gold/55 hover:text-payzone-gold hover:shadow-[0_0_18px_rgba(210,156,74,0.22)]'
                                 >
                                         زيارة المتجر ↗
                                 </a>
