@@ -9,17 +9,17 @@ const ProjectCard = ({ project }) => (
                 <img src={getProjectImage(project)} alt={project.name} className='h-52 w-full object-cover' />
                 <div className='p-4'>
                         <h3 className='text-xl font-semibold text-white'>{project.name}</h3>
-                        <p className='mt-2 line-clamp-3 text-sm text-white/70'>{project.description}</p>
                         {project.link && (
                                 <a
                                         href={project.link}
                                         target='_blank'
                                         rel='noopener noreferrer'
-                                        className='mt-4 inline-flex w-full items-center justify-center rounded-xl border border-white/20 bg-[#0b1120] px-4 py-2.5 text-sm font-medium text-white/90 transition hover:border-payzone-gold/55 hover:text-payzone-gold hover:shadow-[0_0_18px_rgba(210,156,74,0.22)]'
+                                        className='mt-3 inline-flex items-center justify-center rounded-lg border border-payzone-gold/45 bg-[#0a1020] px-3.5 py-2 text-sm font-medium text-white/90 transition hover:border-payzone-gold hover:text-payzone-gold hover:shadow-[0_0_14px_rgba(210,156,74,0.2)]'
                                 >
                                         زيارة المتجر ↗
                                 </a>
                         )}
+                        <p className='mt-3 line-clamp-3 text-sm text-white/70'>{project.description}</p>
                 </div>
         </article>
 );

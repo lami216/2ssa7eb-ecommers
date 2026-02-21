@@ -4,7 +4,6 @@ import HomePage from "./pages/HomePage";
 import SignUpPage from "./pages/SignUpPage";
 import LoginPage from "./pages/LoginPage";
 import AdminPage from "./pages/AdminPage";
-import DemoPage from "./pages/DemoPage";
 import ServicesPage from "./pages/ServicesPage";
 import ServiceSuccessPage from "./pages/ServiceSuccessPage";
 import ServiceCancelPage from "./pages/ServiceCancelPage";
@@ -67,7 +66,7 @@ function App() {
                                 <Navbar />
                                 <Routes>
                                         <Route path='/' element={<HomePage />} />
-                                        <Route path='/our-work' element={<DemoPage />} />
+                                        <Route path='/our-work' element={<Navigate to='/' replace />} />
                                         <Route path='/services/success' element={<ServiceSuccessPage />} />
                                         <Route path='/services/cancel' element={<ServiceCancelPage />} />
                                         <Route path='/subscription/success' element={<SubscriptionSuccessPage />} />
