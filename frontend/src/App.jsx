@@ -16,6 +16,7 @@ import RefundPolicyPage from "./pages/RefundPolicyPage";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import WhatsAppButton from "./components/WhatsAppButton";
 import { Toaster } from "react-hot-toast";
 import { useUserStore } from "./stores/useUserStore";
 import { useEffect } from "react";
@@ -83,6 +84,12 @@ function App() {
                                 </Routes>
                         </div>
                         <Toaster />
+                        <WhatsAppButton
+                                floating
+                                isUnlocked
+                                whatsappLink="https://wa.me/22249823328"
+                                unlockedLabel="واتساب"
+                        />
                         <Footer />
                 </div>
         );

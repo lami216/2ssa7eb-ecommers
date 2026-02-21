@@ -2,29 +2,29 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 
 const HeroSection = ({ projectsCount = 0, onScrollToPricing }) => {
-        const [showTopBar, setShowTopBar] = useState(true);
+        const [topBarClosed, setTopBarClosed] = useState(false);
 
-        const proofLine = useMemo(() => {
-                if (projectsCount >= 5) {
-                        return `تم إطلاق أكثر من ${projectsCount} متجر`;
-                }
-                return "متاجر احترافية جاهزة للانطلاق بسرعة وجودة عالية";
-        }, [projectsCount]);
+        const proofLine = useMemo(() => `تم إطلاق ${projectsCount} متجر حتى الآن`, [projectsCount]);
 
         return (
-                <section className='relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-purple-900 via-slate-900 to-blue-950 p-6 sm:p-10'>
-                        {showTopBar && (
-                                <div className='sticky top-20 z-30 mb-8 flex items-center justify-between gap-3 rounded-xl border border-payzone-gold/30 bg-payzone-gold/10 px-4 py-3 text-sm text-payzone-gold backdrop-blur'>
-                                        <p>عرض خاص لأول 10 عملاء هذا الشهر — احجز مكانك الآن</p>
+                <section className='relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#070b1a] via-[#11192d] to-[#1b1032] p-6 sm:p-10'>
+                        <div
+                                className={`mb-8 overflow-hidden transition-[max-height,opacity,margin] duration-500 ease-out ${
+                                        topBarClosed ? "max-h-0 opacity-0 mb-0" : "max-h-24 opacity-100"
+                                }`}
+                                aria-hidden={topBarClosed}
+                        >
+                                <div className='flex items-center justify-between gap-3 rounded-xl border border-payzone-gold/30 bg-payzone-gold/10 px-4 py-3 text-sm text-payzone-gold backdrop-blur'>
+                                        <p>خطط مرنة تناسب الجميع — ادفع شهريًا أو سنويًا بدون التزام</p>
                                         <button
                                                 type='button'
-                                                onClick={() => setShowTopBar(false)}
+                                                onClick={() => setTopBarClosed(true)}
                                                 className='rounded-md border border-payzone-gold/40 px-2 py-1 text-xs hover:bg-payzone-gold/20'
                                         >
                                                 إغلاق
                                         </button>
                                 </div>
-                        )}
+                        </div>
 
                         <motion.div
                                 initial={{ opacity: 0, y: 18 }}
@@ -43,11 +43,7 @@ const HeroSection = ({ projectsCount = 0, onScrollToPricing }) => {
                                         متجرك الإلكتروني جاهز ابتداءً من 5,000 أوقية
                                 </h1>
 
-                                <p className='mx-auto mt-5 max-w-2xl text-base text-white/75 sm:text-lg'>
-                                        تصميم احترافي + استضافة مستقرة + لوحة تحكم سهلة
-                                        <br />
-                                        كل ما تحتاجه لتبدأ الربح فورًا
-                                </p>
+                                <p className='mx-auto mt-5 max-w-2xl text-base text-white/75 sm:text-lg'>{proofLine}</p>
 
                                 <button
                                         type='button'
@@ -56,8 +52,6 @@ const HeroSection = ({ projectsCount = 0, onScrollToPricing }) => {
                                 >
                                         عرض الأسعار
                                 </button>
-
-                                <p className='mt-5 text-sm text-payzone-gold'>{proofLine}</p>
                         </motion.div>
                 </section>
         );

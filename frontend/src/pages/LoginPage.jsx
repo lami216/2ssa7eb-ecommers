@@ -25,9 +25,7 @@ const LoginPage = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.8 }}
                         >
-                                <h2 className='mt-6 text-center text-3xl font-extrabold text-payzone-gold'>
-                                        {t("auth.login.title")}
-                                </h2>
+                                <h2 className='mt-6 text-center text-3xl font-extrabold text-payzone-gold'>{t("auth.login.title")}</h2>
                         </motion.div>
 
                         <motion.div
@@ -36,7 +34,7 @@ const LoginPage = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.8, delay: 0.2 }}
                         >
-                                <div className='rounded-xl border border-payzone-indigo/40 bg-white/5 py-8 px-4 shadow sm:px-10'>
+                                <div className='rounded-3xl border border-white/10 bg-gradient-to-br from-[#070b1a] via-[#11192d] to-[#1b1032] px-4 py-8 shadow-xl shadow-black/20 sm:px-10'>
                                         <form onSubmit={handleSubmit} className='space-y-6'>
                                                 <div>
                                                         <label htmlFor='email' className='block text-sm font-medium text-white/80'>
@@ -52,7 +50,7 @@ const LoginPage = () => {
                                                                         required
                                                                         value={email}
                                                                         onChange={(e) => setEmail(e.target.value)}
-                                                                        className='block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 pr-10 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo sm:text-sm'
+                                                                        className='block w-full rounded-xl border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 pr-10 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo sm:text-sm'
                                                                         placeholder={t("auth.login.placeholderEmail")}
                                                                 />
                                                         </div>
@@ -72,7 +70,7 @@ const LoginPage = () => {
                                                                         required
                                                                         value={password}
                                                                         onChange={(e) => setPassword(e.target.value)}
-                                                                        className='block w-full rounded-md border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 pr-10 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo sm:text-sm'
+                                                                        className='block w-full rounded-xl border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 pr-10 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo sm:text-sm'
                                                                         placeholder={t("auth.login.placeholderPassword")}
                                                                 />
                                                         </div>
@@ -80,7 +78,7 @@ const LoginPage = () => {
 
                                                 <button
                                                         type='submit'
-                                                        className='flex w-full items-center justify-center gap-2 rounded-md bg-payzone-gold px-4 py-2 text-sm font-semibold text-payzone-navy transition duration-300 hover:bg-[#b8873d] focus:outline-none focus:ring-2 focus:ring-payzone-indigo/60 disabled:opacity-50'
+                                                        className='btn-primary flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm disabled:opacity-50'
                                                         disabled={loading}
                                                 >
                                                         {loading ? (
