@@ -3,23 +3,24 @@ import { motion } from "framer-motion";
 import { useProductStore } from "../../stores/useProductStore";
 
 const getProjectImage = (project) => project.image || project.images?.[0]?.url || "/logo.png";
+const getProjectLink = (project) => project.projectUrl?.trim();
 
 const ProjectCard = ({ project }) => (
         <article className='glass-card overflow-hidden'>
                 <img src={getProjectImage(project)} alt={project.name} className='h-52 w-full object-cover' />
                 <div className='p-4'>
                         <h3 className='text-xl font-semibold text-white'>{project.name}</h3>
-                        {project.link && (
+                        <p className='mt-3 line-clamp-3 text-sm text-white/70'>{project.description}</p>
+                        {getProjectLink(project) && (
                                 <a
-                                        href={project.link}
+                                        href={getProjectLink(project)}
                                         target='_blank'
                                         rel='noopener noreferrer'
-                                        className='mt-3 inline-flex items-center justify-center rounded-lg border border-payzone-gold/45 bg-[#0a1020] px-3.5 py-2 text-sm font-medium text-white/90 transition hover:border-payzone-gold hover:text-payzone-gold hover:shadow-[0_0_14px_rgba(210,156,74,0.2)]'
+                                        className='mt-4 inline-flex items-center justify-center rounded-xl border border-payzone-gold/60 bg-[#080d1c] px-4 py-2 text-sm font-medium text-white/90 transition duration-300 hover:border-payzone-gold hover:text-payzone-gold hover:shadow-[0_0_18px_rgba(210,156,74,0.25)]'
                                 >
                                         زيارة المتجر ↗
                                 </a>
                         )}
-                        <p className='mt-3 line-clamp-3 text-sm text-white/70'>{project.description}</p>
                 </div>
         </article>
 );
