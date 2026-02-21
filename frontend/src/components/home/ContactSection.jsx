@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { HOME_PLANS } from "./pricingData";
+import { SALES_WHATSAPP_URL, extractWhatsAppNumber } from "../../lib/whatsapp";
 
 const PAYMENT_OPTIONS = [
         { value: "monthly", label: "شهري" },
@@ -12,7 +13,6 @@ const ContactSection = () => {
                 businessType: "",
                 planId: HOME_PLANS[1]?.id || HOME_PLANS[0]?.id || "",
                 paymentType: "yearly",
-                whatsapp: "",
                 idea: "",
         });
 
@@ -24,17 +24,21 @@ const ContactSection = () => {
         const handleSubmit = (event) => {
                 event.preventDefault();
                 const selectedPlan = HOME_PLANS.find((plan) => plan.id === formData.planId);
-                const message = [
+                const whatsappNumber = extractWhatsAppNumber(SALES_WHATSAPP_URL);
+                const messageLines = [
                         "مرحبًا، أرغب في بدء متجر جديد.",
                         `الاسم: ${formData.name}`,
-                        `نوع النشاط: ${formData.businessType}`,
                         `الباقة: ${selectedPlan?.name || "-"}`,
                         `طريقة الدفع: ${formData.paymentType === "yearly" ? "سنوي" : "شهري"}`,
-                        `رقم واتساب: ${formData.whatsapp}`,
-                        `فكرة المشروع: ${formData.idea || "لا يوجد"}`,
-                ].join("\n");
+                        `النشاط: ${formData.businessType}`,
+                ];
 
-                window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+                if (formData.idea.trim()) {
+                        messageLines.push(`فكرة المشروع: ${formData.idea.trim()}`);
+                }
+
+                const encodedMessage = encodeURIComponent(messageLines.join("\n"));
+                window.open(`https://wa.me/${whatsappNumber}?text=${encodedMessage}`, "_blank", "noopener,noreferrer");
         };
 
         return (
@@ -57,7 +61,6 @@ const ContactSection = () => {
                                                 </option>
                                         ))}
                                 </select>
-                                <input name='whatsapp' value={formData.whatsapp} onChange={handleChange} required placeholder='رقم واتساب' className='glass-input' />
                                 <textarea name='idea' value={formData.idea} onChange={handleChange} placeholder='فكرة المشروع (اختياري)' className='glass-input min-h-28' />
                                 <button type='submit' className='btn-primary mt-2'>
                                         إرسال عبر واتساب

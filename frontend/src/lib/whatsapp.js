@@ -1,3 +1,5 @@
+export const SALES_WHATSAPP_URL = "https://wa.me/22249823328";
+
 export const extractWhatsAppNumber = (whatsappUrl) => {
         if (!whatsappUrl) return "";
 
