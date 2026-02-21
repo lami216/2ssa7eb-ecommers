@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ExternalLink, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { useProductStore } from "../stores/useProductStore";
+import { SALES_WHATSAPP_URL, extractWhatsAppNumber } from "../lib/whatsapp";
 
 const normalizeImages = (project) => {
         const images = [];
@@ -23,7 +24,7 @@ const normalizeImages = (project) => {
 const DemoPage = () => {
         const { products, fetchPublicProjects, loading } = useProductStore();
         const [activeProject, setActiveProject] = useState(null);
-        const whatsappNumber = "22249823328";
+        const whatsappNumber = extractWhatsAppNumber(SALES_WHATSAPP_URL);
 
         useEffect(() => {
                 fetchPublicProjects();
@@ -104,10 +105,10 @@ const DemoPage = () => {
                                                                                         <a
                                                                                                 href={project.projectUrl}
                                                                                                 target='_blank'
-                                                                                                rel='noreferrer'
-                                                                                                className='inline-flex items-center gap-2 rounded-lg bg-payzone-gold px-4 py-2 text-sm font-semibold text-payzone-navy transition hover:bg-[#b8873d]'
+                                                                                                rel='noopener noreferrer'
+                                                                                                className='inline-flex items-center gap-2 self-start rounded-xl border border-payzone-gold/60 bg-payzone-navy/60 px-4 py-2 text-sm font-semibold text-payzone-gold transition duration-200 hover:border-payzone-gold hover:bg-payzone-navy/80 hover:shadow-[0_0_18px_rgba(232,179,88,0.35)]'
                                                                                         >
-                                                                                                فتح المتجر
+                                                                                                زيارة المتجر ↗
                                                                                                 <ExternalLink size={16} />
                                                                                         </a>
                                                                                 )}
@@ -121,7 +122,7 @@ const DemoPage = () => {
                                                                                 <a
                                                                                         href={buildWhatsappLink(project.name)}
                                                                                         target='_blank'
-                                                                                        rel='noreferrer'
+                                                                                        rel='noopener noreferrer'
                                                                                         className='rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:border-payzone-gold hover:text-payzone-gold'
                                                                                 >
                                                                                         اطلب الآن

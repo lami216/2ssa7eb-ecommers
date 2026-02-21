@@ -21,6 +21,7 @@ import { Toaster } from "react-hot-toast";
 import { useUserStore } from "./stores/useUserStore";
 import { useEffect } from "react";
 import LoadingSpinner from "./components/LoadingSpinner";
+import { SALES_WHATSAPP_URL } from "./lib/whatsapp";
 
 function App() {
         const user = useUserStore((state) => state.user);
@@ -87,7 +88,7 @@ function App() {
                         <WhatsAppButton
                                 floating
                                 isUnlocked
-                                whatsappLink="https://wa.me/22249823328"
+                                whatsappLink={SALES_WHATSAPP_URL}
                                 unlockedLabel="واتساب"
                         />
                         <Footer />

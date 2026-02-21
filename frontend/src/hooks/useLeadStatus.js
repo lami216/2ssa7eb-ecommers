@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import apiClient from "../lib/apiClient";
-import { buildWhatsAppLink } from "../lib/whatsapp";
+import { SALES_WHATSAPP_URL, buildWhatsAppLink } from "../lib/whatsapp";
 import { buildLeadWhatsAppMessage } from "../lib/lead";
 import { useUserStore } from "../stores/useUserStore";
-
-const SALES_WHATSAPP_URL = "https://wa.me/22249823328";
 
 const useLeadStatus = () => {
         const user = useUserStore((state) => state.user);
