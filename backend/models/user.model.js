@@ -31,6 +31,8 @@ const userSchema = new mongoose.Schema(
 		verificationTokenExpiresAt: Date,
 		resetPasswordToken: String,
 		resetPasswordExpiresAt: Date,
+		resetPasswordCode: String,
+		resetPasswordExpires: Date,
 		cartItems: [
 			{
 				quantity: {
