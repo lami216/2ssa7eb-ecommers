@@ -3,7 +3,7 @@ import User from "../models/user.model.js";
 import Service from "../models/service.model.js";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { sendVerificationEmail, sendWelcomeEmail } from "../lib/emails.js";
+import { sendVerificationEmail, sendWelcomeEmail, sendResetPasswordEmail } from "../lib/emails.js";
 import { OAuth2Client } from "google-auth-library";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -23,6 +23,11 @@ const generateTokens = (userId) => {
 const storeRefreshToken = async (userId, refreshToken) => {
 	await redis.set(`refresh_token:${userId}`, refreshToken, "EX", 7 * 24 * 60 * 60); // 7days
 };
+
+const hashResetCode = (code) => crypto.createHash("sha256").update(code).digest("hex");
+
+const GENERIC_FORGOT_PASSWORD_MESSAGE =
+	"If an account with that email exists, a reset code has been sent";
 
 const setCookies = (res, accessToken, refreshToken) => {
 	res.cookie("accessToken", accessToken, {
@@ -309,6 +314,119 @@ export const refreshToken = async (req, res) => {
 	} catch (error) {
 		console.error("Error in refreshToken controller");
 		res.status(500).json({ message: "Server error" });
+	}
+};
+
+
+export const forgotPassword = async (req, res) => {
+	const { email } = req.body;
+
+	if (typeof email !== "string" || !/^\S+@\S+\.\S+$/.test(email)) {
+		return res.status(400).json({ message: "Valid email is required" });
+	}
+
+	const sanitizedEmail = email.trim().toLowerCase();
+	const rateLimitKey = `forgot_password_limit:${sanitizedEmail}`;
+
+	try {
+		const isRateLimited = await redis.get(rateLimitKey);
+		if (isRateLimited) {
+			return res.status(200).json({ message: GENERIC_FORGOT_PASSWORD_MESSAGE });
+		}
+
+		const user = await User.findOne({ email: sanitizedEmail });
+
+		if (user) {
+			const resetCode = crypto.randomInt(100000, 1000000).toString();
+			user.resetPasswordCode = hashResetCode(resetCode);
+			user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
+			await user.save();
+
+			try {
+				await sendResetPasswordEmail(user.email, resetCode);
+			} catch (emailError) {
+				console.error("Error sending forgot password email");
+			}
+		}
+
+		await redis.set(rateLimitKey, "true", "EX", 60);
+		return res.status(200).json({ message: GENERIC_FORGOT_PASSWORD_MESSAGE });
+	} catch (error) {
+		console.error("Error in forgotPassword controller");
+		return res.status(500).json({ message: "Server error" });
+	}
+};
+
+export const verifyResetCode = async (req, res) => {
+	const { email, code } = req.body;
+
+	if (typeof email !== "string" || !/^\S+@\S+\.\S+$/.test(email)) {
+		return res.status(400).json({ message: "Valid email is required" });
+	}
+
+	if (typeof code !== "string" || !/^\d{6}$/.test(code)) {
+		return res.status(400).json({ message: "Invalid reset code format" });
+	}
+
+	const sanitizedEmail = email.trim().toLowerCase();
+	const hashedCode = hashResetCode(code);
+
+	try {
+		const user = await User.findOne({
+			email: sanitizedEmail,
+			resetPasswordCode: hashedCode,
+			resetPasswordExpires: { $gt: Date.now() },
+		});
+
+		if (!user) {
+			return res.status(400).json({ message: "Invalid or expired reset code" });
+		}
+
+		return res.status(200).json({ message: "Reset code verified successfully" });
+	} catch (error) {
+		console.error("Error in verifyResetCode controller");
+		return res.status(500).json({ message: "Server error" });
+	}
+};
+
+export const resetPassword = async (req, res) => {
+	const { email, code, newPassword } = req.body;
+
+	if (typeof email !== "string" || !/^\S+@\S+\.\S+$/.test(email)) {
+		return res.status(400).json({ message: "Valid email is required" });
+	}
+
+	if (typeof code !== "string" || !/^\d{6}$/.test(code)) {
+		return res.status(400).json({ message: "Invalid reset code format" });
+	}
+
+	if (typeof newPassword !== "string" || newPassword.length < 6) {
+		return res.status(400).json({ message: "Password must be at least 6 characters long" });
+	}
+
+	const sanitizedEmail = email.trim().toLowerCase();
+	const hashedCode = hashResetCode(code);
+
+	try {
+		const user = await User.findOne({
+			email: sanitizedEmail,
+			resetPasswordCode: hashedCode,
+			resetPasswordExpires: { $gt: Date.now() },
+		});
+
+		if (!user) {
+			return res.status(400).json({ message: "Invalid or expired reset code" });
+		}
+
+		user.password = newPassword;
+		user.resetPasswordCode = undefined;
+		user.resetPasswordExpires = undefined;
+		await user.save();
+
+		return res.status(200).json({ message: "Password reset successful" });
+	} catch (error) {
+		console.error("Error in resetPassword controller");
+		return res.status(500).json({ message: "Server error" });
 	}
 };
 

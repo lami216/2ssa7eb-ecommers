@@ -13,6 +13,8 @@ import SubscriptionManagePage from "./pages/SubscriptionManagePage";
 import PrivacyPage from "./pages/PrivacyPage";
 import RefundPolicyPage from "./pages/RefundPolicyPage";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -92,6 +94,8 @@ function App() {
 					<Route path='/subscription/manage/:serviceId' element={manageSubscriptionRoute} />
 					<Route path='/signup' element={!user ? <SignUpPage /> : <Navigate to='/' />} />
 					<Route path='/login' element={!user ? <LoginPage /> : <Navigate to='/' />} />
+					<Route path='/forgot-password' element={!user ? <ForgotPasswordPage /> : <Navigate to='/' />} />
+					<Route path='/reset-password' element={!user ? <ResetPasswordPage /> : <Navigate to='/' />} />
 					<Route path='/my-services' element={servicesRoute} />
 					<Route path='/privacy' element={<PrivacyPage />} />
 					<Route path='/refund-policy' element={<RefundPolicyPage />} />

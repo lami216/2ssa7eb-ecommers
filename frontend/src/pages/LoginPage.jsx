@@ -11,7 +11,7 @@ const LoginPage = () => {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 
-	const { login, googleLogin, loading } = useUserStore();
+	const { login, loading } = useUserStore();
 	const { t } = useTranslation();
 
 	const handleSubmit = (e) => {
@@ -57,6 +57,12 @@ const LoginPage = () => {
 							value={password}
 							onChange={(e) => setPassword(e.target.value)}
 						/>
+
+						<div className='text-sm text-left'>
+							<Link to='/forgot-password' className='font-medium text-payzone-indigo transition duration-300 hover:text-payzone-gold'>
+								Forgot Password?
+							</Link>
+						</div>
 
 						<button
 							type='submit'
