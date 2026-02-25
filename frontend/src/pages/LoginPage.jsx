@@ -5,6 +5,7 @@ import { LogIn, Mail, Lock, ArrowLeft, Loader } from "lucide-react";
 import useTranslation from "../hooks/useTranslation";
 import { useUserStore } from "../stores/useUserStore";
 import GoogleLoginButton from "../components/GoogleLoginButton";
+import FormField from "../components/FormField";
 
 const LoginPage = () => {
 	const [email, setEmail] = useState("");
@@ -37,45 +38,25 @@ const LoginPage = () => {
 			>
 				<div className='rounded-3xl border border-white/10 bg-gradient-to-br from-[#070b1a] via-[#11192d] to-[#1b1032] px-4 py-8 shadow-xl shadow-black/20 sm:px-10'>
 					<form onSubmit={handleSubmit} className='space-y-6'>
-						<div>
-							<label htmlFor='email' className='block text-sm font-medium text-white/80'>
-								{t("auth.login.email")}
-							</label>
-							<div className='relative mt-1 rounded-md shadow-sm'>
-								<div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-									<Mail className='h-5 w-5 text-white/50' aria-hidden='true' />
-								</div>
-								<input
-									id='email'
-									type='email'
-									required
-									value={email}
-									onChange={(e) => setEmail(e.target.value)}
-									className='block w-full rounded-xl border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 pr-10 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo sm:text-sm'
-									placeholder={t("auth.login.placeholderEmail")}
-								/>
-							</div>
-						</div>
+						<FormField
+							id="email"
+							label={t("auth.login.email")}
+							type="email"
+							Icon={Mail}
+							placeholder={t("auth.login.placeholderEmail")}
+							value={email}
+							onChange={(e) => setEmail(e.target.value)}
+						/>
 
-						<div>
-							<label htmlFor='password' className='block text-sm font-medium text-white/80'>
-								{t("auth.login.password")}
-							</label>
-							<div className='relative mt-1 rounded-md shadow-sm'>
-								<div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-									<Lock className='h-5 w-5 text-white/50' aria-hidden='true' />
-								</div>
-								<input
-									id='password'
-									type='password'
-									required
-									value={password}
-									onChange={(e) => setPassword(e.target.value)}
-									className='block w-full rounded-xl border border-payzone-indigo/40 bg-payzone-navy/60 px-3 py-2 pr-10 text-white placeholder-white/40 focus:border-payzone-gold focus:outline-none focus:ring-2 focus:ring-payzone-indigo sm:text-sm'
-									placeholder={t("auth.login.placeholderPassword")}
-								/>
-							</div>
-						</div>
+						<FormField
+							id="password"
+							label={t("auth.login.password")}
+							type="password"
+							Icon={Lock}
+							placeholder={t("auth.login.placeholderPassword")}
+							value={password}
+							onChange={(e) => setPassword(e.target.value)}
+						/>
 
 						<button
 							type='submit'
