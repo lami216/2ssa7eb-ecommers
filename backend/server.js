@@ -1,6 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import path from "path";
 
 import authRoutes from "./routes/auth.route.js";
@@ -24,6 +26,17 @@ dotenv.config({ path: "./backend/.env" });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+app.use(helmet());
+
+const limiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	limit: 100,
+	standardHeaders: true,
+	legacyHeaders: false,
+});
+
+app.use("/api", limiter);
 
 // في ESM هذا يُعيد المسار الحالي للعملية (غالبًا /var/www/shop1/backend)
 const __dirname = path.resolve();

@@ -33,7 +33,7 @@ export const protectRoute = async (req, res, next) => {
                         throw error;
                 }
         } catch (error) {
-                console.log("Error in protectRoute middleware", error.message);
+                console.error("Error in protectRoute middleware");
                 return res.status(401).json({ message: "Unauthorized - Invalid access token" });
         }
 };
@@ -52,7 +52,7 @@ export const optionalAuth = async (req, res, next) => {
                         req.user = user;
                 }
         } catch (error) {
-                console.log("Optional auth failed", error.message);
+                console.error("Optional auth failed");
         }
 
         return next();
