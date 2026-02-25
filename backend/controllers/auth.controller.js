@@ -3,7 +3,7 @@ import User from "../models/user.model.js";
 import Service from "../models/service.model.js";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { sendVerificationEmail, sendWelcomeEmail } from "../lib/emails.js";
+import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail } from "../lib/emails.js";
 import { OAuth2Client } from "google-auth-library";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -97,6 +97,91 @@ export const signup = async (req, res) => {
 		});
 	} catch (error) {
 		console.error("Error in signup controller");
+		res.status(500).json({ message: "Server error" });
+	}
+};
+
+export const forgotPassword = async (req, res) => {
+	const { email } = req.body;
+
+	if (typeof email !== "string" || !/^\S+@\S+\.\S+$/.test(email)) {
+		return res.status(400).json({ message: "Valid email is required" });
+	}
+
+	try {
+		const user = await User.findOne({ email: email.trim().toLowerCase() });
+
+		if (user) {
+			const resetCode = crypto.randomInt(100000, 1000000).toString();
+			const hashedCode = crypto.createHash("sha256").update(resetCode).digest("hex");
+
+			user.resetPasswordCode = hashedCode;
+			user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
+			await user.save();
+
+			await sendPasswordResetEmail(user.email, resetCode);
+		}
+
+		res.status(200).json({ message: "If a user with that email exists, a reset code has been sent." });
+	} catch (error) {
+		console.error("Error in forgotPassword controller");
+		res.status(500).json({ message: "Server error" });
+	}
+};
+
+export const verifyResetCode = async (req, res) => {
+	const { email, code } = req.body;
+
+	if (typeof email !== "string" || typeof code !== "string" || code.length !== 6) {
+		return res.status(400).json({ message: "Invalid input" });
+	}
+
+	try {
+		const hashedCode = crypto.createHash("sha256").update(code).digest("hex");
+		const user = await User.findOne({
+			email: email.trim().toLowerCase(),
+			resetPasswordCode: hashedCode,
+			resetPasswordExpires: { $gt: Date.now() },
+		});
+
+		if (!user) {
+			return res.status(400).json({ message: "Invalid or expired reset code" });
+		}
+
+		res.status(200).json({ message: "Reset code verified successfully" });
+	} catch (error) {
+		console.error("Error in verifyResetCode controller");
+		res.status(500).json({ message: "Server error" });
+	}
+};
+
+export const resetPassword = async (req, res) => {
+	const { email, code, newPassword } = req.body;
+
+	if (typeof email !== "string" || typeof code !== "string" || typeof newPassword !== "string" || newPassword.length < 6) {
+		return res.status(400).json({ message: "Invalid input" });
+	}
+
+	try {
+		const hashedCode = crypto.createHash("sha256").update(code).digest("hex");
+		const user = await User.findOne({
+			email: email.trim().toLowerCase(),
+			resetPasswordCode: hashedCode,
+			resetPasswordExpires: { $gt: Date.now() },
+		});
+
+		if (!user) {
+			return res.status(400).json({ message: "Invalid or expired reset code" });
+		}
+
+		user.password = newPassword;
+		user.resetPasswordCode = undefined;
+		user.resetPasswordExpires = undefined;
+		await user.save();
+
+		res.status(200).json({ message: "Password reset successfully" });
+	} catch (error) {
+		console.error("Error in resetPassword controller");
 		res.status(500).json({ message: "Server error" });
 	}
 };

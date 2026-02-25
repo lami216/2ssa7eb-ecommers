@@ -82,6 +82,47 @@ export const useUserStore = create((set, get) => ({
 		}
 	},
 
+	forgotPassword: async (email) => {
+		set({ loading: true });
+		try {
+			const data = await apiClient.post("/auth/forgot-password", { email });
+			set({ loading: false });
+			toast.success(translate("auth.forgotPassword.success"));
+			return data;
+		} catch (error) {
+			set({ loading: false });
+			toast.error(error.response?.data?.message || translate("toast.genericError"));
+			throw error;
+		}
+	},
+
+	verifyResetCode: async (email, code) => {
+		set({ loading: true });
+		try {
+			const data = await apiClient.post("/auth/verify-reset-code", { email, code });
+			set({ loading: false });
+			return data;
+		} catch (error) {
+			set({ loading: false });
+			toast.error(error.response?.data?.message || translate("toast.genericError"));
+			throw error;
+		}
+	},
+
+	resetPassword: async (email, code, newPassword) => {
+		set({ loading: true });
+		try {
+			const data = await apiClient.post("/auth/reset-password", { email, code, newPassword });
+			set({ loading: false });
+			toast.success(translate("auth.resetPassword.success"));
+			return data;
+		} catch (error) {
+			set({ loading: false });
+			toast.error(error.response?.data?.message || translate("toast.genericError"));
+			throw error;
+		}
+	},
+
 	checkAuth: async () => {
 		set({ checkingAuth: true });
 		try {

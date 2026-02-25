@@ -64,3 +64,28 @@ export const sendWelcomeEmail = async (email, name) => {
 		console.error("Error sending welcome email");
 	}
 };
+
+export const sendPasswordResetEmail = async (email, resetCode) => {
+	const sender = process.env.EMAIL_FROM || "onboarding@resend.dev";
+	try {
+		await resend.emails.send({
+			from: sender,
+			to: email,
+			subject: "إعادة تعيين كلمة المرور - بايزون",
+			html: `
+				<div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 10px; direction: rtl; text-align: right;">
+					<h2 style="color: #333; text-align: center;">إعادة تعيين كلمة المرور</h2>
+					<p style="font-size: 16px; color: #555;">لقد طلبت إعادة تعيين كلمة المرور الخاصة بك. يرجى استخدام الرمز التالي لإتمام العملية:</p>
+					<div style="text-align: center; margin: 30px 0;">
+						<span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #DC2626; background: #F3F4F6; padding: 10px 20px; border-radius: 5px;">${escapeHTML(resetCode)}</span>
+					</div>
+					<p style="font-size: 14px; color: #777;">هذا الرمز صالح لمدة 15 دقيقة فقط.</p>
+					<p style="font-size: 14px; color: #777;">إذا لم تطلب إعادة تعيين كلمة المرور، يمكنك تجاهل هذا البريد بأمان.</p>
+				</div>
+			`,
+		});
+	} catch (error) {
+		console.error("Error sending password reset email");
+		throw new Error("Error sending password reset email");
+	}
+};
