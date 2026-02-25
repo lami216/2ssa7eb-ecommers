@@ -40,12 +40,25 @@ const setCookies = (res, accessToken, refreshToken) => {
 };
 
 export const signup = async (req, res) => {
-	const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
-	const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
-	const password = typeof req.body.password === "string" ? req.body.password : "";
+	const { name, email, password } = req.body;
+
+	if (typeof name !== "string" || name.trim() === "") {
+		return res.status(400).json({ message: "Name is required and must be a string" });
+	}
+
+	if (typeof email !== "string" || !/^\S+@\S+\.\S+$/.test(email)) {
+		return res.status(400).json({ message: "Valid email is required" });
+	}
+
+	if (typeof password !== "string" || password.length < 6) {
+		return res.status(400).json({ message: "Password must be at least 6 characters long" });
+	}
+
+	const sanitizedName = name.trim();
+	const sanitizedEmail = email.trim().toLowerCase();
 
 	try {
-		const userExists = await User.findOne({ email });
+		const userExists = await User.findOne({ email: sanitizedEmail });
 
 		if (userExists) {
 			return res.status(400).json({ message: "User already exists" });
@@ -54,9 +67,9 @@ export const signup = async (req, res) => {
 		const verificationToken = crypto.randomInt(100000, 1000000).toString();
 
 		const user = await User.create({
-			name,
-			email,
-			password,
+			name: sanitizedName,
+			email: sanitizedEmail,
+			password: password,
 			verificationToken,
 			verificationTokenExpiresAt: Date.now() + 15 * 60 * 1000, // 15 minutes
 		});
@@ -89,7 +102,12 @@ export const signup = async (req, res) => {
 };
 
 export const verifyEmail = async (req, res) => {
-	const code = typeof req.body.code === "string" ? req.body.code : "";
+	const { code } = req.body;
+
+	if (typeof code !== "string" || code.length !== 6) {
+		return res.status(400).json({ message: "Invalid verification code format" });
+	}
+
 	try {
 		const user = await User.findOne({
 			_id: req.user._id,
@@ -159,7 +177,12 @@ export const resendVerificationCode = async (req, res) => {
 };
 
 export const googleLogin = async (req, res) => {
-	const credential = typeof req.body.credential === "string" ? req.body.credential : "";
+	const { credential } = req.body;
+
+	if (typeof credential !== "string" || credential === "") {
+		return res.status(400).json({ message: "Google credential is required" });
+	}
+
 	try {
 		const ticket = await client.verifyIdToken({
 			idToken: credential,
@@ -206,14 +229,16 @@ export const googleLogin = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-        try {
-                const email =
-                        typeof req.body.email === "string"
-                                ? req.body.email.trim().toLowerCase()
-                                : "";
-                const password = typeof req.body.password === "string" ? req.body.password : "";
+	const { email, password } = req.body;
 
-                const user = await User.findOne({ email });
+	if (typeof email !== "string" || typeof password !== "string") {
+		return res.status(400).json({ message: "Invalid email or password" });
+	}
+
+	const sanitizedEmail = email.trim().toLowerCase();
+
+	try {
+		const user = await User.findOne({ email: sanitizedEmail });
 
 		if (user && (await user.comparePassword(password))) {
 			const hasServices = await Service.exists({ email: user.email });
