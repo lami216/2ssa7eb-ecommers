@@ -5,101 +5,134 @@ import { translate } from "../lib/locale";
 import { hasContactFeePaidLead } from "../lib/leadAccess";
 
 export const useUserStore = create((set, get) => ({
-        user: null,
-        loading: false,
-        checkingAuth: true,
-        checkingContactFee: false,
-        contactFeePaid: false,
+	user: null,
+	loading: false,
+	checkingAuth: true,
+	checkingContactFee: false,
+	contactFeePaid: false,
 
-        signup: async ({ name, email, password, confirmPassword }) => {
-                set({ loading: true });
+	signup: async ({ name, email, password, confirmPassword }) => {
+		set({ loading: true });
 
-                if (password !== confirmPassword) {
-                        set({ loading: false });
-                        return toast.error(translate("common.messages.passwordMismatch"));
-                }
+		if (password !== confirmPassword) {
+			set({ loading: false });
+			return toast.error(translate("common.messages.passwordMismatch"));
+		}
 
-                try {
-                        const data = await apiClient.post("/auth/signup", { name, email, password });
-                        set({ user: data, loading: false });
-                } catch (error) {
-                        set({ loading: false });
-                        toast.error(error.response?.data?.message || translate("toast.genericError"));
-                }
-        },
-        login: async (email, password) => {
-                set({ loading: true });
+		try {
+			const data = await apiClient.post("/auth/signup", { name, email, password });
+			set({ user: data, loading: false });
+		} catch (error) {
+			set({ loading: false });
+			toast.error(error.response?.data?.message || translate("toast.genericError"));
+		}
+	},
+	login: async (email, password) => {
+		set({ loading: true });
 
-                try {
-                        const data = await apiClient.post("/auth/login", { email, password });
+		try {
+			const data = await apiClient.post("/auth/login", { email, password });
+			set({ user: data, loading: false });
+		} catch (error) {
+			set({ loading: false });
+			toast.error(error.response?.data?.message || translate("toast.genericError"));
+		}
+	},
 
-                        set({ user: data, loading: false });
-                } catch (error) {
-                        set({ loading: false });
-                        toast.error(error.response?.data?.message || translate("toast.genericError"));
-                }
-        },
+	googleLogin: async (credential) => {
+		set({ loading: true });
+		try {
+			const data = await apiClient.post("/auth/google-login", { credential });
+			set({ user: data, loading: false });
+			toast.success(translate("auth.login.success"));
+		} catch (error) {
+			set({ loading: false });
+			toast.error(error.response?.data?.message || translate("auth.login.googleError"));
+		}
+	},
 
-        logout: async () => {
-                try {
-                        await apiClient.post("/auth/logout");
-                        set({ user: null, contactFeePaid: false, checkingContactFee: false });
-                } catch (error) {
-                        toast.error(error.response?.data?.message || translate("toast.logoutError"));
-                }
-        },
+	verifyEmail: async (code) => {
+		set({ loading: true });
+		try {
+			const data = await apiClient.post("/auth/verify-email", { code });
+			set({ user: data, loading: false });
+			return data;
+		} catch (error) {
+			set({ loading: false });
+			toast.error(error.response?.data?.message || translate("toast.genericError"));
+			throw error;
+		}
+	},
 
-        checkAuth: async () => {
-                set({ checkingAuth: true });
-                try {
-                        const data = await apiClient.get("/auth/profile");
-                        set({ user: data, checkingAuth: false });
-                } catch (error) {
-                        console.log(error.message);
-                        set({ checkingAuth: false, user: null, contactFeePaid: false, checkingContactFee: false });
-                }
-        },
-        fetchContactFeeStatus: async () => {
-                const user = get().user;
-                if (!user) {
-                        set({ contactFeePaid: false, checkingContactFee: false });
-                        return;
-                }
+	resendVerificationCode: async () => {
+		try {
+			await apiClient.post("/auth/resend-verification-code");
+			toast.success(translate("auth.verify.resendSuccess"));
+		} catch (error) {
+			toast.error(error.response?.data?.message || translate("auth.verify.resendError"));
+		}
+	},
 
-                set({ checkingContactFee: true });
-                try {
-                        const lead = await apiClient.get("/leads/me");
-                        set({
-                                contactFeePaid: hasContactFeePaidLead(lead),
-                                checkingContactFee: false,
-                        });
-                } catch {
-                        set({ contactFeePaid: false, checkingContactFee: false });
-                }
-        },
+	logout: async () => {
+		try {
+			await apiClient.post("/auth/logout");
+			set({ user: null, contactFeePaid: false, checkingContactFee: false });
+		} catch (error) {
+			toast.error(error.response?.data?.message || translate("toast.logoutError"));
+		}
+	},
 
-        refreshToken: async () => {
-                set({ checkingAuth: true });
-                try {
-                        const data = await apiClient.post("/auth/refresh-token", undefined, {
-                                skipAuthRetry: true,
-                        });
-                        set({ checkingAuth: false });
-                        return data;
-                } catch (error) {
-                        set({ user: null, checkingAuth: false });
-                        throw error;
-                }
-        },
+	checkAuth: async () => {
+		set({ checkingAuth: true });
+		try {
+			const data = await apiClient.get("/auth/profile");
+			set({ user: data, checkingAuth: false });
+		} catch (error) {
+			console.log(error.message);
+			set({ checkingAuth: false, user: null, contactFeePaid: false, checkingContactFee: false });
+		}
+	},
+	fetchContactFeeStatus: async () => {
+		const user = get().user;
+		if (!user) {
+			set({ contactFeePaid: false, checkingContactFee: false });
+			return;
+		}
+
+		set({ checkingContactFee: true });
+		try {
+			const lead = await apiClient.get("/leads/me");
+			set({
+				contactFeePaid: hasContactFeePaidLead(lead),
+				checkingContactFee: false,
+			});
+		} catch {
+			set({ contactFeePaid: false, checkingContactFee: false });
+		}
+	},
+
+	refreshToken: async () => {
+		set({ checkingAuth: true });
+		try {
+			const data = await apiClient.post("/auth/refresh-token", undefined, {
+				skipAuthRetry: true,
+			});
+			set({ checkingAuth: false });
+			return data;
+		} catch (error) {
+			set({ user: null, checkingAuth: false });
+			throw error;
+		}
+	},
 }));
 
 registerAuthHandlers({
-        onRefresh: () => useUserStore.getState().refreshToken(),
-        onLogout: () =>
-                useUserStore.setState({
-                        user: null,
-                        checkingAuth: false,
-                        contactFeePaid: false,
-                        checkingContactFee: false,
-                }),
+	onRefresh: () => useUserStore.getState().refreshToken(),
+	onLogout: () =>
+		useUserStore.setState({
+			user: null,
+			checkingAuth: false,
+			contactFeePaid: false,
+			checkingContactFee: false,
+		}),
 });
