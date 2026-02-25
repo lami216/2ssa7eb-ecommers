@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const getResendClient = () => new Resend(process.env.RESEND_API_KEY);
 
 const escapeHTML = (str) =>
 	str.replace(
@@ -18,7 +18,7 @@ const escapeHTML = (str) =>
 export const sendVerificationEmail = async (email, verificationToken) => {
 	const sender = process.env.EMAIL_FROM || "onboarding@resend.dev";
 	try {
-		await resend.emails.send({
+		await getResendClient().emails.send({
 			from: sender,
 			to: email,
 			subject: "تأكيد البريد الإلكتروني - بايزون",
@@ -45,7 +45,7 @@ export const sendWelcomeEmail = async (email, name) => {
 	const frontendUrl = process.env.FRONTEND_URL || "https://payzone.store";
 
 	try {
-		await resend.emails.send({
+		await getResendClient().emails.send({
 			from: sender,
 			to: email,
 			subject: "مرحباً بك في بايزون!",

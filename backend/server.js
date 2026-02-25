@@ -5,6 +5,8 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import path from "path";
 
+dotenv.config({ path: "./backend/.env" });
+
 import authRoutes from "./routes/auth.route.js";
 import productRoutes from "./routes/product.route.js";
 import cartRoutes from "./routes/cart.route.js";
@@ -21,8 +23,6 @@ import paypalRoutes from "./routes/paypal.route.js";
 import leadRoutes from "./routes/lead.route.js";
 
 import { connectDB } from "./lib/db.js";
-
-dotenv.config({ path: "./backend/.env" });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
