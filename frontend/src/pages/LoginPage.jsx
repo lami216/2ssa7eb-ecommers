@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { LogIn, Mail, Lock, ArrowLeft, Loader } from "lucide-react";
 import useTranslation from "../hooks/useTranslation";
 import { useUserStore } from "../stores/useUserStore";
-import { GoogleLogin } from "@react-oauth/google";
+import GoogleLoginButton from "../components/GoogleLoginButton";
 
 const LoginPage = () => {
 	const [email, setEmail] = useState("");
@@ -96,30 +96,7 @@ const LoginPage = () => {
 						</button>
 					</form>
 
-					<div className='mt-6'>
-						<div className='relative'>
-							<div className='absolute inset-0 flex items-center'>
-								<div className='w-full border-t border-payzone-indigo/40'></div>
-							</div>
-							<div className='relative flex justify-center text-sm'>
-								<span className='bg-[#0f111a] px-2 text-white/60'>{t("auth.login.orContinueWith")}</span>
-							</div>
-						</div>
-
-						<div className='mt-6 flex justify-center'>
-							<GoogleLogin
-								onSuccess={(credentialResponse) => {
-									googleLogin(credentialResponse.credential);
-								}}
-								onError={() => {
-									console.log("Login Failed");
-								}}
-								theme='filled_blue'
-								shape='pill'
-								locale='ar'
-							/>
-						</div>
-					</div>
+					<GoogleLoginButton textKey="auth.login.orContinueWith" />
 
 					<p className='mt-8 text-center text-sm text-white/70'>
 						{t("auth.login.prompt")} {" "}

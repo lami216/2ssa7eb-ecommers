@@ -2,6 +2,7 @@ import { redis } from "../lib/redis.js";
 import User from "../models/user.model.js";
 import Service from "../models/service.model.js";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import { sendVerificationEmail, sendWelcomeEmail } from "../lib/emails.js";
 import { OAuth2Client } from "google-auth-library";
 
@@ -50,7 +51,7 @@ export const signup = async (req, res) => {
 			return res.status(400).json({ message: "User already exists" });
 		}
 
-		const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
+		const verificationToken = crypto.randomInt(100000, 1000000).toString();
 
 		const user = await User.create({
 			name,
@@ -66,7 +67,12 @@ export const signup = async (req, res) => {
 
 		setCookies(res, accessToken, refreshToken);
 
-		await sendVerificationEmail(user.email, verificationToken);
+		try {
+			await sendVerificationEmail(user.email, verificationToken);
+		} catch (emailError) {
+			console.error("Error sending verification email on signup:", emailError.message);
+			// We continue because the user can request a resend from the verification page
+		}
 
 		res.status(201).json({
 			_id: user._id,
@@ -83,9 +89,10 @@ export const signup = async (req, res) => {
 };
 
 export const verifyEmail = async (req, res) => {
-	const { code } = req.body;
+	const code = typeof req.body.code === "string" ? req.body.code : "";
 	try {
 		const user = await User.findOne({
+			_id: req.user._id,
 			verificationToken: code,
 			verificationTokenExpiresAt: { $gt: Date.now() },
 		});
@@ -134,7 +141,7 @@ export const resendVerificationCode = async (req, res) => {
 			return res.status(400).json({ message: "User is already verified" });
 		}
 
-		const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
+		const verificationToken = crypto.randomInt(100000, 1000000).toString();
 		user.verificationToken = verificationToken;
 		user.verificationTokenExpiresAt = Date.now() + 15 * 60 * 1000; // 15 minutes
 		await user.save();
@@ -152,7 +159,7 @@ export const resendVerificationCode = async (req, res) => {
 };
 
 export const googleLogin = async (req, res) => {
-	const { credential } = req.body;
+	const credential = typeof req.body.credential === "string" ? req.body.credential : "";
 	try {
 		const ticket = await client.verifyIdToken({
 			idToken: credential,
