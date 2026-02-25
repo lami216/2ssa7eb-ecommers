@@ -23,7 +23,7 @@ const GoogleLoginButton = ({ textKey }) => {
 						googleLogin(credentialResponse.credential);
 					}}
 					onError={() => {
-						console.error("Google Login Failed");
+						// Error handled by provider
 					}}
 					theme='filled_blue'
 					shape='pill'

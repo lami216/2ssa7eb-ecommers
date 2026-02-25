@@ -88,7 +88,6 @@ export const useUserStore = create((set, get) => ({
 			const data = await apiClient.get("/auth/profile");
 			set({ user: data, checkingAuth: false });
 		} catch (error) {
-			console.log(error.message);
 			set({ checkingAuth: false, user: null, contactFeePaid: false, checkingContactFee: false });
 		}
 	},

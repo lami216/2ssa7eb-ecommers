@@ -35,7 +35,7 @@ export const sendVerificationEmail = async (email, verificationToken) => {
 			`,
 		});
 	} catch (error) {
-		console.error("Error sending verification email", error);
+		console.error("Error sending verification email");
 		throw new Error("Error sending verification email");
 	}
 };
@@ -61,6 +61,6 @@ export const sendWelcomeEmail = async (email, name) => {
 			`,
 		});
 	} catch (error) {
-		console.error("Error sending welcome email", error);
+		console.error("Error sending welcome email");
 	}
 };

@@ -70,7 +70,7 @@ export const signup = async (req, res) => {
 		try {
 			await sendVerificationEmail(user.email, verificationToken);
 		} catch (emailError) {
-			console.error("Error sending verification email on signup:", emailError.message);
+			console.error("Error sending verification email on signup");
 			// We continue because the user can request a resend from the verification page
 		}
 
@@ -83,7 +83,7 @@ export const signup = async (req, res) => {
 			hasServices: false,
 		});
 	} catch (error) {
-		console.error("Error in signup controller", error.message);
+		console.error("Error in signup controller");
 		res.status(500).json({ message: "Server error" });
 	}
 };
@@ -116,7 +116,7 @@ export const verifyEmail = async (req, res) => {
 			isVerified: user.isVerified,
 		});
 	} catch (error) {
-		console.log("Error in verifyEmail controller", error.message);
+		console.error("Error in verifyEmail controller");
 		res.status(500).json({ message: "Server error" });
 	}
 };
@@ -153,7 +153,7 @@ export const resendVerificationCode = async (req, res) => {
 
 		res.json({ message: "Verification code resent successfully" });
 	} catch (error) {
-		console.log("Error in resendVerificationCode controller", error.message);
+		console.error("Error in resendVerificationCode controller");
 		res.status(500).json({ message: "Server error" });
 	}
 };
@@ -200,7 +200,7 @@ export const googleLogin = async (req, res) => {
 			hasServices: Boolean(hasServices),
 		});
 	} catch (error) {
-		console.log("Error in googleLogin controller", error.message);
+		console.error("Error in googleLogin controller");
 		res.status(500).json({ message: "Server error" });
 	}
 };
@@ -233,7 +233,7 @@ export const login = async (req, res) => {
 			res.status(400).json({ message: "Invalid email or password" });
 		}
 	} catch (error) {
-		console.error("Error in login controller", error.message);
+		console.error("Error in login controller");
 		res.status(500).json({ message: "Server error" });
 	}
 };
@@ -250,7 +250,7 @@ export const logout = async (req, res) => {
 		res.clearCookie("refreshToken");
 		res.json({ message: "Logged out successfully" });
 	} catch (error) {
-		console.error("Error in logout controller", error.message);
+		console.error("Error in logout controller");
 		res.status(500).json({ message: "Server error" });
 	}
 };
@@ -282,7 +282,7 @@ export const refreshToken = async (req, res) => {
 
 		res.json({ message: "Token refreshed successfully" });
 	} catch (error) {
-		console.error("Error in refreshToken controller", error.message);
+		console.error("Error in refreshToken controller");
 		res.status(500).json({ message: "Server error" });
 	}
 };
@@ -295,7 +295,7 @@ export const getProfile = async (req, res) => {
 			hasServices: Boolean(hasServices),
 		});
 	} catch (error) {
-		console.error("Error in getProfile controller", error.message);
+		console.error("Error in getProfile controller");
 		res.status(500).json({ message: "Server error" });
 	}
 };

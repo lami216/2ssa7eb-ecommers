@@ -95,6 +95,7 @@ function App() {
 					<Route path='/my-services' element={servicesRoute} />
 					<Route path='/privacy' element={<PrivacyPage />} />
 					<Route path='/refund-policy' element={<RefundPolicyPage />} />
+					<Route path='/verify-email' element={<EmailVerificationPage />} />
 					<Route
 						path='/secret-dashboard'
 						element={user?.role === "admin" ? <AdminPage /> : <Navigate to='/login' />}

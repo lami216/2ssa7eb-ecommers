@@ -54,7 +54,7 @@ const EmailVerificationPage = () => {
 			toast.success(t("auth.verify.success"));
 			navigate("/");
 		} catch (error) {
-			console.error(error);
+			// Error handled in store
 		}
 	};
 
@@ -62,7 +62,7 @@ const EmailVerificationPage = () => {
 		try {
 			await resendVerificationCode();
 		} catch (error) {
-			console.error(error);
+			// Error handled in store
 		}
 	};
 
