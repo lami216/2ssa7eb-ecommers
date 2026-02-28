@@ -19,6 +19,10 @@ const HomePage = () => {
                 pricingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         };
 
+        const scrollToStartStore = () => {
+                document.getElementById("start-store")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        };
+
         return (
                 <div className='bg-[#050712]'>
                         <div className='mx-auto w-full max-w-7xl px-4 pb-20 pt-8 sm:px-6 lg:px-8'>
@@ -31,7 +35,7 @@ const HomePage = () => {
                                 <ContactSection />
                                 <SupportSection />
                                 <FAQSection />
-                                <FinalCTASection onScrollToPricing={scrollToPricing} />
+                                <FinalCTASection onScrollToStartStore={scrollToStartStore} />
                         </div>
                 </div>
         );

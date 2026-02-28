@@ -42,7 +42,7 @@ const ContactSection = () => {
         };
 
         return (
-                <section className='mt-16'>
+                <section id='start-store' className='mt-16'>
                         <h2 className='text-center text-3xl font-bold text-payzone-gold'>ابدأ متجرك الآن</h2>
                         <form onSubmit={handleSubmit} className='mx-auto mt-8 grid max-w-3xl gap-4 glass-card p-6'>
                                 <input name='name' value={formData.name} onChange={handleChange} required placeholder='الاسم' className='glass-input' />
