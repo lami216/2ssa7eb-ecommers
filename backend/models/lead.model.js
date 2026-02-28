@@ -50,6 +50,11 @@ const leadSchema = new mongoose.Schema(
                         default: "",
                         trim: true,
                 },
+                contactFeeProviderSummary: {
+                        type: String,
+                        default: "",
+                        trim: true,
+                },
                 whatsappUnlocked: {
                         type: Boolean,
                         default: false,
@@ -90,6 +95,11 @@ const leadSchema = new mongoose.Schema(
                         trim: true,
                 },
                 planTransactionId: {
+                        type: String,
+                        default: "",
+                        trim: true,
+                },
+                planProviderSummary: {
                         type: String,
                         default: "",
                         trim: true,
