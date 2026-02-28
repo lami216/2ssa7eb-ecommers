@@ -1,10 +1,45 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUserStore } from "../stores/useUserStore";
 import toast from "react-hot-toast";
 import { Loader, Send } from "lucide-react";
 import useTranslation from "../hooks/useTranslation";
+
+const OTPInput = memo(function OTPInput({ index, value, onChangeDigit, onKeyDownDigit, assignRef }) {
+	const handleInputChange = useCallback(
+		(event) => {
+			onChangeDigit(index, event.target.value);
+		},
+		[index, onChangeDigit]
+	);
+
+	const handleInputKeyDown = useCallback(
+		(event) => {
+			onKeyDownDigit(index, event);
+		},
+		[index, onKeyDownDigit]
+	);
+
+	const setRef = useCallback(
+		(element) => {
+			assignRef(index, element);
+		},
+		[index, assignRef]
+	);
+
+	return (
+		<input
+			ref={setRef}
+			type='text'
+			maxLength='1'
+			value={value}
+			onChange={handleInputChange}
+			onKeyDown={handleInputKeyDown}
+			className='w-full h-12 text-center text-2xl font-bold bg-payzone-navy/60 text-white border border-payzone-indigo/40 rounded-lg focus:border-payzone-gold focus:outline-none focus:ring-1 focus:ring-payzone-gold'
+		/>
+	);
+});
 
 const EmailVerificationPage = () => {
 	const [code, setCode] = useState(["", "", "", "", "", ""]);
@@ -14,49 +49,57 @@ const EmailVerificationPage = () => {
 
 	const { loading, verifyEmail, resendVerificationCode } = useUserStore();
 
-	const handleChange = (index, value) => {
-		const newCode = [...code];
+	const assignRef = useCallback((index, element) => {
+		inputRefs.current[index] = element;
+	}, []);
 
-		// Handle pasted content
-		if (value.length > 1) {
-			const pastedCode = value.slice(0, 6).split("");
-			for (let i = 0; i < 6; i++) {
-				newCode[i] = pastedCode[i] || "";
+	const handleChange = useCallback((index, value) => {
+		setCode((previousCode) => {
+			const nextCode = [...previousCode];
+
+			if (value.length > 1) {
+				const pastedCode = value.slice(0, 6).split("");
+				for (let i = 0; i < 6; i += 1) {
+					nextCode[i] = pastedCode[i] || "";
+				}
+
+				const lastIndex = nextCode.findLastIndex((digit) => digit !== "");
+				const focusIndex = lastIndex < 5 ? lastIndex + 1 : 5;
+				inputRefs.current[focusIndex]?.focus();
+				return nextCode;
 			}
-			setCode(newCode);
 
-			// Focus on the last non-empty input or the first empty one
-			const lastIndex = newCode.findLastIndex((digit) => digit !== "");
-			const focusIndex = lastIndex < 5 ? lastIndex + 1 : 5;
-			inputRefs.current[focusIndex]?.focus();
-		} else {
-			newCode[index] = value;
-			setCode(newCode);
-
-			// Move focus to the next input field if value is entered
+			nextCode[index] = value;
 			if (value && index < 5) {
 				inputRefs.current[index + 1]?.focus();
 			}
-		}
-	};
+			return nextCode;
+		});
+	}, []);
 
-	const handleKeyDown = (index, e) => {
-		if (e.key === "Backspace" && !code[index] && index > 0) {
-			inputRefs.current[index - 1]?.focus();
-		}
-	};
+	const handleKeyDown = useCallback(
+		(index, event) => {
+			if (event.key === "Backspace" && !code[index] && index > 0) {
+				inputRefs.current[index - 1]?.focus();
+			}
+		},
+		[code]
+	);
 
-	const handleSubmit = async (e) => {
-		if (e) e.preventDefault();
-		const verificationCode = code.join("");
-		try {
-			await verifyEmail(verificationCode);
-			toast.success(t("auth.verify.success"));
-			navigate("/");
-		} catch {
-			// Error handled in store
-		}
-	};
+	const handleSubmit = useCallback(
+		async (event) => {
+			if (event) event.preventDefault();
+			const verificationCode = code.join("");
+			try {
+				await verifyEmail(verificationCode);
+				toast.success(t("auth.verify.success"));
+				navigate("/");
+			} catch {
+				// Error handled in store
+			}
+		},
+		[code, navigate, t, verifyEmail]
+	);
 
 	const handleResendCode = async () => {
 		try {
@@ -66,12 +109,11 @@ const EmailVerificationPage = () => {
 		}
 	};
 
-	// Auto submit when all fields are filled
 	useEffect(() => {
 		if (code.every((digit) => digit !== "")) {
 			handleSubmit();
 		}
-	}, [code]);
+	}, [code, handleSubmit]);
 
 	return (
 		<div className='flex flex-col justify-center py-12 sm:px-6 lg:px-8'>
@@ -97,18 +139,17 @@ const EmailVerificationPage = () => {
 			>
 				<div className='rounded-xl border border-payzone-indigo/40 bg-white/5 py-8 px-4 shadow sm:px-10'>
 					<form onSubmit={handleSubmit} className='space-y-6'>
-						<div className='flex justify-between gap-2' dir="ltr">
+						<div className='flex justify-between gap-2' dir='ltr'>
 							{code.map((digit, index) => (
-								<input
-									key={index}
-									ref={(el) => (inputRefs.current[index] = el)}
-									type='text'
-									maxLength='1'
-									value={digit}
-									onChange={(e) => handleChange(index, e.target.value)}
-									onKeyDown={(e) => handleKeyDown(index, e)}
-									className='w-full h-12 text-center text-2xl font-bold bg-payzone-navy/60 text-white border border-payzone-indigo/40 rounded-lg focus:border-payzone-gold focus:outline-none focus:ring-1 focus:ring-payzone-gold'
-								/>
+								<div key={`otp-${index}`} className='w-full'>
+									<OTPInput
+										index={index}
+										value={digit}
+										onChangeDigit={handleChange}
+										onKeyDownDigit={handleKeyDown}
+										assignRef={assignRef}
+									/>
+								</div>
 							))}
 						</div>
 
@@ -145,4 +186,5 @@ const EmailVerificationPage = () => {
 		</div>
 	);
 };
+
 export default EmailVerificationPage;
