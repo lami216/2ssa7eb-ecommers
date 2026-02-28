@@ -4,8 +4,12 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import path from "path";
+import { fileURLToPath } from "url";
 
-dotenv.config({ path: "./backend/.env" });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 import authRoutes from "./routes/auth.route.js";
 import productRoutes from "./routes/product.route.js";
@@ -38,8 +42,6 @@ const limiter = rateLimit({
 
 app.use("/api", limiter);
 
-// في ESM هذا يُعيد المسار الحالي للعملية (غالبًا /var/www/shop1/backend)
-const __dirname = path.resolve();
 
 app.use(express.json({ limit: "10mb" })); // parse JSON body
 app.use(express.urlencoded({ limit: "10mb", extended: true })); // parse URL-encoded (نماذج)

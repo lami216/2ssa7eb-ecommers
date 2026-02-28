@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import { useProductStore } from "../../stores/useProductStore";
 
@@ -30,11 +30,16 @@ const ProjectsSection = () => {
         const loading = useProductStore((state) => state.loading);
         const fetchPublicProjects = useProductStore((state) => state.fetchPublicProjects);
 
+        const hasFetchedRef = useRef(false);
+
         useEffect(() => {
-                if (!products.length) {
-                        fetchPublicProjects();
+                if (hasFetchedRef.current) {
+                        return;
                 }
-        }, [fetchPublicProjects, products.length]);
+
+                hasFetchedRef.current = true;
+                fetchPublicProjects();
+        }, [fetchPublicProjects]);
 
         const projects = useMemo(() => products.slice(0, 6), [products]);
 

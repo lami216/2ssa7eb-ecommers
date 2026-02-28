@@ -6,7 +6,8 @@
         "scripts": {
                 "dev": "nodemon backend/server.js",
                 "start": "node backend/server.js",
-                "build": "npm install && npm install --prefix frontend && npm run build --prefix frontend"
+                "build": "npm install && npm install --prefix frontend && npm run build --prefix frontend",
+                "test": "node --test backend/tests/*.test.js"
         },
         "keywords": [],
         "author": "",
@@ -27,6 +28,7 @@
                 "resend": "^6.9.2"
         },
         "devDependencies": {
-                "nodemon": "^3.1.4"
+                "nodemon": "^3.1.4",
+                "supertest": "^7.1.1"
         }
 }
