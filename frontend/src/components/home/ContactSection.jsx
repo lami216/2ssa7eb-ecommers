@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { HOME_PLANS } from "./pricingData";
 import { SALES_WHATSAPP_URL, extractWhatsAppNumber } from "../../lib/whatsapp";
 
@@ -7,7 +7,7 @@ const PAYMENT_OPTIONS = [
         { value: "yearly", label: "سنوي" },
 ];
 
-const ContactSection = () => {
+const StartStoreForm = memo(() => {
         const [formData, setFormData] = useState({
                 name: "",
                 businessType: "",
@@ -16,12 +16,12 @@ const ContactSection = () => {
                 idea: "",
         });
 
-        const handleChange = (event) => {
+        const handleChange = useCallback((event) => {
                 const { name, value } = event.target;
                 setFormData((prev) => ({ ...prev, [name]: value }));
-        };
+        }, []);
 
-        const handleSubmit = (event) => {
+        const handleSubmit = useCallback((event) => {
                 event.preventDefault();
                 const selectedPlan = HOME_PLANS.find((plan) => plan.id === formData.planId);
                 const whatsappNumber = extractWhatsAppNumber(SALES_WHATSAPP_URL);
@@ -39,33 +39,42 @@ const ContactSection = () => {
 
                 const encodedMessage = encodeURIComponent(messageLines.join("\n"));
                 window.open(`https://wa.me/${whatsappNumber}?text=${encodedMessage}`, "_blank", "noopener,noreferrer");
-        };
+        }, [formData]);
+
+        return (
+                <form onSubmit={handleSubmit} className='mx-auto mt-8 grid max-w-3xl gap-4 glass-card p-6'>
+                        <input name='name' value={formData.name} onChange={handleChange} required placeholder='الاسم' className='glass-input' />
+                        <input name='businessType' value={formData.businessType} onChange={handleChange} required placeholder='نوع النشاط' className='glass-input' />
+                        <select name='planId' value={formData.planId} onChange={handleChange} className='glass-input' required>
+                                {HOME_PLANS.map((plan) => (
+                                        <option key={plan.id} value={plan.id}>
+                                                {plan.name}
+                                        </option>
+                                ))}
+                        </select>
+                        <select name='paymentType' value={formData.paymentType} onChange={handleChange} className='glass-input' required>
+                                {PAYMENT_OPTIONS.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                                {option.label}
+                                        </option>
+                                ))}
+                        </select>
+                        <textarea name='idea' value={formData.idea} onChange={handleChange} placeholder='فكرة المشروع (اختياري)' className='glass-input min-h-28' />
+                        <button type='submit' className='btn-primary mt-2'>
+                                إرسال عبر واتساب
+                        </button>
+                </form>
+        );
+});
+
+StartStoreForm.displayName = "StartStoreForm";
+
+const ContactSection = () => {
 
         return (
                 <section id='start-store' className='mt-16'>
                         <h2 className='text-center text-3xl font-bold text-payzone-gold'>ابدأ متجرك الآن</h2>
-                        <form onSubmit={handleSubmit} className='mx-auto mt-8 grid max-w-3xl gap-4 glass-card p-6'>
-                                <input name='name' value={formData.name} onChange={handleChange} required placeholder='الاسم' className='glass-input' />
-                                <input name='businessType' value={formData.businessType} onChange={handleChange} required placeholder='نوع النشاط' className='glass-input' />
-                                <select name='planId' value={formData.planId} onChange={handleChange} className='glass-input' required>
-                                        {HOME_PLANS.map((plan) => (
-                                                <option key={plan.id} value={plan.id}>
-                                                        {plan.name}
-                                                </option>
-                                        ))}
-                                </select>
-                                <select name='paymentType' value={formData.paymentType} onChange={handleChange} className='glass-input' required>
-                                        {PAYMENT_OPTIONS.map((option) => (
-                                                <option key={option.value} value={option.value}>
-                                                        {option.label}
-                                                </option>
-                                        ))}
-                                </select>
-                                <textarea name='idea' value={formData.idea} onChange={handleChange} placeholder='فكرة المشروع (اختياري)' className='glass-input min-h-28' />
-                                <button type='submit' className='btn-primary mt-2'>
-                                        إرسال عبر واتساب
-                                </button>
-                        </form>
+                        <StartStoreForm />
                 </section>
         );
 };
